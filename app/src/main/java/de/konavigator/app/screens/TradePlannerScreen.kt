@@ -43,6 +43,7 @@ private val BorderColor = Color(0xFF283740)
 private val PrimaryText = Color(0xFFF3F4F6)
 private val SecondaryText = Color(0xFF9CA3AF)
 private val AccentGreen = Color(0xFF20C967)
+private val DangerRed = Color(0xFFFF4D4D)
 
 @Composable
 fun TradePlannerScreen() {
@@ -52,6 +53,57 @@ fun TradePlannerScreen() {
     var entryPrice by remember { mutableStateOf("95,00") }
     var leverage by remember { mutableStateOf("3") }
     var direction by remember { mutableStateOf("Long") }
+    var showOrderHint by remember { mutableStateOf(true) }
+    val accentColor =
+        if (direction == "Long") AccentGreen else DangerRed
+    val current = currentPrice
+        .replace(",", ".")
+        .toDoubleOrNull()
+
+    val entry = entryPrice
+        .replace(",", ".")
+        .toDoubleOrNull()
+
+    val orderType = when {
+        current == null || entry == null -> ""
+
+        direction == "Long" && entry < current ->
+            "Buy Limit"
+
+        direction == "Long" && entry > current ->
+            "Buy Stop"
+
+        direction == "Short" && entry > current ->
+            "Sell Limit"
+
+        direction == "Short" && entry < current ->
+            "Sell Stop"
+
+        else ->
+            "Market"
+    }
+
+            val orderExplanation = when (orderType) {
+            "Buy Limit" ->
+                "Du versuchst, unterhalb des aktuellen Kurses günstiger einzusteigen. Der Kauf erfolgt nur, wenn der Basiswert deinen Kaufkurs erreicht."
+
+            "Buy Stop" ->
+                "Du steigst erst ein, wenn der Basiswert über deinen Kaufkurs steigt. Das eignet sich beispielsweise für einen bestätigten Ausbruch."
+
+            "Sell Limit" ->
+                "Du planst den Short-Einstieg oberhalb des aktuellen Kurses. Die Order wird erst bei Erreichen des Verkaufskurses ausgelöst."
+
+            "Sell Stop" ->
+                "Du steigst erst ein, wenn der Basiswert unter deinen Verkaufskurs fällt. Das eignet sich beispielsweise für einen bestätigten Abwärtstrend."
+
+            "Market" ->
+                "Der geplante Einstieg entspricht ungefähr dem aktuellen Kurs und würde grundsätzlich sofort ausgeführt."
+
+            else ->
+                "Bitte gib einen gültigen aktuellen Kurs und Einstiegskurs ein."
+
+
+    }
 
     Column(
         modifier = Modifier
@@ -104,7 +156,8 @@ fun TradePlannerScreen() {
                 PlannerTextField(
                     label = "Basiswert",
                     value = underlying,
-                    onValueChange = { underlying = it }
+                    onValueChange = { underlying = it },
+                            accentColor = accentColor
                 )
 
                 PlannerTextField(
@@ -112,7 +165,9 @@ fun TradePlannerScreen() {
                     value = currentPrice,
                     onValueChange = { currentPrice = it },
                     numeric = true,
-                    suffix = "€"
+                    suffix = "€",
+                            accentColor = accentColor
+
                 )
 
                 PlannerTextField(
@@ -120,14 +175,16 @@ fun TradePlannerScreen() {
                     value = entryPrice,
                     onValueChange = { entryPrice = it },
                     numeric = true,
-                    suffix = "€"
+                    suffix = "€",
+                            accentColor = accentColor
                 )
 
                 PlannerTextField(
                     label = "Hebel",
                     value = leverage,
                     onValueChange = { leverage = it },
-                    numeric = true
+                    numeric = true,
+                            accentColor = accentColor
                 )
 
                 Text(
@@ -143,13 +200,15 @@ fun TradePlannerScreen() {
                     DirectionOption(
                         text = "Long",
                         selected = direction == "Long",
-                        onClick = { direction = "Long" }
+                        onClick = { direction = "Long" },
+                        accentColor = accentColor
                     )
 
                     DirectionOption(
                         text = "Short",
                         selected = direction == "Short",
-                        onClick = { direction = "Short" }
+                        onClick = { direction = "Short" },
+                        accentColor = accentColor
                     )
                 }
 
@@ -164,7 +223,9 @@ fun TradePlannerScreen() {
                         .height(58.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentGreen,
+                        containerColor =
+                            if (direction == "Long") AccentGreen
+                            else DangerRed,
                         contentColor = Color.Black
                     )
                 ) {
@@ -184,8 +245,10 @@ private fun PlannerTextField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
+    accentColor: Color,
     numeric: Boolean = false,
     suffix: String? = null
+
 ) {
     OutlinedTextField(
         value = value,
@@ -211,11 +274,11 @@ private fun PlannerTextField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = PrimaryText,
             unfocusedTextColor = PrimaryText,
-            focusedLabelColor = AccentGreen,
+            focusedLabelColor = accentColor,
             unfocusedLabelColor = SecondaryText,
-            focusedBorderColor = AccentGreen,
+            focusedBorderColor = accentColor,
             unfocusedBorderColor = BorderColor,
-            cursorColor = AccentGreen,
+            cursorColor = accentColor,
             focusedContainerColor = CardBackground,
             unfocusedContainerColor = CardBackground
         )
@@ -226,14 +289,15 @@ private fun PlannerTextField(
 private fun DirectionOption(
     text: String,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    accentColor: Color
 ) {
     Row {
         RadioButton(
             selected = selected,
             onClick = onClick,
             colors = RadioButtonDefaults.colors(
-                selectedColor = AccentGreen,
+                selectedColor = accentColor,
                 unselectedColor = SecondaryText
             )
         )
