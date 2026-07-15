@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -211,6 +212,39 @@ fun TradePlannerScreen() {
                         accentColor = accentColor
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = orderType,
+                    color = accentColor,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                if (showOrderHint) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = orderExplanation,
+                    color = SecondaryText,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                )
+            }
+                TextButton(
+                    onClick = {
+                        showOrderHint = !showOrderHint
+                    }
+                ) {
+                    Text(
+                        text = if (showOrderHint) {
+                            "Hinweis ausblenden"
+                        } else {
+                            "Hinweis anzeigen"
+                        },
+                        color = SecondaryText
+                    )
+                }
+
 
                 Spacer(modifier = Modifier.height(4.dp))
 
