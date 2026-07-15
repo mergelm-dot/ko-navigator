@@ -1,6 +1,10 @@
 package de.konavigator.app
 
+import de.konavigator.app.screens.TradePlannerScreen
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import android.os.Bundle
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -47,12 +51,22 @@ private val PrimaryText = Color(0xFFF3F4F6)
 private val SecondaryText = Color(0xFF9CA3AF)
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(
+                scrim = android.graphics.Color.rgb(4, 10, 14)
+            ),
+            navigationBarStyle = SystemBarStyle.dark(
+                scrim = android.graphics.Color.rgb(4, 10, 14)
+            )
+        )
+
         setContent {
             KONavigatorTheme {
-                KoNavigatorScreen()
+                TradePlannerScreen()
             }
         }
     }
@@ -75,13 +89,19 @@ fun KoNavigatorScreen() {
         0.0
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
+        ) {
+
         Text(
             text = "KO Navigator",
             color = PrimaryText,
@@ -240,6 +260,7 @@ fun KoNavigatorScreen() {
         }
 
         Spacer(modifier = Modifier.height(30.dp))
+    }
     }
 }
 
