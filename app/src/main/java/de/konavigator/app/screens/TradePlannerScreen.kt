@@ -1,6 +1,8 @@
 package de.konavigator.app.screens
 
 import androidx.compose.foundation.background
+import de.konavigator.app.components.IssuerSelector
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import de.konavigator.app.models.IssuerOption
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -78,6 +81,17 @@ fun TradePlannerScreen() {
         "flatex",
         "Alle Broker"
     )
+    val issuers = remember {
+        mutableStateListOf(
+            IssuerOption("hsbc", "HSBC"),
+            IssuerOption("ubs", "UBS"),
+            IssuerOption("societe_generale", "Société Générale")
+        )
+    }
+
+    var issuerExpanded by remember {
+        mutableStateOf(false)
+    }
     val accentColor =
         if (direction == "Long") AccentGreen else DangerRed
     val current = currentPrice
@@ -236,6 +250,13 @@ fun TradePlannerScreen() {
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                IssuerSelector(
+                    issuers = issuers
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 PlannerTextField(
                     label = "Aktueller Kurs",
