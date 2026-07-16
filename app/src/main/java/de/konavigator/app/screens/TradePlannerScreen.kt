@@ -15,6 +15,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -46,6 +51,7 @@ private val SecondaryText = Color(0xFF9CA3AF)
 private val AccentGreen = Color(0xFF20C967)
 private val DangerRed = Color(0xFFFF4D4D)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TradePlannerScreen() {
 
@@ -55,6 +61,23 @@ fun TradePlannerScreen() {
     var leverage by remember { mutableStateOf("3") }
     var direction by remember { mutableStateOf("Long") }
     var showOrderHint by remember { mutableStateOf(true) }
+    var selectedBroker by remember {
+        mutableStateOf("Scalable Capital")
+    }
+
+    var brokerMenuExpanded by remember {
+        mutableStateOf(false)
+    }
+
+    val brokers = listOf(
+        "Scalable Capital",
+        "Trade Republic",
+        "ING",
+        "comdirect",
+        "Consorsbank",
+        "flatex",
+        "Alle Broker"
+    )
     val accentColor =
         if (direction == "Long") AccentGreen else DangerRed
     val current = currentPrice
@@ -160,6 +183,59 @@ fun TradePlannerScreen() {
                     onValueChange = { underlying = it },
                             accentColor = accentColor
                 )
+                ExposedDropdownMenuBox(
+                    expanded = brokerMenuExpanded,
+                    onExpandedChange = {
+                        brokerMenuExpanded = !brokerMenuExpanded
+                    }
+                ) {
+                    OutlinedTextField(
+                        value = selectedBroker,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                        label = {
+                            Text("Broker")
+                        },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(
+                                expanded = brokerMenuExpanded
+                            )
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = PrimaryText,
+                            unfocusedTextColor = PrimaryText,
+                            focusedLabelColor = accentColor,
+                            unfocusedLabelColor = SecondaryText,
+                            focusedBorderColor = accentColor,
+                            unfocusedBorderColor = BorderColor,
+                            focusedContainerColor = CardBackground,
+                            unfocusedContainerColor = CardBackground
+                        )
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = brokerMenuExpanded,
+                        onDismissRequest = {
+                            brokerMenuExpanded = false
+                        }
+                    ) {
+                        brokers.forEach { broker ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(broker)
+                                },
+                                onClick = {
+                                    selectedBroker = broker
+                                    brokerMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 PlannerTextField(
                     label = "Aktueller Kurs",
