@@ -37,8 +37,15 @@ object TradeCalculationEngine {
                         input.plannedEntryPrice
             ) * 100.0
 
+        val certificatePrice =
+            KoCalculator.calculateCertificatePrice(
+                underlyingPrice = input.plannedEntryPrice,
+                knockoutPrice = knockoutPrice,
+                ratio = input.ratio
+            )
+
         return TradeCalculationResult(
-            certificatePrice = 0.0,
+            certificatePrice = certificatePrice,
             underlyingPrice = input.plannedEntryPrice,
             leverage = input.leverage,
             knockoutPrice = knockoutPrice,
