@@ -25,3 +25,22 @@
 - [ ] Filtern
 - [ ] Bewerten
 - [ ] Ergebnisliste
+
+## Phase 4 – UI-Verfeinerung
+
+### Asset-Info im TradingView-Stil
+
+Status: Geplant
+
+Darstellung nach Auswahl eines Basiswertes:
+
+🟩 NVIDIA
+NVDA • NASDAQ • USD
+
+Ziele:
+- kleines Firmenlogo links
+- Firmenname groß
+- Ticker • Börse • Währung in einer Zeile
+- kompakte Darstellung
+- professioneller TradingView-/Broker-Look
+- Umsetzung erst nach Fertigstellung der Berechnungs-Engine

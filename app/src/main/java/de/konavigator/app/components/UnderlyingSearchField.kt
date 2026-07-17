@@ -30,6 +30,10 @@ import androidx.compose.ui.window.PopupProperties
 import de.konavigator.app.models.UnderlyingAsset
 import de.konavigator.app.search.UnderlyingSearchEngine
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import java.util.Locale
+
 @Composable
 fun UnderlyingSearchField(
     value: String,
@@ -111,7 +115,7 @@ private fun UnderlyingSearchResultItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         asset.logoResId?.let { logoResId ->
@@ -127,20 +131,40 @@ private fun UnderlyingSearchResultItem(
             )
         }
 
-        Column {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
                 text = asset.displayName,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
             )
 
             Text(
                 text = asset.name,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp
             )
 
             Text(
-                text = "${asset.ticker} · ${asset.referenceExchange} · ${asset.currency}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "${asset.ticker} · ${asset.referenceExchange}",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp
+            )
+        }
+
+        asset.currentPrice?.let { price ->
+            Text(
+                text = String.format(
+                    Locale.GERMANY,
+                    "%.2f %s",
+                    price,
+                    asset.currency
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

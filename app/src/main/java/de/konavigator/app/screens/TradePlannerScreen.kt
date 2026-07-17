@@ -119,6 +119,8 @@ fun TradePlannerScreen() {
                 difference
             )
         }
+    val selectedCurrency =
+        selectedAsset?.currency ?: "EUR"
 
     val orderType = when {
         current == null || entry == null -> ""
@@ -229,6 +231,23 @@ fun TradePlannerScreen() {
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                selectedAsset?.let { asset ->
+                    Text(
+                        text = "Börse: ${asset.referenceExchange}",
+                        color = SecondaryText
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Währung: ${asset.currency}",
+                        color = SecondaryText
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
                 ExposedDropdownMenuBox(
                     expanded = brokerMenuExpanded,
                     onExpandedChange = {
@@ -295,9 +314,8 @@ fun TradePlannerScreen() {
                     value = currentPrice,
                     onValueChange = { currentPrice = it },
                     numeric = true,
-                    suffix = "€",
-                            accentColor = accentColor
-
+                    suffix = selectedCurrency,
+                    accentColor = accentColor
                 )
 
                 PlannerTextField(
@@ -305,7 +323,7 @@ fun TradePlannerScreen() {
                     value = entryPrice,
                     onValueChange = { entryPrice = it },
                     numeric = true,
-                    suffix = "€",
+                    suffix = selectedCurrency,
                     differenceText = entryDifferenceText,
                     accentColor = accentColor
                 )
