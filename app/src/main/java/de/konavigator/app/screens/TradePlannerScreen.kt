@@ -1,6 +1,7 @@
 package de.konavigator.app.screens
 
 import androidx.compose.foundation.background
+import de.konavigator.app.components.UnderlyingSearchField
 import de.konavigator.app.components.IssuerSelector
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 
 private val AppBackground = Color(0xFF040A0E)
 private val CardBackground = Color(0xFF0C171D)
@@ -191,11 +193,13 @@ fun TradePlannerScreen() {
                     fontWeight = FontWeight.Bold
                 )
 
-                PlannerTextField(
-                    label = "Basiswert",
+                UnderlyingSearchField(
                     value = underlying,
                     onValueChange = { underlying = it },
-                            accentColor = accentColor
+                    onAssetSelected = { asset ->
+                        underlying = asset.name
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
                 ExposedDropdownMenuBox(
                     expanded = brokerMenuExpanded,
