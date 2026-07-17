@@ -51,9 +51,10 @@ fun CalculatorScreen() {
 
                 val price =
                     KoCalculator.calculateCertificatePrice(
-                        underlying.toDouble(),
-                        knockout.toDouble(),
-                        ratio.toDouble()
+                        underlyingPrice = underlying.toDouble(),
+                        knockoutPrice = knockout.toDouble(),
+                        ratio = ratio.toDouble(),
+                        isLong = true
                     )
 
                 result = "%.2f €".format(price)

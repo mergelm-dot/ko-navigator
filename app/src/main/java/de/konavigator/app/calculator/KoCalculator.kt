@@ -10,14 +10,27 @@ object KoCalculator {
     fun calculateCertificatePrice(
         underlyingPrice: Double,
         knockoutPrice: Double,
-        ratio: Double
+        ratio: Double,
+        isLong: Boolean
     ): Double {
 
-        if (underlyingPrice <= knockoutPrice) {
-            return 0.0
-        }
+        val price =
+            if (isLong) {
 
-        val price = (underlyingPrice - knockoutPrice) * ratio
+                if (underlyingPrice <= knockoutPrice) {
+                    return 0.0
+                }
+
+                (underlyingPrice - knockoutPrice) * ratio
+
+            } else {
+
+                if (underlyingPrice >= knockoutPrice) {
+                    return 0.0
+                }
+
+                (knockoutPrice - underlyingPrice) * ratio
+            }
 
         return round(price * 100) / 100
     }

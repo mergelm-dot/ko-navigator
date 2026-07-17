@@ -41,7 +41,8 @@ object TradeCalculationEngine {
             KoCalculator.calculateCertificatePrice(
                 underlyingPrice = input.plannedEntryPrice,
                 knockoutPrice = knockoutPrice,
-                ratio = input.ratio
+                ratio = input.ratio,
+                isLong = input.isLong
             )
 
         return TradeCalculationResult(
