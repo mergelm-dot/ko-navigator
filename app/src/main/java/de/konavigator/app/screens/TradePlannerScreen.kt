@@ -61,6 +61,7 @@ private val DangerRed = Color(0xFFFF4D4D)
 fun TradePlannerScreen() {
 
     var underlying by remember { mutableStateOf("NVIDIA") }
+    var selectedAsset by remember { mutableStateOf<de.konavigator.app.models.UnderlyingAsset?>(null) }
     var currentPrice by remember { mutableStateOf("100,00") }
     var entryPrice by remember { mutableStateOf("95,00") }
     var leverage by remember { mutableStateOf("3") }
@@ -103,6 +104,21 @@ fun TradePlannerScreen() {
     val entry = entryPrice
         .replace(",", ".")
         .toDoubleOrNull()
+    val entryDifferencePercent =
+        if (current != null && current != 0.0 && entry != null) {
+            ((entry - current) / current) * 100.0
+        } else {
+            null
+        }
+
+    val entryDifferenceText =
+        entryDifferencePercent?.let { difference ->
+            String.format(
+                java.util.Locale.GERMANY,
+                "%+.2f %%",
+                difference
+            )
+        }
 
     val orderType = when {
         current == null || entry == null -> ""
@@ -197,7 +213,19 @@ fun TradePlannerScreen() {
                     value = underlying,
                     onValueChange = { underlying = it },
                     onAssetSelected = { asset ->
-                        underlying = asset.name
+
+                        selectedAsset = asset
+
+                        underlying = asset.displayName
+
+                        val formattedPrice = String.format(
+                            java.util.Locale.GERMANY,
+                            "%.2f",
+                            asset.currentPrice ?: 0.0
+                        )
+
+                        currentPrice = formattedPrice
+                        entryPrice = formattedPrice
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -278,7 +306,8 @@ fun TradePlannerScreen() {
                     onValueChange = { entryPrice = it },
                     numeric = true,
                     suffix = "€",
-                            accentColor = accentColor
+                    differenceText = entryDifferenceText,
+                    accentColor = accentColor
                 )
 
                 PlannerTextField(
@@ -382,8 +411,8 @@ private fun PlannerTextField(
     onValueChange: (String) -> Unit,
     accentColor: Color,
     numeric: Boolean = false,
-    suffix: String? = null
-
+    suffix: String? = null,
+    differenceText: String? = null
 ) {
     OutlinedTextField(
         value = value,
@@ -393,8 +422,26 @@ private fun PlannerTextField(
             Text(label)
         },
         suffix = {
-            if (suffix != null) {
-                Text(suffix)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (differenceText != null) {
+                    Text(
+                        text = differenceText,
+                        color = when {
+                            differenceText.startsWith("+") -> AccentGreen
+                            differenceText.startsWith("-") ||
+                                    differenceText.startsWith("−") -> DangerRed
+                            else -> SecondaryText
+                        },
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                if (suffix != null) {
+                    Text(suffix)
+                }
             }
         },
         singleLine = true,
