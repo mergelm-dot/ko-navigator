@@ -10,6 +10,8 @@ data class TradeCalculationResult(
 
     val knockoutPrice: Double,
 
+    val distanceToKnockoutAbsolute: Double,
+
     val distanceToKnockoutPercent: Double,
 
     val isValid: Boolean,

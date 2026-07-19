@@ -15,10 +15,43 @@ import kotlin.math.round
  * Android- oder Compose-Abhängigkeiten sowie Anzeigeformatierung.
  *
  * Ist-Zustand: [calculateCertificatePrice] enthält noch eine vereinfachte
- * Preisberechnung einschließlich Rundung. Diese bekannte Abweichung bleibt in
- * diesem rein dokumentarischen Entwicklungsschritt unverändert.
+ * Preisberechnung einschließlich Rundung. Diese bekannte Abweichung bleibt bis
+ * zu einem gesondert freigegebenen Konsolidierungsschritt unverändert.
  */
 object KoCalculator {
+
+    /**
+     * Berechnet den gerichteten absoluten Abstand zwischen Basiswertkurs und
+     * KO-Barriere. Negative Ergebnisse bleiben erhalten.
+     */
+    fun calculateKnockoutDistanceAbsolute(
+        underlyingPrice: Double,
+        knockoutPrice: Double,
+        isLong: Boolean
+    ): Double {
+        return if (isLong) {
+            underlyingPrice - knockoutPrice
+        } else {
+            knockoutPrice - underlyingPrice
+        }
+    }
+
+    /**
+     * Berechnet den gerichteten KO-Abstand relativ zum Basiswertkurs in Prozent.
+     */
+    fun calculateKnockoutDistancePercent(
+        underlyingPrice: Double,
+        knockoutPrice: Double,
+        isLong: Boolean
+    ): Double {
+        val absoluteDistance = calculateKnockoutDistanceAbsolute(
+            underlyingPrice = underlyingPrice,
+            knockoutPrice = knockoutPrice,
+            isLong = isLong
+        )
+
+        return absoluteDistance / underlyingPrice * 100.0
+    }
 
     /**
      * Berechnet im aktuellen vereinfachten Ist-Modell den theoretischen Preis

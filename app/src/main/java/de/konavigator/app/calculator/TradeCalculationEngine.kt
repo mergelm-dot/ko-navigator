@@ -1,7 +1,5 @@
 package de.konavigator.app.calculator
 
-import kotlin.math.abs
-
 /**
  * Zentraler fachlicher Einstiegspunkt für vollständige Trade-Berechnungen.
  *
@@ -15,8 +13,8 @@ import kotlin.math.abs
  * Netzwerk-, Android- oder Compose-Verantwortung.
  *
  * Ist-Zustand: [calculateTrade] berechnet einzelne Formeln noch direkt und gibt
- * Meldungen als Benutzertext zurück. Diese bekannten Abweichungen bleiben in
- * diesem rein dokumentarischen Entwicklungsschritt unverändert.
+ * Meldungen als Benutzertext zurück. Diese bekannten Abweichungen bleiben bis
+ * zu gesondert freigegebenen Konsolidierungsschritten bestehen.
  */
 object TradeCalculationEngine {
 
@@ -47,11 +45,19 @@ object TradeCalculationEngine {
                         (1.0 + 1.0 / input.leverage)
             }
 
+        val distanceToKnockoutAbsolute =
+            KoCalculator.calculateKnockoutDistanceAbsolute(
+                underlyingPrice = input.plannedEntryPrice,
+                knockoutPrice = knockoutPrice,
+                isLong = input.isLong
+            )
+
         val distanceToKnockoutPercent =
-            abs(
-                (input.plannedEntryPrice - knockoutPrice) /
-                        input.plannedEntryPrice
-            ) * 100.0
+            KoCalculator.calculateKnockoutDistancePercent(
+                underlyingPrice = input.plannedEntryPrice,
+                knockoutPrice = knockoutPrice,
+                isLong = input.isLong
+            )
 
         val certificatePrice =
             KoCalculator.calculateCertificatePrice(
@@ -66,6 +72,7 @@ object TradeCalculationEngine {
             underlyingPrice = input.plannedEntryPrice,
             leverage = input.leverage,
             knockoutPrice = knockoutPrice,
+            distanceToKnockoutAbsolute = distanceToKnockoutAbsolute,
             distanceToKnockoutPercent = distanceToKnockoutPercent,
             isValid = true,
             message = "Theoretische KO-Barriere erfolgreich berechnet."
@@ -81,6 +88,7 @@ object TradeCalculationEngine {
             underlyingPrice = input.plannedEntryPrice,
             leverage = input.leverage,
             knockoutPrice = 0.0,
+            distanceToKnockoutAbsolute = 0.0,
             distanceToKnockoutPercent = 0.0,
             isValid = false,
             message = message
