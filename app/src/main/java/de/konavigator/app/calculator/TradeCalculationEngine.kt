@@ -2,6 +2,22 @@ package de.konavigator.app.calculator
 
 import kotlin.math.abs
 
+/**
+ * Zentraler fachlicher Einstiegspunkt für vollständige Trade-Berechnungen.
+ *
+ * Die Zielverantwortung umfasst die Entgegennahme und fachliche Validierung
+ * zusammengehöriger Eingaben, die Festlegung der notwendigen Rechenschritte,
+ * den Aufruf reiner Calculator-Komponenten sowie das Zusammenführen von
+ * Ergebnissen, Status, Warnungen und strukturierten Fehlern.
+ *
+ * Die Engine enthält langfristig keine eigenen mathematischen Fachformeln und
+ * übernimmt weder UI-State, Anzeigeformatierung, Benutzertexte noch Repository-,
+ * Netzwerk-, Android- oder Compose-Verantwortung.
+ *
+ * Ist-Zustand: [calculateTrade] berechnet einzelne Formeln noch direkt und gibt
+ * Meldungen als Benutzertext zurück. Diese bekannten Abweichungen bleiben in
+ * diesem rein dokumentarischen Entwicklungsschritt unverändert.
+ */
 object TradeCalculationEngine {
 
     fun calculateTrade(
