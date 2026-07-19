@@ -70,6 +70,14 @@ Die `TradeCalculationEngine` ruft für beide Abstände den `KoCalculator` auf un
 
 Die vorhandene Validierung, KO-Statusmodellierung, Zertifikatspreisformel, Rundung der Zertifikatspreisberechnung und weitere bekannte Altprobleme bleiben in diesem bewusst begrenzten Schritt unverändert.
 
+### Konsolidierungsschritt 3 – Eingaben der theoretischen KO-Barrierenberechnung validiert
+
+Die `TradeCalculationEngine` validiert den tatsächlich verwendeten geplanten Einstiegskurs nun auf Endlichkeit und einen Wert größer als `0`. Der Zielhebel wird auf Endlichkeit und einen Wert größer als `1` geprüft. Nach der unveränderten Ableitung der theoretischen KO-Barriere wird auch dieses Ergebnis defensiv auf Endlichkeit und einen positiven Wert geprüft, bevor weitere Berechnungen ausgeführt werden.
+
+Validierungsfehler werden zusätzlich zum vorläufig beibehaltenen Freitext über die strukturierten Codes `INVALID_PLANNED_ENTRY_PRICE`, `INVALID_TARGET_LEVERAGE` und `INVALID_DERIVED_KNOCKOUT_PRICE` ausgegeben. Die bestehenden `0.0`-Ersatzwerte ungültiger Resultate bleiben als bekannte Abweichung für einen späteren, gesonderten Konsolidierungsschritt erhalten.
+
+Eine direkte KO-Barriere wurde nicht zum Inputmodell ergänzt: Dieser Ablauf plant eine theoretische Barriere aus Einstiegskurs, Zielhebel und Richtung. Die Bewertung bestehender Produkte mit fester KO-Barriere bleibt ein separater späterer Anwendungsfall. Die genaue Rolle von `underlyingPrice` im aktuellen Berechnungspfad bleibt **OFFEN**; das Feld wird in diesem Schritt weder umgedeutet noch zusätzlich verwendet oder validiert.
+
 ---
 
 ## Fachliche Annahmen

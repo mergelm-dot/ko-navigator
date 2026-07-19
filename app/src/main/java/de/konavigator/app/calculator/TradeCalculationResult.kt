@@ -16,5 +16,7 @@ data class TradeCalculationResult(
 
     val isValid: Boolean,
 
-    val message: String = ""
+    val message: String = "",
+
+    val error: TradeCalculationError? = null
 )

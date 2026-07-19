@@ -22,17 +22,19 @@ object TradeCalculationEngine {
         input: TradeCalculationInput
     ): TradeCalculationResult {
 
-        if (input.plannedEntryPrice <= 0.0) {
+        if (!input.plannedEntryPrice.isFinite() || input.plannedEntryPrice <= 0.0) {
             return invalidResult(
                 input = input,
-                message = "Der geplante Einstiegskurs muss größer als 0 sein."
+                error = TradeCalculationError.INVALID_PLANNED_ENTRY_PRICE,
+                message = "Der geplante Einstiegskurs muss endlich und größer als 0 sein."
             )
         }
 
-        if (input.leverage <= 1.0) {
+        if (!input.leverage.isFinite() || input.leverage <= 1.0) {
             return invalidResult(
                 input = input,
-                message = "Der Hebel muss größer als 1 sein."
+                error = TradeCalculationError.INVALID_TARGET_LEVERAGE,
+                message = "Der Zielhebel muss endlich und größer als 1 sein."
             )
         }
 
@@ -44,6 +46,14 @@ object TradeCalculationEngine {
                 input.plannedEntryPrice *
                         (1.0 + 1.0 / input.leverage)
             }
+
+        if (!knockoutPrice.isFinite() || knockoutPrice <= 0.0) {
+            return invalidResult(
+                input = input,
+                error = TradeCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE,
+                message = "Die berechnete theoretische KO-Barriere ist ungültig."
+            )
+        }
 
         val distanceToKnockoutAbsolute =
             KoCalculator.calculateKnockoutDistanceAbsolute(
@@ -75,12 +85,14 @@ object TradeCalculationEngine {
             distanceToKnockoutAbsolute = distanceToKnockoutAbsolute,
             distanceToKnockoutPercent = distanceToKnockoutPercent,
             isValid = true,
-            message = "Theoretische KO-Barriere erfolgreich berechnet."
+            message = "Theoretische KO-Barriere erfolgreich berechnet.",
+            error = null
         )
     }
 
     private fun invalidResult(
         input: TradeCalculationInput,
+        error: TradeCalculationError,
         message: String
     ): TradeCalculationResult {
         return TradeCalculationResult(
@@ -91,7 +103,8 @@ object TradeCalculationEngine {
             distanceToKnockoutAbsolute = 0.0,
             distanceToKnockoutPercent = 0.0,
             isValid = false,
-            message = message
+            message = message,
+            error = error
         )
     }
 }
