@@ -92,6 +92,12 @@ Direkte Charakterisierungstests sichern das bestehende Long- und Short-Verhalten
 
 Formel, Funktionssignatur und Feldname `certificatePrice` bleiben in diesem Schritt unverändert. `PriceConverter` bleibt als bekannte parallele Altimplementierung bewusst ebenfalls unverändert. Die spätere Trennung von Basispreis, KO-Barriere, innerem Wert und Modellpreis ist weiterhin **OFFEN** und erfordert einen gesondert freigegebenen Entwicklungsschritt.
 
+### Konsolidierungsschritt 6 – Ungerundeten inneren Wert isoliert ergänzt
+
+`KoCalculator.calculateIntrinsicValue` berechnet den inneren Wert für Long und Short mit einem separaten Basispreis und wendet das Bezugsverhältnis genau einmal an. Negative Differenzen werden vor der Ratio-Anwendung auf `0` begrenzt. Die reine Funktion rundet nicht und enthält weder Währungsumrechnung noch Finanzierung, Premium, Bid, Ask oder Spread; ihr Ergebnis ist weder ein vollständiger Modellpreis noch ein realer Emittentenpreis.
+
+Die Funktion ist bewusst nicht an die `TradeCalculationEngine` oder einen anderen bestehenden Berechnungsablauf angebunden. Der aktuelle Planungsablauf, `TradeCalculationInput`, `TradeCalculationResult`, `calculateCertificatePrice` und `PriceConverter` bleiben unverändert. Die strukturierte Validierung der vorausgesetzten positiven, endlichen Eingaben und ein getrenntes Produktmodell für Basispreis, KO-Barriere, Ratio, Richtung und Währungen bleiben **OFFEN**.
+
 ---
 
 ## Fachliche Annahmen

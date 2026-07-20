@@ -54,6 +54,36 @@ object KoCalculator {
     }
 
     /**
+     * Berechnet den inneren Wert mit einem separaten Basispreis.
+     *
+     * Basispreis und KO-Barriere sind fachlich unterschiedliche Größen. Long
+     * verwendet `max(underlyingPrice - basePrice, 0) * ratio`, Short verwendet
+     * `max(basePrice - underlyingPrice, 0) * ratio`. Die Funktion rundet nicht;
+     * der Rückgabewert liegt zunächst in der durch die Eingabedaten bestimmten
+     * Preiseinheit.
+     *
+     * Wechselkurs, Finanzierung, Premium, Bid, Ask und Spread sind nicht
+     * enthalten. Das Ergebnis ist weder ein vollständiger Modellpreis noch ein
+     * realer Emittentenpreis. Die Eingabevalidierung erfolgt außerhalb dieser
+     * reinen Funktion. Sie ist nicht mit der bestehenden Übergangsfunktion
+     * [calculateCertificatePrice] gleichzusetzen.
+     */
+    fun calculateIntrinsicValue(
+        underlyingPrice: Double,
+        basePrice: Double,
+        ratio: Double,
+        isLong: Boolean
+    ): Double {
+        val difference = if (isLong) {
+            underlyingPrice - basePrice
+        } else {
+            basePrice - underlyingPrice
+        }
+
+        return maxOf(difference, 0.0) * ratio
+    }
+
+    /**
      * Charakterisiert die bestehende Übergangsberechnung eines gerundeten,
      * ratio-skalierten KO-Differenzwerts.
      *

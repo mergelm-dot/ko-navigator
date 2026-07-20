@@ -223,7 +223,142 @@ class KoCalculatorTest {
         assertEquals(2.0, price, TOLERANCE)
     }
 
+    @Test
+    fun longIntrinsicValueInTheMoneyUsesBasePrice() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 100.0,
+            basePrice = 80.0,
+            ratio = 0.01,
+            isLong = true
+        )
+
+        assertEquals(0.20, intrinsicValue, TOLERANCE)
+    }
+
+    @Test
+    fun longIntrinsicValueAtBasePriceIsZero() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 100.0,
+            basePrice = 100.0,
+            ratio = 0.01,
+            isLong = true
+        )
+
+        assertEquals(0.0, intrinsicValue, TOLERANCE)
+    }
+
+    @Test
+    fun longIntrinsicValueBelowBasePriceIsZero() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 90.0,
+            basePrice = 100.0,
+            ratio = 0.01,
+            isLong = true
+        )
+
+        assertEquals(0.0, intrinsicValue, TOLERANCE)
+    }
+
+    @Test
+    fun shortIntrinsicValueInTheMoneyUsesBasePrice() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 100.0,
+            basePrice = 120.0,
+            ratio = 0.01,
+            isLong = false
+        )
+
+        assertEquals(0.20, intrinsicValue, TOLERANCE)
+    }
+
+    @Test
+    fun shortIntrinsicValueAtBasePriceIsZero() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 100.0,
+            basePrice = 100.0,
+            ratio = 0.01,
+            isLong = false
+        )
+
+        assertEquals(0.0, intrinsicValue, TOLERANCE)
+    }
+
+    @Test
+    fun shortIntrinsicValueAboveBasePriceIsZero() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 110.0,
+            basePrice = 100.0,
+            ratio = 0.01,
+            isLong = false
+        )
+
+        assertEquals(0.0, intrinsicValue, TOLERANCE)
+    }
+
+    @Test
+    fun intrinsicValueUsesSeparateBasePriceInsteadOfKnockoutBarrier() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 100.0,
+            basePrice = 78.0,
+            ratio = 0.1,
+            isLong = true
+        )
+
+        assertEquals(2.2, intrinsicValue, TOLERANCE)
+    }
+
+    @Test
+    fun intrinsicValueAppliesRatioZeroPointZeroOne() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 150.0,
+            basePrice = 100.0,
+            ratio = 0.01,
+            isLong = true
+        )
+
+        assertEquals(0.5, intrinsicValue, TOLERANCE)
+    }
+
+    @Test
+    fun intrinsicValueAppliesRatioExactlyOnce() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 100.0,
+            basePrice = 80.0,
+            ratio = 0.1,
+            isLong = true
+        )
+
+        assertEquals(2.0, intrinsicValue, TOLERANCE)
+    }
+
+    @Test
+    fun intrinsicValuePreservesPrecisionWithoutInternalRounding() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 100.0,
+            basePrice = 66.6666,
+            ratio = 0.01,
+            isLong = true
+        )
+
+        assertEquals(0.333334, intrinsicValue, TOLERANCE)
+        assertTrue(kotlin.math.abs(intrinsicValue - 0.33) > TOLERANCE)
+    }
+
+    @Test
+    fun intrinsicValueCalculatesVeryLargeFiniteResult() {
+        val intrinsicValue = KoCalculator.calculateIntrinsicValue(
+            underlyingPrice = 1.0e150,
+            basePrice = 5.0e149,
+            ratio = 0.1,
+            isLong = true
+        )
+
+        assertTrue(intrinsicValue.isFinite())
+        assertEquals(5.0e148, intrinsicValue, LARGE_VALUE_TOLERANCE)
+    }
+
     private companion object {
         const val TOLERANCE = 1e-9
+        const val LARGE_VALUE_TOLERANCE = 1e138
     }
 }
