@@ -2,6 +2,7 @@ package de.konavigator.app.calculator
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -102,9 +103,14 @@ class TradeCalculationEngineTest {
 
         assertTrue(result.isValid)
         assertNull(result.error)
-        assertEquals(80.0, result.knockoutPrice, TOLERANCE)
-        assertEquals(20.0, result.distanceToKnockoutAbsolute, TOLERANCE)
-        assertEquals(20.0, result.distanceToKnockoutPercent, TOLERANCE)
+        assertNotNull(result.certificatePrice)
+        assertNotNull(result.knockoutPrice)
+        assertNotNull(result.distanceToKnockoutAbsolute)
+        assertNotNull(result.distanceToKnockoutPercent)
+        assertEquals(0.2, result.certificatePrice!!, TOLERANCE)
+        assertEquals(80.0, result.knockoutPrice!!, TOLERANCE)
+        assertEquals(20.0, result.distanceToKnockoutAbsolute!!, TOLERANCE)
+        assertEquals(20.0, result.distanceToKnockoutPercent!!, TOLERANCE)
     }
 
     @Test
@@ -117,9 +123,14 @@ class TradeCalculationEngineTest {
 
         assertTrue(result.isValid)
         assertNull(result.error)
-        assertEquals(120.0, result.knockoutPrice, TOLERANCE)
-        assertEquals(20.0, result.distanceToKnockoutAbsolute, TOLERANCE)
-        assertEquals(20.0, result.distanceToKnockoutPercent, TOLERANCE)
+        assertNotNull(result.certificatePrice)
+        assertNotNull(result.knockoutPrice)
+        assertNotNull(result.distanceToKnockoutAbsolute)
+        assertNotNull(result.distanceToKnockoutPercent)
+        assertEquals(0.2, result.certificatePrice!!, TOLERANCE)
+        assertEquals(120.0, result.knockoutPrice!!, TOLERANCE)
+        assertEquals(20.0, result.distanceToKnockoutAbsolute!!, TOLERANCE)
+        assertEquals(20.0, result.distanceToKnockoutPercent!!, TOLERANCE)
     }
 
     @Test
@@ -154,9 +165,10 @@ class TradeCalculationEngineTest {
     ) {
         assertFalse(result.isValid)
         assertEquals(expectedError, result.error)
-        assertEquals(0.0, result.knockoutPrice, TOLERANCE)
-        assertEquals(0.0, result.distanceToKnockoutAbsolute, TOLERANCE)
-        assertEquals(0.0, result.distanceToKnockoutPercent, TOLERANCE)
+        assertNull(result.certificatePrice)
+        assertNull(result.knockoutPrice)
+        assertNull(result.distanceToKnockoutAbsolute)
+        assertNull(result.distanceToKnockoutPercent)
     }
 
     private companion object {

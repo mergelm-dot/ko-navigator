@@ -78,6 +78,12 @@ Validierungsfehler werden zusätzlich zum vorläufig beibehaltenen Freitext übe
 
 Eine direkte KO-Barriere wurde nicht zum Inputmodell ergänzt: Dieser Ablauf plant eine theoretische Barriere aus Einstiegskurs, Zielhebel und Richtung. Die Bewertung bestehender Produkte mit fester KO-Barriere bleibt ein separater späterer Anwendungsfall. Die genaue Rolle von `underlyingPrice` im aktuellen Berechnungspfad bleibt **OFFEN**; das Feld wird in diesem Schritt weder umgedeutet noch zusätzlich verwendet oder validiert.
 
+### Konsolidierungsschritt 4 – Fehlerresultate ohne Ersatznullen modelliert
+
+Die rein berechneten Felder `certificatePrice`, `knockoutPrice`, `distanceToKnockoutAbsolute` und `distanceToKnockoutPercent` sind im `TradeCalculationResult` nun nullable. Bei einer fehlgeschlagenen Validierung oder einer ungültigen abgeleiteten KO-Barriere setzt die `TradeCalculationEngine` diese Felder auf `null`, weil kein fachlich belastbares Berechnungsergebnis vorliegt. Die zuvor verwendeten `0.0`-Ersatzwerte werden nicht mehr als scheinbar gültige Ergebnisse ausgegeben.
+
+Übernommene Eingabe- und Kontextwerte wie `underlyingPrice` und `leverage`, der bestehende Gültigkeitsstatus, der strukturierte Fehlercode und der vorläufige Freitext bleiben unverändert erhalten. Gültige Long- und Short-Ergebnisse enthalten weiterhin alle berechneten Werte. Dieser kleine Modellierungsschritt verändert keine Formel, Validierungsreihenfolge, Rundungslogik oder UI-Anbindung.
+
 ---
 
 ## Fachliche Annahmen

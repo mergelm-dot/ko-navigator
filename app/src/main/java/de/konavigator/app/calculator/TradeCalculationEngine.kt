@@ -96,12 +96,12 @@ object TradeCalculationEngine {
         message: String
     ): TradeCalculationResult {
         return TradeCalculationResult(
-            certificatePrice = 0.0,
+            certificatePrice = null,
             underlyingPrice = input.plannedEntryPrice,
             leverage = input.leverage,
-            knockoutPrice = 0.0,
-            distanceToKnockoutAbsolute = 0.0,
-            distanceToKnockoutPercent = 0.0,
+            knockoutPrice = null,
+            distanceToKnockoutAbsolute = null,
+            distanceToKnockoutPercent = null,
             isValid = false,
             message = message,
             error = error
