@@ -112,6 +112,12 @@ Erwartbare Fehler werden über das reine Enum `KnockoutProductValidationError` o
 
 Formale ISIN- und WKN-Prüfungen, eine echte ISO-4217-Listenprüfung, emittentenspezifische Regeln sowie Beziehungen zwischen Basispreis, KO-Barriere und Produktrichtung bleiben ausdrücklich **OFFEN**.
 
+### Konsolidierungsschritt 9 – Passives KO-Produktmarktdatenmodell eingeführt
+
+Mit `KnockoutProductMarketData` existiert ein vom statischen Produktmodell getrenntes Domainmodell für veränderliche KO-Produktmarktdaten. Bid und Ask sind unabhängig nullable und besitzen getrennte Zeitstempel in UTC Epoch Milliseconds. Die Quote-Währung und eine freie Datenquellen-ID werden ausdrücklich mitgeführt; eine automatische EUR-Annahme findet nicht statt. Fehlende Quotes bleiben `null` und werden nicht durch `0.0` ersetzt.
+
+Das Modell enthält weder Last noch Bid-/Ask-Stückzahlen, Spread, relativen Spread, Mid-Preis, Quote-Alter oder Qualitätsbewertung. Es besitzt keine Validierungslogik und ist nicht an Calculator, Engine, UI oder Repository angebunden. Strukturierte Quote-Validierung und reine Berechnungen abgeleiteter Marktdaten bleiben **OFFEN** und erfordern gesonderte Entwicklungsschritte.
+
 ---
 
 ## Fachliche Annahmen

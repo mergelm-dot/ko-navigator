@@ -50,6 +50,30 @@ Theoretische Modellwerte sind stets klar von realen Emittentenpreisen zu untersc
 
 Zusätzlich werden `Intrinsic` als innerer Wert, `InvestedAmount` als tatsächlich eingesetzter Gesamtbetrag, `ExitValue` als Nettoerlös und `PnL_abs` beziehungsweise `PnL_pct` als Gewinn oder Verlust verwendet. Währungen sind mit einem eindeutigen Währungscode, beispielsweise `EUR` oder `USD`, zu führen.
 
+### Handelbare Produktmarktdaten
+
+`P_bid` ist der aktuell verfügbare Verkaufspreis des KO-Produkts, `P_ask`
+der aktuell verfügbare Kaufpreis. Ein Last-Preis ist nur eine ergänzende
+Marktinformation und kein Ersatz für Bid oder Ask. Die Produkt- oder
+Quote-Währung darf nicht pauschal als EUR angenommen werden.
+
+Fehlende Bid- oder Ask-Seiten werden als `null` modelliert und nicht durch
+`0.0` ersetzt. Beide Seiten besitzen getrennte Zeitstempel, die in Version 1
+als UTC Epoch Milliseconds geführt werden. Quote-Währung und Datenquelle
+werden ausdrücklich gespeichert.
+
+Spread, relativer Spread und Mid-Preis werden nicht gespeichert, sondern
+später aus validierten, fachlich zusammengehörigen Quotes berechnet:
+
+```text
+absoluteSpread = ask - bid
+relativeSpreadToAskPercent = (ask - bid) / ask * 100
+midPrice = (bid + ask) / 2
+```
+
+Diese späteren reinen Berechnungen runden intern nicht. Last, Bid- und
+Ask-Stückzahlen sowie die konkrete Aktualitätspolitik bleiben **OFFEN**.
+
 ## 4. Produktrichtung
 
 ### Long

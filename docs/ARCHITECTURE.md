@@ -274,6 +274,24 @@ Repository besteht noch nicht. Formale ISIN- und WKN-Prüfungen, die Prüfung
 gegen eine echte ISO-Währungsliste sowie emittentenspezifische Regeln bleiben
 Gegenstand späterer, gesondert freizugebender Schritte.
 
+`KnockoutProductMarketData` ist ein separates passives Domainmodell für
+veränderliche Marktdaten eines konkreten KO-Produkts. Marktdaten werden nicht
+in `KnockoutProductSpecification` gespeichert; die Verbindung erfolgt zunächst
+ausschließlich über `productIsin`. Bid und Ask sind unabhängig nullable, damit
+auch unvollständige Quotes ohne Ersatzwerte dargestellt werden können.
+
+Getrennte Bid- und Ask-Zeitstempel bilden getrennte Aktualisierungen ab.
+`Long`-Felder mit ausdrücklicher UTC-Epoch-Millis-Semantik sind eine bewusste
+Version-1-Entscheidung. Eine spätere Migration zu `Instant` oder einem
+einheitlichen Zeittyp bleibt **OFFEN**. Quote-Währung und Datenquelle werden
+explizit mitgeführt; es gibt keine stille EUR-Annahme.
+
+Spread, relativer Spread, Mid-Preis, Quote-Alter und Qualitätsbewertung werden
+nicht im Marktdatenmodell gespeichert, sondern später separat aus validierten
+Daten abgeleitet. Eine Validator-, Calculator-, Engine-, UI- oder
+Repository-Anbindung besteht in diesem isolierten Modellierungsschritt noch
+nicht.
+
 Ob Geld- und Rechenwerte langfristig mit `Double`, `BigDecimal` oder spezialisierten Decimal-Typen umgesetzt werden, ist eine offene Architekturentscheidung. Bis dahin dürfen Typen keine fachlich falsche Genauigkeit vortäuschen.
 
 ## 9. Berechnungsengine
