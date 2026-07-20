@@ -182,6 +182,7 @@ de.konavigator.app
 ├── domain
 │   ├── model
 │   ├── calculator
+│   ├── availability
 │   ├── validation
 │   └── result
 ├── data
@@ -333,6 +334,29 @@ Calculator-, Engine-, UI- oder Repository-Anbindung besteht nicht. Erst eine
 spätere Orchestrierung führt interne Validierung, Kompatibilität,
 Vollständigkeit und Aktualität zusammen. Provider-Mapping und eine interne
 Produkt-ID bleiben **OFFEN**.
+
+Das Domain-Package `de.konavigator.app.domain.availability` enthält den
+zustandslosen `MarketDataCalculationAvailabilityEvaluator`. Er bewertet über
+genau eine öffentliche Funktion `evaluate` jeweils einen der vier Typen
+`PURCHASE_PRICE`, `SALE_PRICE`, `SPREAD` oder `MID`. Sein sealed Result-Typ
+unterscheidet ausschließlich `StructurallyAvailable` und
+`StructurallyUnavailable`; letzteres enthält eine stabile Liste der drei
+Availability-Fehlercodes `MISSING_BID`, `MISSING_ASK` und
+`BID_NOT_POSITIVE_FOR_SALE`.
+
+Der Evaluator setzt eine intern gültige Produktspezifikation, intern gültige
+Marktdaten und erfolgreiche Cross-Model-Kompatibilität voraus. Er ruft keine
+Validatoren auf und wiederholt weder interne numerische Preisregeln noch die
+durch den Marktdatenvalidator garantierte Preis-/Zeitstempel-Kohärenz. Die
+einzige zusätzliche anwendungsbezogene Preisregel ist, dass Bid `0.0` für
+`SALE_PRICE` nicht verfügbar ist; für `SPREAD` und `MID` bleibt dieser
+strukturell gültige Wert zulässig.
+
+Die Availability-Komponente führt keine Berechnung aus, liest keine Systemzeit
+und bewertet weder Aktualität noch Quellenqualität. Sie besitzt keine Android-,
+Compose-, Engine-, UI- oder Repository-Anbindung. Eine spätere Orchestrierung
+führt interne Validierung, Cross-Model-Kompatibilität, Availability, Freshness,
+Quellenpolicy und den getrennten Calculator-Aufruf zusammen.
 
 Ob Geld- und Rechenwerte langfristig mit `Double`, `BigDecimal` oder spezialisierten Decimal-Typen umgesetzt werden, ist eine offene Architekturentscheidung. Bis dahin dürfen Typen keine fachlich falsche Genauigkeit vortäuschen.
 

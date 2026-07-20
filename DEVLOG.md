@@ -142,6 +142,28 @@ Der zustandslose `KnockoutProductMarketDataCompatibilityValidator` prüft aussch
 
 Aktualität, Quellenqualität, Provider-Mapping, interne Produkt-ID, FX und Quanto bleiben außerhalb dieses Schritts. Es besteht keine Calculator-, Engine-, UI- oder Repository-Anbindung.
 
+### Konsolidierungsschritt 13 – Strukturelle Berechnungsverfügbarkeit eingeführt
+
+Der zustandslose `MarketDataCalculationAvailabilityEvaluator` bewertet für
+genau einen der vier Typen `PURCHASE_PRICE`, `SALE_PRICE`, `SPREAD` und `MID`,
+ob die dafür benötigten Quote-Seiten strukturell vorhanden sind. Kauf benötigt
+ausschließlich Ask, Verkauf einen vorhandenen Bid größer als `0.0`, und Spread
+sowie Mid benötigen Bid und Ask. Bid `0.0` bleibt für Spread und Mid zulässig,
+blockiert aber die Verkaufsverfügbarkeit.
+
+Die drei maschinenlesbaren Fehlercodes `MISSING_BID`, `MISSING_ASK` und
+`BID_NOT_POSITIVE_FOR_SALE` enthalten keine Benutzertexte. Der Evaluator setzt
+eine intern gültige Produktspezifikation, intern gültige Marktdaten und eine
+erfolgreiche Cross-Model-Kompatibilitätsprüfung voraus. Er ruft die Validatoren
+nicht selbst auf und wiederholt weder numerische Preisregeln noch die bereits
+durch den Marktdatenvalidator garantierte Preis-/Zeitstempel-Kohärenz.
+
+Die Komponente berechnet keine Werte und liest keine Systemzeit. Aktualität,
+Quellenqualität sowie eine Engine-, UI- oder Repository-Orchestrierung bleiben
+getrennten Folgeschritten vorbehalten. `StructurallyAvailable` ist deshalb
+weder eine vollständige fachliche Berechnungsfreigabe noch eine Aussage über
+Handelbarkeit oder eine erfolgreiche Berechnung.
+
 ---
 
 ## Fachliche Annahmen

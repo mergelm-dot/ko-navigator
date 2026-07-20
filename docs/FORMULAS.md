@@ -124,6 +124,35 @@ jedoch weder interne Modellvalidität, Bid-/Ask-Verfügbarkeit, Aktualität,
 Quellenqualität noch eine vollständige Berechnungsfreigabe. FX, Quanto,
 Provider-Mapping und eine spätere interne Produkt-ID bleiben **OFFEN**.
 
+### Strukturelle Berechnungsverfügbarkeit
+
+Strukturelle Availability ist keine mathematische Berechnung. Der
+`MarketDataCalculationAvailabilityEvaluator` setzt eine intern gültige
+Produktspezifikation, intern gültige Marktdaten und erfolgreiche
+Cross-Model-Kompatibilität voraus und prüft ausschließlich die für einen
+angefragten Berechnungstyp benötigten Quote-Seiten:
+
+- `PURCHASE_PRICE` benötigt Ask; Bid ist dafür irrelevant.
+- `SALE_PRICE` benötigt einen vorhandenen Bid größer als `0.0`; Ask ist dafür
+  irrelevant.
+- `SPREAD` benötigt Bid und Ask; Bid `0.0` ist zulässig.
+- `MID` benötigt Bid und Ask; Bid `0.0` ist zulässig und Mid bleibt ein nicht
+  handelbarer Referenzwert.
+
+Die Preis-/Zeitstempel-Kohärenz wird bereits durch den vorgelagerten
+`KnockoutProductMarketDataValidator` garantiert. Der AvailabilityEvaluator
+prüft deshalb keine Zeitstempel und wiederholt weder numerische Preisregeln
+noch ISIN-, Währungs- oder Kompatibilitätsprüfungen. Er ruft keine Validatoren
+und keinen Calculator auf.
+
+`StructurallyAvailable` bestätigt nur die strukturelle Quote-Verfügbarkeit und
+bei `SALE_PRICE` einen positiven Bid. Das Ergebnis bestätigt weder Aktualität,
+Quellenqualität, Handelbarkeit noch eine vollständige fachliche Freigabe oder
+erfolgreiche Berechnung. Freshness und Quellenpolicy bleiben **OFFEN**. Nach
+erfolgreicher vorgelagerter Orchestrierung wird der `MarketDataCalculator`
+weiterhin separat aufgerufen; keine mathematische Formel wird durch die
+Availability-Prüfung verändert.
+
 ## 4. Produktrichtung
 
 ### Long
