@@ -260,6 +260,20 @@ damit dieser kleine Modellierungsschritt keine bestehende Engine oder UI
 verändert. Währungen werden in Version 1 als dokumentierte ISO-4217-Strings
 geführt. Ein späterer gemeinsamer `CurrencyCode`-Typ bleibt **OFFEN**.
 
+Die allgemeinen Version-1-Regeln von `KnockoutProductSpecification` werden
+außerhalb des Modells durch den zustandslosen
+`KnockoutProductSpecificationValidator` im Domain-Package `validation`
+geprüft. Das Modell bleibt eine reine Data Class ohne Konstruktorvalidierung
+oder `require`-Aufrufe. Erwartbare Fehler werden als maschinenlesbare Codes ohne
+UI-Texte vollständig und in stabiler Feldreihenfolge zurückgegeben; Exceptions
+sind dafür kein Standardfluss.
+
+Der Validator verändert und normalisiert seine Eingaben nicht. Spätere Mapper
+oder Normalizer bleiben getrennte Komponenten. Eine Anbindung an Engine, UI und
+Repository besteht noch nicht. Formale ISIN- und WKN-Prüfungen, die Prüfung
+gegen eine echte ISO-Währungsliste sowie emittentenspezifische Regeln bleiben
+Gegenstand späterer, gesondert freizugebender Schritte.
+
 Ob Geld- und Rechenwerte langfristig mit `Double`, `BigDecimal` oder spezialisierten Decimal-Typen umgesetzt werden, ist eine offene Architekturentscheidung. Bis dahin dürfen Typen keine fachlich falsche Genauigkeit vortäuschen.
 
 ## 9. Berechnungsengine

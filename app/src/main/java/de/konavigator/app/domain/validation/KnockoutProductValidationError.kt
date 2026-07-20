@@ -1,0 +1,13 @@
+package de.konavigator.app.domain.validation
+
+enum class KnockoutProductValidationError {
+    MISSING_PRODUCT_ISIN,
+    INVALID_PRODUCT_WKN,
+    MISSING_ISSUER_ID,
+    MISSING_UNDERLYING_ID,
+    INVALID_BASE_PRICE,
+    INVALID_KNOCKOUT_BARRIER,
+    INVALID_RATIO,
+    INVALID_UNDERLYING_CURRENCY,
+    INVALID_PRODUCT_CURRENCY
+}

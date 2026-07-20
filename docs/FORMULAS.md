@@ -328,6 +328,29 @@ Für die prozentuale Produktänderung muss der Ausgangspreis größer als `0` se
 
 Validierungsfehler sind strukturiert über einen Fehlercode auszugeben. Mehrere gleichzeitig vorliegende Fehler dürfen nicht durch einen einzelnen Ersatzwert verdeckt werden.
 
+### Allgemeine Version-1-Regeln für Produktspezifikationen
+
+Für `KnockoutProductSpecification` gelten zunächst ausschließlich folgende
+allgemeine Regeln:
+
+- `productIsin`, `issuerId` und `underlyingId` dürfen nicht blank sein.
+- `productWkn` ist optional; ein vorhandener Wert darf nicht blank sein.
+- `basePrice`, `knockoutBarrier` und `ratio` müssen endlich und größer als
+  `0` sein.
+- Basiswert- und Produktwährung werden vorläufig rein syntaktisch mit
+  `[A-Z]{3}` geprüft.
+- Alle erkennbaren Fehler werden als stabile Mehrfachfehlerliste in der
+  Feldreihenfolge ISIN, WKN, Emittent, Basiswert, Basispreis, KO-Barriere,
+  Ratio, Basiswertwährung und Produktwährung ausgegeben.
+- Der Validator normalisiert oder korrigiert keine Eingaben.
+
+Diese Validierungsregeln ersetzen keine mathematischen Formeln. Insbesondere
+gilt weder `basePrice == knockoutBarrier` noch eine feste Größenrelation
+zwischen Basispreis und KO-Barriere. Formale ISIN- und WKN-Prüfungen sowie die
+Prüfung gegen eine echte ISO-4217-Liste bleiben **OFFEN**. Ebenso bleiben
+emittenten- und produktspezifische Regeln ausdrücklich späteren fachlichen
+Entscheidungen vorbehalten.
+
 | Fehlercode | Bedingung | Bedeutung |
 |---|---|---|
 | `NON_FINITE_NUMBER` | Ein numerischer Eingang ist `NaN`, `+Infinity` oder `-Infinity`. | Die Berechnung ist technisch nicht definiert. |

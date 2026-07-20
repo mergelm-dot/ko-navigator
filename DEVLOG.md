@@ -104,6 +104,14 @@ Mit `TradeDirection` und `KnockoutProductSpecification` existiert erstmals ein i
 
 Das Modell ist vollständig vom bestehenden theoretischen Planungspfad getrennt und enthält weder Markt- oder Bewertungsdaten noch Android-, Compose- oder UI-Zustand. Es ist nicht an Engine, UI oder Repository angebunden. Ein gemeinsamer Currency-Typ, strukturierte Produktvalidierung und ein getrenntes Marktdatenmodell bleiben **OFFEN**.
 
+### Konsolidierungsschritt 8 – Strukturierte KO-Produktvalidierung eingeführt
+
+Der zustandslose `KnockoutProductSpecificationValidator` prüft die eindeutig allgemeinen Version-1-Regeln des isolierten Produktmodells. Pflichtkennungen dürfen nicht blank sein, die optionale WKN darf bei Vorhandensein nicht blank sein, Basispreis, KO-Barriere und Bezugsverhältnis müssen endlich und größer als `0` sein, und die beiden Währungsangaben müssen vorläufig dem syntaktischen Muster `[A-Z]{3}` entsprechen.
+
+Erwartbare Fehler werden über das reine Enum `KnockoutProductValidationError` ohne Benutzertexte abgebildet. Der Validator bricht nicht beim ersten Fehler ab, sondern liefert höchstens einen Fehler je Feld in einer stabilen Reihenfolge. Er normalisiert keine Eingaben und ist weder an Modellkonstruktion, Engine, UI noch Repository angebunden.
+
+Formale ISIN- und WKN-Prüfungen, eine echte ISO-4217-Listenprüfung, emittentenspezifische Regeln sowie Beziehungen zwischen Basispreis, KO-Barriere und Produktrichtung bleiben ausdrücklich **OFFEN**.
+
 ---
 
 ## Fachliche Annahmen
