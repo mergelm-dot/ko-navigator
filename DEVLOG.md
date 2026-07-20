@@ -126,6 +126,14 @@ Preis und Zeitstempel müssen je Quote-Seite gemeinsam vorhanden oder gemeinsam 
 
 Der Validator normalisiert keine Eingaben und prüft weder Aktualität noch die Kompatibilität mit einer Produktspezifikation. Eine leere Fehlerliste ist keine Berechnungsfreigabe. Es besteht keine Calculator-, Engine-, UI- oder Repository-Anbindung; entsprechende Berechnungen und Integrationen bleiben getrennten späteren Schritten vorbehalten.
 
+### Konsolidierungsschritt 11 – Reinen MarketDataCalculator eingeführt
+
+Der neue `MarketDataCalculator` im Domain-Package berechnet aus Bid und Ask den absoluten Spread, den relativen Spread bezogen auf Ask und den Mid-Preis. Er besitzt einen eigenen strukturierten Result-Typ sowie die drei Calculator-Fehlercodes `INVALID_BID`, `INVALID_ASK` und `BID_ABOVE_ASK` mit stabiler Priorität. Erwartbare ungültige Eingaben erzeugen keine Exceptions, Nullable-Ergebnisse oder Ersatzwerte.
+
+Der absolute Spread wird als `ask - bid` und der relative Spread als `(ask - bid) / ask * 100` berechnet. Der Mid verwendet mit `bid + (ask - bid) / 2` eine algebraisch gleichwertige Form, die das Overflow-Risiko großer Zwischensummen reduziert. Keine Funktion rundet, formatiert, klemmt, vertauscht oder korrigiert Werte.
+
+Der Calculator kennt kein Marktdatenmodell und prüft ausschließlich mathematische Vorbedingungen. Aktualität, Qualitätsklassen, Produktspezifikations-Kompatibilität sowie Calculator-, Engine-, UI- oder Repository-Orchestrierung bleiben getrennten Folgeschritten vorbehalten.
+
 ---
 
 ## Fachliche Annahmen

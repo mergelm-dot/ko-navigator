@@ -89,7 +89,24 @@ relativeSpreadToAskPercent = (ask - bid) / ask * 100
 midPrice = (bid + ask) / 2
 ```
 
-Diese späteren reinen Berechnungen runden intern nicht. Last, Bid- und
+Für alle drei Berechnungen gelten die mathematischen Vorbedingungen
+`0 <= bid <= ask` und `ask > 0`; beide Preise müssen endlich sein. Der absolute
+Spread besitzt die Einheit Produktwährung je Zertifikat. Der relative Spread
+ist ausdrücklich auf Ask bezogen, liegt unter diesen Vorbedingungen zwischen
+`0` und `100` Prozent, ergibt bei Bid `0` genau `100` Prozent und bei gleichem
+Bid und Ask `0` Prozent. Er wird nicht geklemmt.
+
+Zur Verringerung des Overflow-Risikos wird der Mid-Preis algebraisch
+gleichwertig als `bid + (ask - bid) / 2` implementiert. Der Mid-Preis ist ein
+Referenzwert und kein handelbarer Preis. Keine der drei Berechnungen rundet,
+formatiert, vertauscht oder korrigiert Werte; ein negativer Spread wird nicht
+durch einen Absolutbetrag verborgen.
+
+Der `MarketDataCalculator` prüft ausschließlich diese mathematischen
+Vorbedingungen. Die vollständige Modellvalidierung bleibt Aufgabe des
+`KnockoutProductMarketDataValidator`. Verfügbarkeit, Produktspezifikations-
+kompatibilität und Aktualität müssen durch spätere Orchestrierung sichergestellt
+werden; eine Engine- oder UI-Anbindung besteht noch nicht. Last, Bid- und
 Ask-Stückzahlen sowie die konkrete Aktualitätspolitik bleiben **OFFEN**.
 
 ## 4. Produktrichtung

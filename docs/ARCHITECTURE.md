@@ -305,6 +305,21 @@ UI- oder Repository-Anbindung besteht weiterhin nicht. Ein späterer separater
 CompatibilityValidator sowie die Aktualitäts- und weiterführende
 Datenqualitätspolitik bleiben **OFFEN**.
 
+Reine, aus Bid und Ask abgeleitete Kennzahlen liegen im Package
+`de.konavigator.app.domain.calculator`. Der `MarketDataCalculator` erhält nur
+die beiden numerischen Werte und kennt weder `KnockoutProductMarketData` noch
+ISIN, Währung, Quelle oder Zeitstempel. Er prüft seine mathematischen
+Vorbedingungen intern und liefert über einen Calculator-spezifischen Result-Typ
+und ein eigenes Fehler-Enum entweder einen Wert oder genau einen blockierenden
+Fehler. Das vollständige Marktdatenvalidator-Enum wird nicht wiederverwendet.
+
+Der Calculator verwendet keine Exceptions als Standardfluss, rundet nicht und
+besitzt keine Android- oder Compose-Abhängigkeit. Eine Engine-, UI- oder
+Repository-Anbindung besteht nicht. Eine spätere Orchestrierung validiert das
+Gesamtmodell, prüft Verfügbarkeit, Kompatibilität und Aktualität und extrahiert
+erst danach geeignete Bid-/Ask-Werte. Weitere Marktdatenkennzahlen und
+Qualitätsregeln bleiben getrennte Folgeschritte.
+
 Ob Geld- und Rechenwerte langfristig mit `Double`, `BigDecimal` oder spezialisierten Decimal-Typen umgesetzt werden, ist eine offene Architekturentscheidung. Bis dahin dürfen Typen keine fachlich falsche Genauigkeit vortäuschen.
 
 ## 9. Berechnungsengine
