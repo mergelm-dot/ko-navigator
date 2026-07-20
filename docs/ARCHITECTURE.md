@@ -519,6 +519,36 @@ Für Entwicklung und Tests kann jedes Interface zunächst eine lokale Implementi
 
 Repository-Ergebnisse unterscheiden klar zwischen Erfolg, fachlichem oder technischem Fehler und gegebenenfalls Teilerfolg. Erfolgreiche Daten enthalten ihre Quelle und einen Zeitstempel. Ein leerer Suchtreffer, nicht verfügbare Daten und ein Verbindungsfehler sind unterschiedliche Zustände.
 
+### 10.1 Application-Ports für KO-Produktdaten
+
+Das Package `de.konavigator.app.application.repository` enthält die ersten
+serverneutralen Datenzugriffsverträge für KO-Produkte. Der
+`KnockoutProductSpecificationRepository` liefert ausschließlich statische
+Produktspezifikationen, der `KnockoutProductMarketDataRepository`
+ausschließlich die davon getrennten Marktdaten. Beide Ports besitzen genau
+eine `suspend`-fähige Suche über die exakt und ohne Normalisierung übergebene
+Produkt-ISIN.
+
+Die Rückgabe erfolgt über `RepositoryResult` mit den drei Zuständen
+`Success(value)`, `NotFound` und `DataAccessFailure`. Dadurch bleiben Erfolg,
+nicht gefundene Daten und technische Datenzugriffsfehler ohne Nullable-
+Rückgaben oder erwartbare Exceptions unterscheidbar. Die erfolgreichen
+Rückgaben verwenden direkt `KnockoutProductSpecification` beziehungsweise
+`KnockoutProductMarketData`; Marktdaten tragen Quelle und Zeitstempel bereits
+im Domainmodell.
+
+Die Ports definieren keine Domainregeln und kennen weder Netzwerk,
+Datenbank, Provider noch konkrete Infrastruktur. Spätere lokale, remote oder
+serverseitige Implementierungen sowie externe DTOs und deren Mapper liegen im
+Data-Layer außerhalb dieser Interfaces. Konkrete Implementierungen sind in
+diesem Stand noch nicht vorhanden.
+
+Diese beiden Ports sind die Datenzugriffsgrundlage für einen späteren
+`MarketDataCalculationApplicationService`. Das bestehende
+`UnderlyingRepository` bleibt während der schrittweisen Migration ein
+separater Altpfad und wird nicht für KO-Produktspezifikationen oder
+KO-Produktmarktdaten wiederverwendet.
+
 ## 11. Datenquellen und API-Anbindung
 
 Für eine spätere Anbindung gilt folgende Struktur:

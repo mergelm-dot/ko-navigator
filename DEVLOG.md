@@ -273,3 +273,24 @@ NVDA • NASDAQ • USD
 Die Karte soll ein kleines Firmenlogo, den Firmennamen, Ticker, Börse und Währung enthalten.
 
 Die Umsetzung erfolgt erst nach Fertigstellung der Berechnungsengine und der Zertifikatssuche.
+
+---
+
+## Konsolidierungsschritt 17 – KO-Repository-Ports eingeführt
+
+Im neuen Application-Package `de.konavigator.app.application.repository`
+existieren getrennte, serverneutrale Repository-Ports für
+`KnockoutProductSpecification` und `KnockoutProductMarketData`. Beide
+Verträge sind `suspend`-fähig, übergeben die Produkt-ISIN exakt und liefern
+die vorhandenen Domainmodelle ohne Nullable-Rückgaben.
+
+`RepositoryResult` unterscheidet strukturiert genau `Success(value)`,
+`NotFound` und `DataAccessFailure`. Erwartbare Nichtgefunden- und
+Datenzugriffsfehler werden damit nicht über normale Exceptions oder freie
+Benutzertexte ausgedrückt. Konkrete technische Ursachen und Providerdetails
+bleiben Aufgabe späterer Data-Layer-Implementierungen.
+
+Dieser Schritt führt bewusst keine Repository-Implementierung, Netzwerk-,
+Provider- oder UI-Kopplung ein. Er bildet ausschließlich die Grundlage für
+den späteren `MarketDataCalculationApplicationService`; das bestehende
+`UnderlyingRepository` bleibt ein separater, unveränderter Altpfad.
