@@ -183,6 +183,7 @@ de.konavigator.app
 │   ├── model
 │   ├── calculator
 │   ├── availability
+│   ├── freshness
 │   ├── validation
 │   └── result
 ├── data
@@ -357,6 +358,37 @@ und bewertet weder Aktualität noch Quellenqualität. Sie besitzt keine Android-
 Compose-, Engine-, UI- oder Repository-Anbindung. Eine spätere Orchestrierung
 führt interne Validierung, Cross-Model-Kompatibilität, Availability, Freshness,
 Quellenpolicy und den getrennten Calculator-Aufruf zusammen.
+
+Das Domain-Package `de.konavigator.app.domain.freshness` enthält die reine
+zeitliche `MarketDataFreshnessPolicy`. Ihre unveränderlichen Schwellen werden
+als `MarketDataFreshnessThresholds` mit den vier expliziten Feldern
+`maxBidAgeMillis`, `maxAskAgeMillis`, `maxBidAskDifferenceMillis` und
+`allowedFutureSkewMillis` in den Konstruktor gegeben. Es existieren keine
+Default-Schwellen; eine spätere Application- oder Composition-Schicht muss die
+konfigurierten Werte bereitstellen und vor der Konstruktion an der Systemgrenze
+validieren. Der Bewertungszeitpunkt wird bei jedem Aufruf explizit als UTC
+Epoch Milliseconds übergeben. Die Policy liest keine Systemzeit und besitzt
+genau eine öffentliche Funktion `evaluate`.
+
+Der sealed Result-Typ unterscheidet ausschließlich `Fresh` und
+`NotFresh(errors)`. Das Fehler-Enum enthält in stabiler Reihenfolge genau
+`BID_TIMESTAMP_IN_FUTURE`, `STALE_BID`, `ASK_TIMESTAMP_IN_FUTURE`, `STALE_ASK`
+und `BID_ASK_TIMESTAMPS_TOO_FAR_APART`. `PURCHASE_PRICE` prüft ausschließlich
+den Ask-Zeitstempel, `SALE_PRICE` ausschließlich den Bid-Zeitstempel; `SPREAD`
+und `MID` prüfen beide Seiten und zusätzlich deren maximale Zeitdifferenz. Alle
+Grenzen sind inklusiv. Eine unzulässig zukünftige Seite unterdrückt den
+paarweisen Differenzfehler, eine stale Seite dagegen nicht. Negative und
+extreme Epoch-Millis bleiben zulässig; Distanzvergleiche erfolgen ohne
+überlaufgefährdete Subtraktion und ohne `abs()`.
+
+Die Policy setzt interne Validierung, Cross-Model-Kompatibilität und
+strukturelle Availability voraus und ruft deren Komponenten nicht selbst auf.
+Sie berechnet keine Preise und bewertet weder Quellenqualität noch
+Handelszeiten. Es besteht keine Android-, Compose-, Engine-, UI- oder
+Repository-Anbindung. Eine spätere Orchestrierung verbindet Validation,
+Compatibility, Availability, Freshness, SourcePolicy und Calculator. `Fresh`
+allein ist weder eine vollständige Berechnungsfreigabe noch eine Aussage über
+Handelbarkeit.
 
 Ob Geld- und Rechenwerte langfristig mit `Double`, `BigDecimal` oder spezialisierten Decimal-Typen umgesetzt werden, ist eine offene Architekturentscheidung. Bis dahin dürfen Typen keine fachlich falsche Genauigkeit vortäuschen.
 

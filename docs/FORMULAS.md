@@ -153,6 +153,42 @@ erfolgreicher vorgelagerter Orchestrierung wird der `MarketDataCalculator`
 weiterhin separat aufgerufen; keine mathematische Formel wird durch die
 Availability-Prüfung verändert.
 
+### Zeitliche Marktdatenfrische
+
+Freshness bewertet ausschließlich die Zeit der für einen Berechnungstyp
+relevanten Quote-Seiten. Der Bewertungszeitpunkt wird als UTC Epoch Milliseconds
+explizit je Aufruf übergeben; die Policy liest keine Systemzeit. Die spätere
+Application- oder Composition-Schicht liefert vier explizite, nichtnegative
+Schwellen ohne Produktionsdefaults:
+
+- `maxBidAgeMillis`
+- `maxAskAgeMillis`
+- `maxBidAskDifferenceMillis`
+- `allowedFutureSkewMillis`
+
+Alle Grenzen sind inklusiv. Ein Timestamp ist erst stale, wenn seine Distanz
+zum späteren Bewertungszeitpunkt die jeweilige maximale Altersgrenze
+überschreitet. Ein zukünftiger Timestamp ist erst unzulässig, wenn seine
+Distanz zum früheren Bewertungszeitpunkt `allowedFutureSkewMillis`
+überschreitet. `PURCHASE_PRICE` prüft nur Ask, `SALE_PRICE` nur Bid. `SPREAD`
+und `MID` prüfen beide Seiten sowie deren maximale Zeitdifferenz.
+
+Ein Zeitstempel kann nicht zugleich als zukünftig und stale gelten. Liegt eine
+relevante Seite unzulässig in der Zukunft, wird kein zusätzlicher
+Bid-/Ask-Zeitdifferenzfehler erzeugt. Eine stale Seite unterdrückt diese
+Differenzprüfung dagegen nicht. Negative Epoch-Millis sowie `Long.MIN_VALUE`
+und `Long.MAX_VALUE` sind zulässig und werden nur relativ zum expliziten
+Bewertungszeitpunkt beurteilt. Distanzen werden ohne überlaufgefährdete direkte
+Subtraktion und ohne `abs()` durch einen geordneten, additionsgesicherten
+Grenzvergleich geprüft.
+
+`Fresh` bestätigt ausschließlich die zeitliche Policy und ist keine
+vollständige Berechnungsfreigabe oder Handelbarkeitsaussage. Intern gültige und
+kompatible Marktdaten sowie strukturelle Availability sind Vorbedingungen.
+SourcePolicy, Handelszeiten, Marktstatus, providerbezogene Regeln und konkrete
+Produktionsschwellen bleiben **OFFEN**. Keine bestehende Preisformel wird durch
+diese zeitliche Policy verändert.
+
 ## 4. Produktrichtung
 
 ### Long

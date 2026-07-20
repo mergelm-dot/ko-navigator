@@ -164,6 +164,30 @@ getrennten Folgeschritten vorbehalten. `StructurallyAvailable` ist deshalb
 weder eine vollständige fachliche Berechnungsfreigabe noch eine Aussage über
 Handelbarkeit oder eine erfolgreiche Berechnung.
 
+### Konsolidierungsschritt 14 – Zeitliche Marktdatenfrische eingeführt
+
+Die neue `MarketDataFreshnessPolicy` bewertet für `PURCHASE_PRICE`,
+`SALE_PRICE`, `SPREAD` und `MID` ausschließlich die zeitliche Frische der
+jeweils relevanten Quote-Seiten. Vier explizite, unveränderliche Schwellen ohne
+Produktionsdefaults steuern maximales Bid- und Ask-Alter, maximale
+Bid-/Ask-Zeitdifferenz und zulässigen Future-Skew. Der Bewertungszeitpunkt wird
+je Aufruf explizit übergeben; Systemzeit wird nicht gelesen.
+
+Die fünf maschinenlesbaren Fehlercodes unterscheiden zukünftigen und stale Bid,
+zukünftigen und stale Ask sowie eine zu große Bid-/Ask-Zeitdifferenz. Alle
+Grenzen sind inklusiv. Spread und Mid prüfen zusätzlich die Zeitdifferenz:
+Eine unzulässig zukünftige Seite unterdrückt diesen Differenzfehler, eine stale
+Seite dagegen nicht. Negative Epoch-Werte und die Long-Grenzwerte sind zulässig;
+die Vergleiche vermeiden riskante Subtraktion und `abs()` und bleiben dadurch
+overflow-sicher.
+
+Die Policy setzt Validierung, Kompatibilität und strukturelle Availability als
+erfolgreiche Vorbedingungen voraus und ruft keine dieser Komponenten selbst
+auf. Es besteht keine Validator-, Availability-, Source-, Engine-, UI- oder
+Repository-Anbindung. Quellenqualität, Handelszeiten, Marktstatus,
+Produktionsschwellen und die vollständige Orchestrierung bleiben getrennten
+Folgeschritten vorbehalten.
+
 ---
 
 ## Fachliche Annahmen
