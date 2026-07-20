@@ -423,6 +423,39 @@ die Policy. Netzwerktransport und Serialisierung bleiben außerhalb der
 Domainpolicy. `Allowed` bestätigt nur die konfigurierte Quellenfreigabe und ist
 keine vollständige Berechnungsfreigabe oder Handelbarkeitsaussage.
 
+Das Package `de.konavigator.app.domain.orchestration` enthält die zentrale
+Marktdatenorchestrierung. `MarketDataCalculationRequest` führt genau einen
+CalculationType, Produktspezifikation, Marktdaten und einen expliziten
+Bewertungszeitpunkt zusammen. `MarketDataCalculationValue` unterscheidet
+Kaufpreis, Verkaufspreis, ein gemeinsames absolutes und relatives
+Spread-Ergebnis sowie Mid-Preis. Der sealed Typ
+`MarketDataCalculationOrchestrationResult` bildet die sieben blockierenden
+Stufen und den Erfolg durch eigene, maschinenlesbare Untertypen ab.
+
+Der `MarketDataCalculationOrchestrator` besitzt genau eine öffentliche Funktion
+`calculate`. Seine einzigen Konstruktorabhängigkeiten sind die konfigurierbare
+`MarketDataFreshnessPolicy` und `MarketDataSourcePolicy`; zustandslose
+Validatoren, AvailabilityEvaluator und Calculator werden direkt aufgerufen.
+Die feste Fail-Fast-Reihenfolge lautet Specification, MarketData,
+Compatibility, Availability, Freshness, Source und Calculation. Bei einem
+früheren Fehler wird keine spätere Stufe ausgewertet. Mehrfachfehler bleiben auf
+die bestehenden Validatorstufen beschränkt.
+
+Bestehende Fehler-Enums werden ohne neue zentrale Fehlercodes direkt in den
+jeweiligen Result-Untertypen erhalten. Ein zusätzliches Stage-Enum wäre dazu
+redundant und existiert nicht. Purchase und Sale übernehmen den freigegebenen
+Ask beziehungsweise positiven Bid ohne Arithmetik. Spread führt die vorhandene
+absolute und relative Spread-Berechnung zusammen; Mid verwendet die vorhandene
+Mid-Funktion. Der Orchestrator enthält keine eigene Preis-, Spread- oder
+Mid-Formel und rundet nicht zusätzlich.
+
+Die Orchestrierung liest keine Systemzeit und hat keine Netzwerk-, Repository-,
+UI-, Android- oder Compose-Abhängigkeit. `TradeCalculationEngine` und
+`KoCalculator` bleiben getrennte, unveränderte Verantwortungsbereiche und
+werden nicht aufgerufen. Durch explizite Konfiguration und Zeitübergabe bleibt
+die Komponente lokal sowie später serverseitig nutzbar. Sie führt keine
+Serialisierung durch und setzt kein Serialisierungsframework voraus.
+
 Ob Geld- und Rechenwerte langfristig mit `Double`, `BigDecimal` oder spezialisierten Decimal-Typen umgesetzt werden, ist eine offene Architekturentscheidung. Bis dahin dürfen Typen keine fachlich falsche Genauigkeit vortäuschen.
 
 ## 9. Berechnungsengine

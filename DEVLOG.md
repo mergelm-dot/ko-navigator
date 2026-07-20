@@ -211,6 +211,37 @@ und besitzt keine Netzwerk-, Provider-Mapping-, Validator-, Availability-,
 Freshness-, Calculator-, Engine-, UI- oder Repository-Anbindung. `Allowed` ist
 keine vollständige Berechnungsfreigabe.
 
+### Konsolidierungsschritt 16 – Zentrale Marktdatenorchestrierung eingeführt
+
+Der neue `MarketDataCalculationOrchestrator` führt die bislang getrennten
+Marktdatenkomponenten in einer festen Fail-Fast-Reihenfolge zusammen:
+Produktspezifikationsvalidierung, Marktdatenvalidierung, Cross-Model-
+Kompatibilität, strukturelle Availability, Freshness, Quellenfreigabe und erst
+danach Berechnung beziehungsweise Quote-Auswahl. Mehrfachfehler werden nur
+innerhalb der bestehenden Validatorstufen gesammelt; bestehende Fehlercodes
+werden ohne zentrale Duplikatcodes oder Benutzertexte weitergegeben.
+
+`MarketDataCalculationRequest` beschreibt einen unveränderlichen Auftrag mit
+explizitem Bewertungszeitpunkt. `MarketDataCalculationValue` unterscheidet
+Kaufpreis, Verkaufspreis, gemeinsames absolutes und relatives Spread-Ergebnis
+sowie Mid-Preis. `MarketDataCalculationOrchestrationResult` bildet jede
+blockierende Stufe durch einen eigenen maschinenlesbaren Untertyp ab; ein
+zusätzliches Stage-Enum ist nicht erforderlich.
+
+Der Orchestrator erhält ausschließlich `MarketDataFreshnessPolicy` und
+`MarketDataSourcePolicy` als konfigurierbare Konstruktorabhängigkeiten. Die
+zustandslosen Validatoren, der AvailabilityEvaluator und der
+`MarketDataCalculator` werden direkt verwendet. Kauf übernimmt den
+freigegebenen Ask und Verkauf den freigegebenen positiven Bid ohne Arithmetik.
+Spread verwendet die vorhandene absolute und relative Calculator-Funktion;
+Mid verwendet die vorhandene Mid-Funktion. Es erfolgt keine zusätzliche
+Rundung.
+
+Die Komponente liest keine Systemzeit und besitzt keine Netzwerk-, Repository-,
+UI-, Android-, Compose-, `TradeCalculationEngine`- oder `KoCalculator`-
+Anbindung. Sie erzeugt weder Empfehlungen noch eine allgemeine Zusage der
+Handelbarkeit.
+
 ---
 
 ## Fachliche Annahmen

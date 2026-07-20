@@ -217,6 +217,44 @@ Provider-Mapping, konkrete Produktionsprovider und die serverseitige
 Konfigurationsbereitstellung bleiben **OFFEN**. Keine Preisformel wird durch
 die Quellenfreigabe verändert.
 
+### Zentrale Marktdatenorchestrierung
+
+Der `MarketDataCalculationOrchestrator` verbindet die vorhandenen Komponenten
+für genau einen `MarketDataCalculationType` in der festen Fail-Fast-Reihenfolge
+Produktspezifikationsvalidierung, Marktdatenvalidierung, Cross-Model-
+Kompatibilität, strukturelle Availability, Freshness, Quellenfreigabe und
+Berechnung beziehungsweise Quote-Auswahl. Sobald eine Stufe blockiert, werden
+keine späteren Stufen ausgewertet. Mehrere Fehler werden nur innerhalb der
+bereits bestehenden Validatoren gesammelt.
+
+Die vorhandenen Validatoren, der AvailabilityEvaluator sowie Freshness- und
+SourcePolicy bleiben die alleinigen Quellen ihrer Regeln. Ihre bestehenden
+Fehlercodes werden unverändert in stufenspezifischen, maschinenlesbaren
+Result-Untertypen weitergegeben. Calculator-Fehler bleiben ebenfalls als
+strukturierte Calculator-Fehler erhalten. Die Orchestrierung führt keine
+zusätzliche Validierung, Normalisierung oder Fehlerkorrektur durch.
+
+Nach allen erfolgreichen Freigaben gilt für die beiden handelbaren Quote-
+Seiten:
+
+```text
+PurchasePrice = ask
+SalePrice = bid, mit bid > 0
+```
+
+Dies ist eine Auswahl bereits vorhandener Quotes und keine neue Preisformel.
+Für `SPREAD` werden sowohl `absoluteSpread` als auch
+`relativeSpreadToAskPercent` gemeinsam ausgegeben; beide Werte stammen aus den
+vorhandenen Funktionen des `MarketDataCalculator`. `MID` verwendet dessen
+vorhandene Mid-Funktion. Keine dieser Ergebniszusammenführungen rundet
+zusätzlich.
+
+Der Bewertungszeitpunkt wird als UTC Epoch Milliseconds explizit übergeben und
+unverändert an die FreshnessPolicy weitergereicht; die Orchestrierung liest
+keine Systemzeit. Ein erfolgreiches Result bestätigt ausschließlich den
+dokumentierten Prüf- und Berechnungsablauf. Es ist weder eine Kauf- oder
+Verkaufsempfehlung noch eine allgemeine Zusage der Handelbarkeit.
+
 ## 4. Produktrichtung
 
 ### Long
