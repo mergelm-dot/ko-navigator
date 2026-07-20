@@ -54,8 +54,24 @@ object KoCalculator {
     }
 
     /**
-     * Berechnet im aktuellen vereinfachten Ist-Modell den theoretischen Preis
-     * eines Long- oder Short-KO-Zertifikats.
+     * Charakterisiert die bestehende Übergangsberechnung eines gerundeten,
+     * ratio-skalierten KO-Differenzwerts.
+     *
+     * Long verwendet `(underlyingPrice - knockoutPrice) * ratio`, Short
+     * `(knockoutPrice - underlyingPrice) * ratio`. An der KO-Barriere und auf
+     * der jeweils ausgeknockten Seite wird `0.0` zurückgegeben. Das Ergebnis
+     * wird innerhalb dieser Funktion auf zwei Dezimalstellen gerundet.
+     *
+     * Die Funktion verwendet derzeit die KO-Barriere anstelle eines getrennten
+     * Basispreises unter der reinen Übergangsannahme `B = KO`. Das Ergebnis ist
+     * deshalb weder ein allgemeiner innerer Wert noch ein vollständiger
+     * Modellpreis oder ein realer Emittenten-, Bid- beziehungsweise Ask-Preis.
+     * Währungsumrechnung, Finanzierung, Premium, Spread und Ratio-Validierung
+     * sind nicht Bestandteil dieser Berechnung.
+     *
+     * Diese Übergangslogik ist fachlich nicht endgültig freigegeben und muss
+     * langfristig durch getrennt modellierte, präzise Berechnungen ersetzt oder
+     * entsprechend ihrer tatsächlichen Verantwortung weiter präzisiert werden.
      */
     fun calculateCertificatePrice(
         underlyingPrice: Double,

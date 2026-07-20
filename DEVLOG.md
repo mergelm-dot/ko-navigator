@@ -84,6 +84,14 @@ Die rein berechneten Felder `certificatePrice`, `knockoutPrice`, `distanceToKnoc
 
 Übernommene Eingabe- und Kontextwerte wie `underlyingPrice` und `leverage`, der bestehende Gültigkeitsstatus, der strukturierte Fehlercode und der vorläufige Freitext bleiben unverändert erhalten. Gültige Long- und Short-Ergebnisse enthalten weiterhin alle berechneten Werte. Dieser kleine Modellierungsschritt verändert keine Formel, Validierungsreihenfolge, Rundungslogik oder UI-Anbindung.
 
+### Konsolidierungsschritt 5 – Preisberechnung als Übergangslogik charakterisiert
+
+`KoCalculator.calculateCertificatePrice` ist ausdrücklich als bestehende Übergangsberechnung eines gerundeten, ratio-skalierten KO-Differenzwerts eingeordnet. Sie verwendet für Long und Short die KO-Barriere anstelle eines getrennten Basispreises unter der vorläufigen Annahme `B = KO` und rundet intern auf zwei Dezimalstellen. Der Wert ist damit weder ein allgemeiner innerer Wert noch ein vollständiger Modellpreis oder ein realer Emittenten-, Bid- beziehungsweise Ask-Preis.
+
+Direkte Charakterisierungstests sichern das bestehende Long- und Short-Verhalten, die Rückgabe von `0.0` an und hinter der jeweiligen KO-Barriere, die interne Rundung sowie die genau einmalige Anwendung der Ratio ab. Die fehlende Ratio-Validierung bleibt eine bekannte Implementierungsabweichung und wird durch diese Tests nicht fachlich legitimiert.
+
+Formel, Funktionssignatur und Feldname `certificatePrice` bleiben in diesem Schritt unverändert. `PriceConverter` bleibt als bekannte parallele Altimplementierung bewusst ebenfalls unverändert. Die spätere Trennung von Basispreis, KO-Barriere, innerem Wert und Modellpreis ist weiterhin **OFFEN** und erfordert einen gesondert freigegebenen Entwicklungsschritt.
+
 ---
 
 ## Fachliche Annahmen

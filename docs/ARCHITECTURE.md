@@ -286,7 +286,9 @@ Der `KoCalculator` ist die zentrale Zielkomponente für ausschließlich reine KO
 
 Einzelne Funktionen erhalten alle benötigten Werte als Parameter, verändern keinen globalen Zustand und liefern unformatierte fachliche Ergebnisse ohne vorzeitige Rundung reiner Zwischenwerte. UI-State, Benutzertexte, Kauf- oder Verkaufsempfehlungen, Ablaufsteuerung, Repository- oder Netzwerkzugriffe, Android- oder Compose-Abhängigkeiten, Anzeigeformatierung, die Umwandlung fachlicher Fehler in Benutzertexte und die Orchestrierung vollständiger Berechnungsvorgänge gehören nicht zu seiner Verantwortung.
 
-**Ist-Abweichung:** `KoCalculator.calculateCertificatePrice` enthält derzeit noch eine vereinfachte Preisberechnung, verwendet die KO-Barriere als Rechenparameter und rundet das Ergebnis innerhalb der Berechnung. Diese bekannte Abweichung bleibt bis zu einem gesondert freigegebenen, getesteten Konsolidierungsschritt bestehen.
+**Ist-Abweichung:** `KoCalculator.calculateCertificatePrice` ist eine Übergangsberechnung für einen ratio-skalierten KO-Differenzwert. Sie unterstützt Long und Short, verwendet aber die KO-Barriere anstelle eines getrennten Basispreises unter der vorläufigen Annahme `B = KO` und rundet das Ergebnis innerhalb der Berechnung auf zwei Dezimalstellen. Diese interne Rundung und die Vermischung von Basispreis und KO-Barriere widersprechen der Zielarchitektur.
+
+Der aktuelle Wert ist weder als allgemeiner innerer Wert noch als vollständiger Modellpreis oder realer Zertifikats-, Emittenten-, Bid- beziehungsweise Ask-Preis zu verstehen. Die Zielarchitektur modelliert Basispreis, KO-Barriere, inneren Wert und Modellpreis weiterhin getrennt. Die Übergangsberechnung bleibt bis zu einem gesondert freigegebenen und getesteten Ersatz unverändert.
 
 ### `PriceConverter`
 

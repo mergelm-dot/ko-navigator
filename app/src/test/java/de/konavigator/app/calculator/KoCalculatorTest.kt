@@ -127,6 +127,102 @@ class KoCalculatorTest {
         assertEquals(33.334, percentDistance, TOLERANCE)
     }
 
+    @Test
+    fun currentTransitionalPriceCalculationReturnsRoundedLongKnockoutDifference() {
+        val price = KoCalculator.calculateCertificatePrice(
+            underlyingPrice = 100.0,
+            knockoutPrice = 80.0,
+            ratio = 0.01,
+            isLong = true
+        )
+
+        assertEquals(0.20, price, TOLERANCE)
+    }
+
+    @Test
+    fun currentTransitionalPriceCalculationReturnsRoundedShortKnockoutDifference() {
+        val price = KoCalculator.calculateCertificatePrice(
+            underlyingPrice = 100.0,
+            knockoutPrice = 120.0,
+            ratio = 0.01,
+            isLong = false
+        )
+
+        assertEquals(0.20, price, TOLERANCE)
+    }
+
+    @Test
+    fun currentTransitionalPriceCalculationReturnsZeroAtLongBarrier() {
+        val price = KoCalculator.calculateCertificatePrice(
+            underlyingPrice = 100.0,
+            knockoutPrice = 100.0,
+            ratio = 0.01,
+            isLong = true
+        )
+
+        assertEquals(0.0, price, TOLERANCE)
+    }
+
+    @Test
+    fun currentTransitionalPriceCalculationReturnsZeroAtShortBarrier() {
+        val price = KoCalculator.calculateCertificatePrice(
+            underlyingPrice = 100.0,
+            knockoutPrice = 100.0,
+            ratio = 0.01,
+            isLong = false
+        )
+
+        assertEquals(0.0, price, TOLERANCE)
+    }
+
+    @Test
+    fun currentTransitionalPriceCalculationReturnsZeroForLongOnKnockedOutSide() {
+        val price = KoCalculator.calculateCertificatePrice(
+            underlyingPrice = 90.0,
+            knockoutPrice = 100.0,
+            ratio = 0.01,
+            isLong = true
+        )
+
+        assertEquals(0.0, price, TOLERANCE)
+    }
+
+    @Test
+    fun currentTransitionalPriceCalculationReturnsZeroForShortOnKnockedOutSide() {
+        val price = KoCalculator.calculateCertificatePrice(
+            underlyingPrice = 110.0,
+            knockoutPrice = 100.0,
+            ratio = 0.01,
+            isLong = false
+        )
+
+        assertEquals(0.0, price, TOLERANCE)
+    }
+
+    @Test
+    fun currentTransitionalPriceCalculationRoundsToTwoDecimalPlaces() {
+        val price = KoCalculator.calculateCertificatePrice(
+            underlyingPrice = 100.0,
+            knockoutPrice = 66.666,
+            ratio = 0.01,
+            isLong = true
+        )
+
+        assertEquals(0.33, price, TOLERANCE)
+    }
+
+    @Test
+    fun currentTransitionalPriceCalculationAppliesRatioExactlyOnce() {
+        val price = KoCalculator.calculateCertificatePrice(
+            underlyingPrice = 100.0,
+            knockoutPrice = 80.0,
+            ratio = 0.1,
+            isLong = true
+        )
+
+        assertEquals(2.0, price, TOLERANCE)
+    }
+
     private companion object {
         const val TOLERANCE = 1e-9
     }
