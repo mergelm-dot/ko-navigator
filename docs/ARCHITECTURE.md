@@ -320,6 +320,20 @@ Gesamtmodell, prüft Verfügbarkeit, Kompatibilität und Aktualität und extrahi
 erst danach geeignete Bid-/Ask-Werte. Weitere Marktdatenkennzahlen und
 Qualitätsregeln bleiben getrennte Folgeschritte.
 
+Der `KnockoutProductMarketDataCompatibilityValidator` liegt im Domain-Package
+`validation` und prüft ausschließlich zwei Beziehungen zwischen den weiterhin
+getrennten Modellen: die exakte Produkt-ISIN und die exakte Übereinstimmung von
+Produkt- und Quote-Währung. Beide Einzelmodelle werden als intern validiert
+vorausgesetzt; ihre Validatoren werden weder aufgerufen noch dupliziert.
+
+Das eigene Fehler-Enum enthält keine UI-Texte. Beide unabhängigen Fehler werden
+vollständig in stabiler Reihenfolge gesammelt. Der Validator normalisiert nicht
+und prüft weder Aktualität und Quellenqualität noch FX oder Quanto. Eine
+Calculator-, Engine-, UI- oder Repository-Anbindung besteht nicht. Erst eine
+spätere Orchestrierung führt interne Validierung, Kompatibilität,
+Vollständigkeit und Aktualität zusammen. Provider-Mapping und eine interne
+Produkt-ID bleiben **OFFEN**.
+
 Ob Geld- und Rechenwerte langfristig mit `Double`, `BigDecimal` oder spezialisierten Decimal-Typen umgesetzt werden, ist eine offene Architekturentscheidung. Bis dahin dürfen Typen keine fachlich falsche Genauigkeit vortäuschen.
 
 ## 9. Berechnungsengine

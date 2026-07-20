@@ -109,6 +109,21 @@ kompatibilität und Aktualität müssen durch spätere Orchestrierung sichergest
 werden; eine Engine- oder UI-Anbindung besteht noch nicht. Last, Bid- und
 Ask-Stückzahlen sowie die konkrete Aktualitätspolitik bleiben **OFFEN**.
 
+Für die Version-1-Kompatibilität einer bereits intern validierten
+`KnockoutProductSpecification` mit bereits intern validierten
+`KnockoutProductMarketData` gelten genau zwei Cross-Model-Regeln: Die
+Produktreferenz wird case-sensitiv und ohne Normalisierung über `productIsin`
+verglichen, und die Quote-Währung muss exakt `productCurrency` entsprechen.
+`underlyingCurrency` ist nicht die Vergleichswährung des Produktquotes;
+`issuerId` und `sourceId` beschreiben unterschiedliche Rollen und werden nicht
+gleichgesetzt. Es gibt weder WKN-Fallback noch Währungsumrechnung.
+
+Eine abweichende ISIN oder Produktwährung blockiert jede produktbezogene
+Verwendung dieses Modellpaars. Eine leere Kompatibilitätsfehlerliste bestätigt
+jedoch weder interne Modellvalidität, Bid-/Ask-Verfügbarkeit, Aktualität,
+Quellenqualität noch eine vollständige Berechnungsfreigabe. FX, Quanto,
+Provider-Mapping und eine spätere interne Produkt-ID bleiben **OFFEN**.
+
 ## 4. Produktrichtung
 
 ### Long

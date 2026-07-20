@@ -134,6 +134,14 @@ Der absolute Spread wird als `ask - bid` und der relative Spread als `(ask - bid
 
 Der Calculator kennt kein Marktdatenmodell und prüft ausschließlich mathematische Vorbedingungen. Aktualität, Qualitätsklassen, Produktspezifikations-Kompatibilität sowie Calculator-, Engine-, UI- oder Repository-Orchestrierung bleiben getrennten Folgeschritten vorbehalten.
 
+### Konsolidierungsschritt 12 – Cross-Model-Kompatibilität isoliert eingeführt
+
+Der zustandslose `KnockoutProductMarketDataCompatibilityValidator` prüft ausschließlich zwei Beziehungen zwischen einer bereits intern validierten Produktspezifikation und bereits intern validierten Marktdaten. Die Produkt-ISIN wird exakt verglichen, und `productCurrency` muss exakt der Quote-Währung entsprechen. Die Fehlercodes `PRODUCT_ISIN_MISMATCH` und `PRODUCT_CURRENCY_MISMATCH` werden vollständig in stabiler Reihenfolge gesammelt.
+
+`underlyingCurrency` wird nicht mit der Quote-Währung und `issuerId` nicht mit `sourceId` verglichen. Der Validator normalisiert nicht, verwendet keine WKN als Fallback und ruft die beiden Einzelvalidatoren nicht auf. Eine leere Fehlerliste bestätigt nur diese zwei Beziehungen und stellt keine vollständige Berechnungsfreigabe dar.
+
+Aktualität, Quellenqualität, Provider-Mapping, interne Produkt-ID, FX und Quanto bleiben außerhalb dieses Schritts. Es besteht keine Calculator-, Engine-, UI- oder Repository-Anbindung.
+
 ---
 
 ## Fachliche Annahmen
