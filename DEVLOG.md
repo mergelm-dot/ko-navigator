@@ -98,6 +98,12 @@ Formel, Funktionssignatur und Feldname `certificatePrice` bleiben in diesem Schr
 
 Die Funktion ist bewusst nicht an die `TradeCalculationEngine` oder einen anderen bestehenden Berechnungsablauf angebunden. Der aktuelle Planungsablauf, `TradeCalculationInput`, `TradeCalculationResult`, `calculateCertificatePrice` und `PriceConverter` bleiben unverändert. Die strukturierte Validierung der vorausgesetzten positiven, endlichen Eingaben und ein getrenntes Produktmodell für Basispreis, KO-Barriere, Ratio, Richtung und Währungen bleiben **OFFEN**.
 
+### Konsolidierungsschritt 7 – Isoliertes KO-Produktmodell eingeführt
+
+Mit `TradeDirection` und `KnockoutProductSpecification` existiert erstmals ein isoliertes Domainmodell für konkrete KO-Produkte. Es führt Basispreis und KO-Barriere als getrennte Größen und referenziert Emittent und Basiswert ausschließlich über `issuerId` und `underlyingId`. Die Produktrichtung ist innerhalb dieses neuen Modells durch `LONG` und `SHORT` typisiert.
+
+Das Modell ist vollständig vom bestehenden theoretischen Planungspfad getrennt und enthält weder Markt- oder Bewertungsdaten noch Android-, Compose- oder UI-Zustand. Es ist nicht an Engine, UI oder Repository angebunden. Ein gemeinsamer Currency-Typ, strukturierte Produktvalidierung und ein getrenntes Marktdatenmodell bleiben **OFFEN**.
+
 ---
 
 ## Fachliche Annahmen

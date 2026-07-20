@@ -248,6 +248,18 @@ Dabei gelten folgende Modellierungsregeln:
 - Einheiten, Währung, Preisart, Quelle und Zeitbezug müssen aus Typ oder Kontext eindeutig hervorgehen.
 - Rohe UI-Strings sind keine Domain-Modelle.
 
+`KnockoutProductSpecification` ist das erste isolierte Domainmodell für ein
+konkretes KO-Produkt. Es gehört nicht zum theoretischen `TradeCalculationInput`,
+sondern enthält ausschließlich die statische Produktspezifikation mit getrenntem
+Basispreis und getrennter KO-Barriere. Marktdaten und Produktbewertung werden in
+späteren, getrennten Entwicklungsschritten modelliert und angebunden.
+
+`TradeDirection` wird zunächst ausschließlich von diesem neuen Produktmodell
+verwendet. Der bestehende Planungspfad behält vorläufig seine Boolean-Richtung,
+damit dieser kleine Modellierungsschritt keine bestehende Engine oder UI
+verändert. Währungen werden in Version 1 als dokumentierte ISO-4217-Strings
+geführt. Ein späterer gemeinsamer `CurrencyCode`-Typ bleibt **OFFEN**.
+
 Ob Geld- und Rechenwerte langfristig mit `Double`, `BigDecimal` oder spezialisierten Decimal-Typen umgesetzt werden, ist eine offene Architekturentscheidung. Bis dahin dürfen Typen keine fachlich falsche Genauigkeit vortäuschen.
 
 ## 9. Berechnungsengine
