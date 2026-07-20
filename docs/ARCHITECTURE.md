@@ -148,8 +148,9 @@ Analyse, Umbenennung oder Mapping unverändert eingebettet.
 Der Service enthält keine Domainregeln, liest keine Systemzeit und konstruiert
 weder Policies noch Orchestrator. Er kennt keine Netzwerk-, DTO-, Mapper-,
 Repository-Implementierungs-, UI-, Android- oder Compose-Details. Die
-Application-Koordination bildet die Grundlage für spätere InMemory- und echte
-Repository-Implementierungen, führt diese in diesem Stand aber noch nicht ein.
+Application-Koordination verwendet ausschließlich die Ports und kann dadurch
+mit den inzwischen vorhandenen In-Memory-Adaptern ebenso wie mit späteren
+echten Repository-Implementierungen unverändert ausgeführt werden.
 
 ### 5.3 Domain Layer
 
@@ -568,14 +569,48 @@ im Domainmodell.
 Die Ports definieren keine Domainregeln und kennen weder Netzwerk,
 Datenbank, Provider noch konkrete Infrastruktur. Spätere lokale, remote oder
 serverseitige Implementierungen sowie externe DTOs und deren Mapper liegen im
-Data-Layer außerhalb dieser Interfaces. Konkrete Implementierungen sind in
-diesem Stand noch nicht vorhanden.
+Data-Layer außerhalb dieser Interfaces.
 
-Diese beiden Ports sind die Datenzugriffsgrundlage für einen späteren
+Diese beiden Ports sind die Datenzugriffsgrundlage für den
 `MarketDataCalculationApplicationService`. Das bestehende
 `UnderlyingRepository` bleibt während der schrittweisen Migration ein
 separater Altpfad und wird nicht für KO-Produktspezifikationen oder
 KO-Produktmarktdaten wiederverwendet.
+
+### 10.2 Read-only In-Memory-Repository-Adapter
+
+Das Package `de.konavigator.app.data.inmemory` enthält mit
+`InMemoryKnockoutProductSpecificationRepository` und
+`InMemoryKnockoutProductMarketDataRepository` die ersten Implementierungen der
+beiden KO-Repository-Ports. Beide Adapter erhalten bereits erzeugte
+Domainmodelle als Liste und bilden beim Erzeugen einen defensiven Map-Snapshot.
+Nachträgliche Änderungen an der ursprünglichen Collection verändern den
+Repository-Inhalt nicht.
+
+Der Map-Schlüssel ist jeweils die unveränderte `productIsin` des Domainmodells.
+Lookups sind exakt, case- und whitespace-sensitiv und führen keine
+Normalisierung, Aliasauflösung oder Fallback-Suche durch. Exakt doppelte
+Produkt-ISINs werden beim Erzeugen abgelehnt, statt durch Last-write-wins
+stillschweigend Daten zu verwerfen. Die Adapter sind read-only und liefern nur
+`Success(value)` oder `NotFound`; einen künstlichen `DataAccessFailure`- oder
+Exception-Modus gibt es nicht.
+
+Die In-Memory-Implementierungen validieren oder korrigieren keine Domainmodelle
+und enthalten keine Netzwerk-, Datenbank-, DTO-, Mapper- oder Providerlogik.
+Sie enthalten keine eingebauten Produktions- oder Demodaten und werden nicht
+automatisch in eine Release-, Demo- oder UI-Composition eingebunden. Sie dienen
+dem deterministischen lokalen Datenfluss und ersetzen keine echte
+Provideranbindung. Spätere Remote- oder persistente Repositories implementieren
+dieselben Ports, ohne Application-Service oder Domain-Orchestrator zu ändern.
+
+Der JVM-Test `MarketDataCalculationApplicationIntegrationTest` prüft den
+vollständigen lokalen Pfad von den beiden realen In-Memory-Adaptern über den
+`MarketDataCalculationApplicationService` und den real konfigurierten
+`MarketDataCalculationOrchestrator` bis zum typisierten Applicationresult. Er
+verwendet reale Validatoren, Availability-, Freshness-, Source- und
+Calculator-Komponenten, aber weder UI und Android-Instrumentation noch Netzwerk
+oder Datenbank. Der UI-nahe Altpfad aus `UnderlyingRepository` und
+`UnderlyingTestData` bleibt davon getrennt und unverändert.
 
 ## 11. Datenquellen und API-Anbindung
 

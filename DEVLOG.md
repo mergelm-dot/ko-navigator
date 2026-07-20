@@ -315,3 +315,33 @@ Der Service enthält keine Domainregeln und keine Netzwerk-, Provider- oder
 UI-Anbindung. Es wurden keine Repository-Implementierungen eingeführt. Damit
 ist die Application-Koordination als Grundlage für einen späteren
 End-to-End-Testdatenfluss vorhanden.
+
+---
+
+## Konsolidierungsschritt 19 – In-Memory-KO-Repositories und Application-Integrationstest eingeführt
+
+Mit `InMemoryKnockoutProductSpecificationRepository` und
+`InMemoryKnockoutProductMarketDataRepository` existieren erstmals zwei
+read-only Data-Layer-Implementierungen der KO-Repository-Ports. Beide erzeugen
+beim Konstruieren defensive Map-Snapshots der explizit übergebenen
+Domainmodelle. Die Suche verwendet ausschließlich die exakte, case- und
+whitespace-sensitive Produkt-ISIN und normalisiert keine Eingaben.
+
+Exakt doppelte Produkt-ISINs werden beim Erzeugen abgelehnt; ein
+Last-write-wins-Verhalten gibt es nicht. Treffer liefern `Success(value)`,
+Nichttreffer `NotFound`. Die Adapter besitzen keinen künstlichen
+`DataAccessFailure`-, Exception- oder Latenzmodus, mutieren keine Daten und
+führen keine Domainvalidierung aus.
+
+Der neue JVM-Test `MarketDataCalculationApplicationIntegrationTest` prüft mit
+acht gezielten Szenarien erstmals den vollständigen lokalen Pfad von realen
+In-Memory-Repositories über den unveränderten
+`MarketDataCalculationApplicationService` und den unveränderten
+`MarketDataCalculationOrchestrator` bis zum typisierten Applicationresult. Die
+vier CalculationTypes, beide `NotFound`-Abbildungen, ein unverändertes
+Freshness-Domainresult und die exakte ISIN-Semantik werden abgedeckt.
+
+Es wurden keine Produktions- oder Demodaten eingebaut und keine automatische
+Composition eingeführt. Netzwerk, Datenbank, Provider, DTOs, Mapper, UI,
+ViewModel und Android-Instrumentation bleiben außerhalb dieses Schritts. Der
+bestehende `UnderlyingRepository`-Altpfad bleibt unverändert und getrennt.
