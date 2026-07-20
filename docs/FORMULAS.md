@@ -189,6 +189,34 @@ SourcePolicy, Handelszeiten, Marktstatus, providerbezogene Regeln und konkrete
 Produktionsschwellen bleiben **OFFEN**. Keine bestehende Preisformel wird durch
 diese zeitliche Policy verändert.
 
+### Konfigurierte Quellenfreigabe
+
+Die `MarketDataSourcePolicy` bewertet ausschließlich, ob ein exakter
+`sourceId` für einen angefragten `MarketDataCalculationType` konfiguriert ist.
+Der Quellenbezeichner wird case-sensitiv und ohne `trim()`, Großschreibung,
+Aliasauflösung oder andere Normalisierung verglichen. Aus seinem Text wird
+keine Provider- oder Quellentypbedeutung abgeleitet.
+
+Jede Regel enthält ein explizites Set unterstützter CalculationTypes. Nur die
+unmittelbare Set-Mitgliedschaft führt zu `Allowed`; es findet keine
+Capability-Ableitung zwischen `PURCHASE_PRICE`, `SALE_PRICE`, `SPREAD` und
+`MID` statt. Nicht konfigurierte Quellen werden blockiert. Es gibt keine
+Default-Zulässigkeit, Wildcard oder Fallback-Regel. Eine leere Konfiguration
+blockiert alle Quellen; ein leeres Capability-Set blockiert alle Typen der
+bekannten Quelle.
+
+Die SourcePolicy bewertet keine Preise, Quote-Seiten, Zeitstempel oder
+Freshness. Umgekehrt bewertet die `MarketDataFreshnessPolicy` keine Quellen.
+`Allowed` ist deshalb keine vollständige Berechnungsfreigabe. Interne
+Validierung, Cross-Model-Kompatibilität, Availability, Freshness,
+Quellenfreigabe und Calculator-Aufruf werden erst in einer späteren
+Orchestrierung getrennt zusammengeführt.
+
+Quellentypen, Latenzklassen, Vertrauensstufen, Provider-Metadaten,
+Provider-Mapping, konkrete Produktionsprovider und die serverseitige
+Konfigurationsbereitstellung bleiben **OFFEN**. Keine Preisformel wird durch
+die Quellenfreigabe verändert.
+
 ## 4. Produktrichtung
 
 ### Long

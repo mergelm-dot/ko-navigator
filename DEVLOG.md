@@ -188,6 +188,29 @@ Repository-Anbindung. Quellenqualität, Handelszeiten, Marktstatus,
 Produktionsschwellen und die vollständige Orchestrierung bleiben getrennten
 Folgeschritten vorbehalten.
 
+### Konsolidierungsschritt 15 – Konfigurierte Quellenfreigabe eingeführt
+
+Die neue `MarketDataSourcePolicy` bewertet für genau einen `sourceId` und einen
+der vier CalculationTypes ausschließlich die explizit konfigurierte
+Quellenfreigabe. `MarketDataSourceRule` verbindet einen exakten,
+case-sensitiven Quellenbezeichner mit einem Set unterstützter CalculationTypes;
+`MarketDataSourcePolicyConfig` enthält eine Liste solcher Regeln und lehnt
+doppelte exakte Schlüssel ab. Nicht konfigurierte Quellen werden mit
+`SOURCE_NOT_CONFIGURED`, nicht unterstützte Typen bekannter Quellen mit
+`CALCULATION_TYPE_NOT_SUPPORTED` blockiert.
+
+Es gibt keine Default-Zulässigkeit, Wildcard oder automatische
+Capability-Ableitung. Eine leere Konfiguration blockiert alle Quellen, ein
+leeres Capability-Set alle Typen der bekannten Quelle. Die Policy erstellt beim
+Erzeugen defensive Snapshots der Regelliste und aller Capability-Sets, sodass
+nachträgliche externe Collection-Änderungen ihr Verhalten nicht verändern.
+
+Quellentypen, Latenzklassen, Vertrauensstufen und konkrete Produktionsprovider
+bleiben bewusst unmodelliert. Die Policy normalisiert keine Quellenbezeichner
+und besitzt keine Netzwerk-, Provider-Mapping-, Validator-, Availability-,
+Freshness-, Calculator-, Engine-, UI- oder Repository-Anbindung. `Allowed` ist
+keine vollständige Berechnungsfreigabe.
+
 ---
 
 ## Fachliche Annahmen

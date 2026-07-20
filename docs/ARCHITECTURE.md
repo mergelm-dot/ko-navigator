@@ -184,6 +184,7 @@ de.konavigator.app
 │   ├── calculator
 │   ├── availability
 │   ├── freshness
+│   ├── source
 │   ├── validation
 │   └── result
 ├── data
@@ -389,6 +390,38 @@ Repository-Anbindung. Eine spätere Orchestrierung verbindet Validation,
 Compatibility, Availability, Freshness, SourcePolicy und Calculator. `Fresh`
 allein ist weder eine vollständige Berechnungsfreigabe noch eine Aussage über
 Handelbarkeit.
+
+Das Domain-Package `de.konavigator.app.domain.source` enthält die
+konfigurationsbasierte `MarketDataSourcePolicy`. Ein `MarketDataSourceRule`
+verbindet einen exakten `sourceId` mit einem Set ausdrücklich unterstützter
+`MarketDataCalculationType`-Werte. `MarketDataSourcePolicyConfig` führt diese
+Regeln als Liste, erlaubt eine leere Konfiguration und lehnt doppelte exakte
+Quellenschlüssel ab. Es gibt keine Default-Regeln, Wildcards, Normalisierung
+oder stillschweigende Zusammenführung.
+
+Die Policy übernimmt beim Erzeugen defensive Kopien der Regelinhalte in ein
+internes Snapshot-Mapping. Nachträgliche Änderungen an externen Listen oder
+Sets verändern ihr Verhalten nicht. Ihre einzige öffentliche Funktion
+`evaluate` erhält genau einen CalculationType und einen `sourceId`. Eine
+nicht konfigurierte Quelle erzeugt `SOURCE_NOT_CONFIGURED`; fehlt bei einer
+bekannten Quelle der Typ im Set, entsteht `CALCULATION_TYPE_NOT_SUPPORTED`.
+`MarketDataSourceResult` unterscheidet ausschließlich `Allowed` und
+`Blocked(error)` mit genau einem Fehler.
+
+Alle vier CalculationTypes werden unabhängig und nur durch explizite
+Set-Mitgliedschaft freigegeben. Purchase und Sale implizieren weder Spread noch
+Mid; Spread und Mid implizieren einander nicht. Die Policy ruft keine
+Validatoren, Availability-, Freshness- oder Calculator-Komponenten auf und
+prüft weder Preise, Zeitstempel, ISIN noch Währung. Quellentypen,
+Latenzklassifikation, Vertrauensstufen, konkrete Provider und Provider-Mapping
+bleiben außerhalb dieser Version. Es bestehen keine Netzwerk-, Android-,
+Compose-, Engine-, UI- oder Repository-Abhängigkeiten.
+
+Eine spätere Application-Schicht bezieht und validiert externe beziehungsweise
+serverseitige Konfiguration, mappt sie auf die Domain-Konfiguration und erzeugt
+die Policy. Netzwerktransport und Serialisierung bleiben außerhalb der
+Domainpolicy. `Allowed` bestätigt nur die konfigurierte Quellenfreigabe und ist
+keine vollständige Berechnungsfreigabe oder Handelbarkeitsaussage.
 
 Ob Geld- und Rechenwerte langfristig mit `Double`, `BigDecimal` oder spezialisierten Decimal-Typen umgesetzt werden, ist eine offene Architekturentscheidung. Bis dahin dürfen Typen keine fachlich falsche Genauigkeit vortäuschen.
 
