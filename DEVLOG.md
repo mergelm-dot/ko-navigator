@@ -294,3 +294,24 @@ Dieser Schritt führt bewusst keine Repository-Implementierung, Netzwerk-,
 Provider- oder UI-Kopplung ein. Er bildet ausschließlich die Grundlage für
 den späteren `MarketDataCalculationApplicationService`; das bestehende
 `UnderlyingRepository` bleibt ein separater, unveränderter Altpfad.
+
+---
+
+## Konsolidierungsschritt 18 – Application-Service für Marktdatenberechnungen eingeführt
+
+Der neue `MarketDataCalculationApplicationService` koordiniert die beiden
+KO-Repository-Ports und den bestehenden Domain-Orchestrator. Sein eigener
+Request enthält Produkt-ISIN, CalculationType und einen expliziten
+Bewertungszeitpunkt; Systemzeit wird nicht gelesen.
+
+Der Ablauf lädt sequenziell und Fail Fast zuerst die Produktspezifikation und
+danach die Marktdaten. Erst nach zwei erfolgreichen Repository-Zugriffen wird
+der fertig konfigurierte `MarketDataCalculationOrchestrator` aufgerufen. Die
+drei technischen Application-Fehlercodes `PRODUCT_NOT_FOUND`,
+`MARKET_DATA_NOT_FOUND` und `DATA_ACCESS_FAILURE` bleiben von allen
+Domainresultaten getrennt. Ein Domainresult wird unverändert eingebettet.
+
+Der Service enthält keine Domainregeln und keine Netzwerk-, Provider- oder
+UI-Anbindung. Es wurden keine Repository-Implementierungen eingeführt. Damit
+ist die Application-Koordination als Grundlage für einen späteren
+End-to-End-Testdatenfluss vorhanden.

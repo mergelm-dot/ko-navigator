@@ -123,6 +123,34 @@ Mögliche Use Cases sind:
 
 Ein Use Case bildet einen für Nutzer verständlichen Ablauf ab. Er darf mehrere Domain-Funktionen und Repository-Interfaces koordinieren, enthält aber keine Compose-Logik und kennt keine konkrete API-Implementierung.
 
+#### 5.2.1 MarketDataCalculationApplicationService
+
+Das Package `de.konavigator.app.application.marketdata` enthält den
+Application-Auftrag, die technischen Fehler- und Result-Typen sowie den
+`MarketDataCalculationApplicationService`. Der Service erhält exakt drei
+Konstruktorabhängigkeiten: den Spezifikations-Port, den Marktdaten-Port und
+einen fertig konfigurierten `MarketDataCalculationOrchestrator`. Seine einzige
+öffentliche Funktion `execute` ist `suspend`-fähig.
+
+Der Ablauf ist sequenziell und Fail Fast: Zuerst wird die Produktspezifikation
+über die exakt übergebene Produkt-ISIN geladen. Nur nach diesem Erfolg werden
+die Marktdaten geladen. Erst nach beiden erfolgreichen Repository-Zugriffen
+erzeugt der Service den Domainrequest mit dem unveränderten CalculationType und
+Bewertungszeitpunkt und ruft den Orchestrator auf. Parallele Abrufe und eine
+Aggregation technischer Fehler finden nicht statt.
+
+`MarketDataCalculationApplicationResult` trennt technische
+Datenunverfügbarkeit von der Domainauswertung. `PRODUCT_NOT_FOUND`,
+`MARKET_DATA_NOT_FOUND` und `DATA_ACCESS_FAILURE` beschreiben ausschließlich
+die drei vorgesehenen Application-Fehler. Das Domainresult wird dagegen ohne
+Analyse, Umbenennung oder Mapping unverändert eingebettet.
+
+Der Service enthält keine Domainregeln, liest keine Systemzeit und konstruiert
+weder Policies noch Orchestrator. Er kennt keine Netzwerk-, DTO-, Mapper-,
+Repository-Implementierungs-, UI-, Android- oder Compose-Details. Die
+Application-Koordination bildet die Grundlage für spätere InMemory- und echte
+Repository-Implementierungen, führt diese in diesem Stand aber noch nicht ein.
+
 ### 5.3 Domain Layer
 
 Der Domain Layer enthält:
