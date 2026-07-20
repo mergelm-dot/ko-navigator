@@ -118,6 +118,14 @@ Mit `KnockoutProductMarketData` existiert ein vom statischen Produktmodell getre
 
 Das Modell enthält weder Last noch Bid-/Ask-Stückzahlen, Spread, relativen Spread, Mid-Preis, Quote-Alter oder Qualitätsbewertung. Es besitzt keine Validierungslogik und ist nicht an Calculator, Engine, UI oder Repository angebunden. Strukturierte Quote-Validierung und reine Berechnungen abgeleiteter Marktdaten bleiben **OFFEN** und erfordern gesonderte Entwicklungsschritte.
 
+### Konsolidierungsschritt 10 – Strukturierte KO-Produktmarktdatenvalidierung eingeführt
+
+Der zustandslose `KnockoutProductMarketDataValidator` prüft die allgemeinen Version-1-Regeln des passiven Marktdatenmodells und liefert zehn maschinenlesbare Fehlercodes ohne Benutzertexte. Vollständige Quotes, Bid-only-Quotes, Ask-only-Quotes und vollständig leere Quotes sind zulässige Zustände. Ein vorhandener Bid muss endlich und `>= 0` sein; Bid `0.0` bleibt strukturell gültig. Ein vorhandener Ask muss endlich und `> 0` sein; Ask `0.0` ist ungültig.
+
+Preis und Zeitstempel müssen je Quote-Seite gemeinsam vorhanden oder gemeinsam abwesend sein. Wenn beide Preise numerisch gültig sind, wird `bid > ask` als blockierender Datenqualitätsfehler gemeldet, ohne Werte zu vertauschen oder zu korrigieren. Alle unabhängigen Fehler werden vollständig in stabiler Reihenfolge gesammelt.
+
+Der Validator normalisiert keine Eingaben und prüft weder Aktualität noch die Kompatibilität mit einer Produktspezifikation. Eine leere Fehlerliste ist keine Berechnungsfreigabe. Es besteht keine Calculator-, Engine-, UI- oder Repository-Anbindung; entsprechende Berechnungen und Integrationen bleiben getrennten späteren Schritten vorbehalten.
+
 ---
 
 ## Fachliche Annahmen

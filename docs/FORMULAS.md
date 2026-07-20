@@ -37,7 +37,7 @@ Theoretische Modellwerte sind stets klar von realen Emittentenpreisen zu untersc
 | `FX` | Einheiten der Basiswertwährung je `1` Einheit Produktwährung | Basiswertwährung/Produktwährung | `> 0` | Pflicht bei Währungsumrechnung; bei gleicher Währung `1` |
 | `P_model` | Theoretischer Modellpreis des Produkts | Produktwährung je Stück | Im aktiven Modell grundsätzlich `>= 0`; für Hebelberechnung `> 0` | Ergebnisgröße |
 | `P_bid` | Geldkurs des Produkts | Produktwährung je Stück | `>= 0`; für reguläre Bewertung `> 0` | Optional; kontextabhängig |
-| `P_ask` | Briefkurs des Produkts | Produktwährung je Stück | `>= 0`; für Kaufplanung `> 0` | Optional; Pflicht für Kaufplanung |
+| `P_ask` | Briefkurs des Produkts | Produktwährung je Stück | Falls vorhanden: `> 0` | Optional; Pflicht für Kaufplanung |
 | `L_target` | Gewünschter Zielhebel | dimensionslos | `> 1`; verbindliche Obergrenze noch offen | Kontextabhängig; Pflicht zur Barrierenäherung oder Produktsuche |
 | `L_actual` | Aus Kurs und relevantem Produktpreis berechneter tatsächlicher Hebel | dimensionslos | `> 0`, sofern berechenbar | Ergebnisgröße |
 | `D_abs` | Gerichteter absoluter Abstand zwischen Basiswertkurs und KO-Barriere | Basiswertwährung je Basiswerteinheit | Kann positiv, `0` oder negativ sein | Ergebnisgröße |
@@ -61,6 +61,24 @@ Fehlende Bid- oder Ask-Seiten werden als `null` modelliert und nicht durch
 `0.0` ersetzt. Beide Seiten besitzen getrennte Zeitstempel, die in Version 1
 als UTC Epoch Milliseconds geführt werden. Quote-Währung und Datenquelle
 werden ausdrücklich gespeichert.
+
+Für die allgemeine Version-1-Validierung sind fehlende Bid- und Ask-Seiten
+nicht automatisch ungültig. Ein vorhandener Bid muss endlich und `>= 0` sein;
+`0.0` ist dabei ein zulässiger ausdrücklicher Rohwert und kein Ersatz für einen
+fehlenden Bid. Ein vorhandener Ask muss endlich und `> 0` sein; `0.0` ist als
+Ask ungültig. Preis und Zeitstempel müssen je Quote-Seite gemeinsam vorhanden
+oder gemeinsam abwesend sein.
+
+Wenn beide numerisch gültigen Seiten vorhanden sind, ist `bid > ask` ein
+blockierender Datenqualitätsfehler. Die Werte werden weder vertauscht noch wird
+der Spread durch einen Absolutbetrag scheinbar korrigiert. Der Validator
+normalisiert keine Eingaben und prüft keine Aktualität. Eine leere Fehlerliste
+bestätigt ausschließlich die interne Konsistenz nach den Version-1-Regeln und
+ist keine Freigabe für Bid-, Ask-, Spread-, Mid- oder andere Berechnungen.
+
+Konkrete Aktualitätsregeln, der Abgleich von Produktreferenz und Währung mit
+einer Produktspezifikation sowie anwendungsbezogene Berechnungsfreigaben bleiben
+**OFFEN** und werden in späteren Schritten getrennt festgelegt.
 
 Spread, relativer Spread und Mid-Preis werden nicht gespeichert, sondern
 später aus validierten, fachlich zusammengehörigen Quotes berechnet:

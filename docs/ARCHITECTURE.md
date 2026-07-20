@@ -288,9 +288,22 @@ explizit mitgeführt; es gibt keine stille EUR-Annahme.
 
 Spread, relativer Spread, Mid-Preis, Quote-Alter und Qualitätsbewertung werden
 nicht im Marktdatenmodell gespeichert, sondern später separat aus validierten
-Daten abgeleitet. Eine Validator-, Calculator-, Engine-, UI- oder
-Repository-Anbindung besteht in diesem isolierten Modellierungsschritt noch
-nicht.
+Daten abgeleitet. Das Modell bleibt eine passive Data Class ohne
+Konstruktorvalidierung.
+
+Die allgemeinen Version-1-Regeln werden außerhalb des Modells durch den
+zustandslosen `KnockoutProductMarketDataValidator` geprüft. Er liefert eine
+reine Liste maschinenlesbarer Fehlercodes ohne UI-Texte, sammelt alle
+unabhängigen Fehler vollständig in stabiler Reihenfolge und verwendet
+Exceptions nicht als Standardfluss. Vollständige Quotes, Bid-only-Quotes,
+Ask-only-Quotes und vollständig leere Quotes können intern konsistent sein.
+Eine leere Fehlerliste ist deshalb keine Berechnungsfreigabe.
+
+Der Validator normalisiert keine Eingaben und prüft weder Aktualität noch die
+Kompatibilität mit `KnockoutProductSpecification`. Eine Calculator-, Engine-,
+UI- oder Repository-Anbindung besteht weiterhin nicht. Ein späterer separater
+CompatibilityValidator sowie die Aktualitäts- und weiterführende
+Datenqualitätspolitik bleiben **OFFEN**.
 
 Ob Geld- und Rechenwerte langfristig mit `Double`, `BigDecimal` oder spezialisierten Decimal-Typen umgesetzt werden, ist eine offene Architekturentscheidung. Bis dahin dürfen Typen keine fachlich falsche Genauigkeit vortäuschen.
 
