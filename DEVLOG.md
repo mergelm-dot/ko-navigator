@@ -417,3 +417,27 @@ Composition, Manifest und Ressourcen liegen ausschließlich unter `src/debug`.
 Der Release-Build enthält dadurch keinen Demo-Code und keine Demo-Daten. Der
 sichtbare Hinweis kennzeichnet den Bildschirm als interne lokale Testdaten-
 Demo und stellt klar, dass keine Anlageberatung erfolgt.
+
+---
+
+## Entwicklungsschritt 22A – Synchronen Trade-Planning-Application-Service eingeführt
+
+Das neue Package `de.konavigator.app.application.tradeplanning` enthält mit
+dem `TradePlanningApplicationService` einen synchronen Application-Einstieg
+für die theoretische Trade-Planung. Der Service besitzt exakt die bestehende
+`TradeCalculationEngine` als Konstruktorabhängigkeit. Seine einzige öffentliche
+Fachmethode `execute` reicht den vollständigen `TradeCalculationInput`
+unverändert an die Engine weiter und gibt deren `TradeCalculationResult`
+unverändert zurück.
+
+Der Service enthält keine eigene Validierung, Berechnung, Rundung oder
+Fehlerabbildung. Er verwendet weder Repositories noch Marktdatenkomponenten und
+kennt keine UI-, ViewModel-, Android- oder Compose-Details. Damit bleibt die
+theoretische Trade-Planung ausdrücklich vom produktbezogenen
+`MarketDataCalculationApplicationService` getrennt. Eine Anbindung an den
+`TradePlannerScreen` oder ein neues ViewModel wurde nicht vorgenommen.
+
+Neun fokussierte JVM-Tests sichern Konstruktor und öffentliche API, den
+synchronen Aufruf, die unveränderte Long- und Short-Weitergabe, gültige und
+ungültige Engine-Resultate, Ratio und Wechselkurs sowie die Freiheit von
+Repository-, Marktdaten-, UI-, Android- und Compose-Abhängigkeiten ab.

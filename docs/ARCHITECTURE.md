@@ -231,6 +231,38 @@ Application-Koordination verwendet ausschließlich die Ports und kann dadurch
 mit den inzwischen vorhandenen In-Memory-Adaptern ebenso wie mit späteren
 echten Repository-Implementierungen unverändert ausgeführt werden.
 
+#### 5.2.2 TradePlanningApplicationService
+
+Das Package `de.konavigator.app.application.tradeplanning` enthält den
+`TradePlanningApplicationService` als dünne Application-Grenze für die
+theoretische Trade-Planung. Der Datenfluss lautet zunächst:
+
+```text
+TradePlanningApplicationService
+→ TradeCalculationEngine
+→ TradeCalculationResult
+```
+
+Der Service besitzt exakt die bestehende `TradeCalculationEngine` als
+Konstruktorabhängigkeit. Seine einzige öffentliche Fachmethode `execute` ist
+synchron, übergibt den vollständigen `TradeCalculationInput` unverändert und
+gibt das Engine-Resultat unverändert zurück. Der bestehende Engine-Vertrag mit
+seinen gegenwärtigen Status-, Fehler- und Freitextfeldern bleibt in diesem
+Schritt bewusst unverändert.
+
+Der Service enthält keine eigene Validierung, Formel, Rundung oder
+Fehlerabbildung. Für diesen vollständig durch Eingaben beschriebenen
+Planungsablauf benötigt er weder Repository-Ports noch Marktdaten. Er kennt
+keine UI-, Android- oder Compose-Komponenten. Eine spätere Anbindung über ein
+`TradePlannerViewModel` bleibt offen.
+
+Trade Planning und Market Data Calculation sind getrennte Use Cases: Der
+Trade-Planning-Service berechnet theoretische Planungswerte aus Basiswertkurs,
+Einstiegskurs, Zielhebel, Richtung, Wechselkurs und Bezugsverhältnis. Der
+`MarketDataCalculationApplicationService` lädt dagegen ein konkretes Produkt
+und dessen Quotes über die Produkt-ISIN. Beide Abläufe werden erst verbunden,
+wenn dafür ein eigener, fachlich definierter Anwendungsfall vorliegt.
+
 ### 5.3 Domain Layer
 
 Der Domain Layer enthält:
