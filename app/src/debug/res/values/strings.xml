@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="market_data_demo_launcher_label">Engine-Demo</string>
+    <string name="market_data_demo_title">Engine-Demo</string>
+    <string name="market_data_demo_internal_notice">Interner Entwicklungsbildschirm</string>
+    <string name="market_data_demo_data_notice">Lokale Testdaten – keine echten Marktdaten und keine Anlageberatung.</string>
+    <string name="market_data_demo_product_isin_label">Produkt-ISIN</string>
+    <string name="market_data_demo_calculation_type_label">Berechnungsart</string>
+    <string name="market_data_demo_purchase_price">Kaufpreis</string>
+    <string name="market_data_demo_sale_price">Verkaufspreis</string>
+    <string name="market_data_demo_spread">Spread</string>
+    <string name="market_data_demo_mid_price">Mittelpreis</string>
+    <string name="market_data_demo_evaluation_time_label">Bewertungszeitpunkt in UTC Epoch Millisekunden</string>
+    <string name="market_data_demo_evaluation_time_example">Beispiel: 1700000000000</string>
+    <string name="market_data_demo_calculate">Berechnen</string>
+    <string name="market_data_demo_loading">Berechnung läuft …</string>
+    <string name="market_data_demo_result_title">Ergebnis</string>
+    <string name="market_data_demo_absolute_spread">Absolut: %1$s %2$s</string>
+    <string name="market_data_demo_relative_spread">Relativ: %1$s %%</string>
+    <string name="market_data_demo_price_value">%1$s %2$s</string>
+    <string name="market_data_demo_input_product_isin_required">Produkt-ISIN ist erforderlich.</string>
+    <string name="market_data_demo_input_evaluation_time_required">Bewertungszeitpunkt ist erforderlich.</string>
+    <string name="market_data_demo_input_evaluation_time_invalid">Bewertungszeitpunkt muss eine ganze Zahl in Millisekunden sein.</string>
+    <string name="market_data_demo_error_product_not_found">Das Demo-Produkt wurde nicht gefunden.</string>
+    <string name="market_data_demo_error_market_data_not_found">Für das Demo-Produkt sind keine Marktdaten vorhanden.</string>
+    <string name="market_data_demo_error_data_access_failure">Die lokalen Daten konnten nicht geladen werden.</string>
+    <string name="market_data_demo_error_invalid_specification">Die Produktdaten sind ungültig.</string>
+    <string name="market_data_demo_error_invalid_market_data">Die Marktdaten sind ungültig.</string>
+    <string name="market_data_demo_error_incompatible_product_data">Produkt- und Marktdaten passen nicht zusammen.</string>
+    <string name="market_data_demo_error_required_quote_unavailable">Der erforderliche Geld- oder Briefkurs fehlt.</string>
+    <string name="market_data_demo_error_market_data_not_fresh">Die Marktdaten sind für diesen Bewertungszeitpunkt nicht aktuell genug.</string>
+    <string name="market_data_demo_error_source_unavailable">Die Datenquelle ist für diese Berechnung nicht freigegeben.</string>
+    <string name="market_data_demo_error_calculation_failed">Die Berechnung konnte nicht durchgeführt werden.</string>
+    <string name="market_data_demo_error_unexpected_failure">Ein unerwarteter Fehler ist aufgetreten.</string>
+</resources>

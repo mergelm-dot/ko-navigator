@@ -381,3 +381,39 @@ sowie das vollständige Mapping der Application- und Domainresultate ab. Eine
 Compose-, Factory-, Navigation-, MainActivity- oder Demo-Anbindung wurde noch
 nicht eingeführt. Der bestehende `TradePlannerScreen` und der
 `UnderlyingRepository`-Altpfad bleiben unverändert und getrennt.
+
+---
+
+## Konsolidierungsschritt 20B – Debug-exklusive Engine-Demo eingeführt
+
+Der neue Marktdatenberechnungspfad ist erstmals über eine ausschließlich im
+Debug-Build vorhandene `MarketDataCalculationDemoActivity` lokal sichtbar und
+ausführbar. Ein zusätzlicher Debug-Manifest-Eintrag stellt dafür einen zweiten
+Launcher-Einstieg bereit. Die bestehende `MainActivity`, der
+`TradePlannerScreen` und dessen `UnderlyingRepository`-Altpfad bleiben
+unverändert; Navigation wurde nicht eingeführt.
+
+`MarketDataCalculationDemoRoute` sammelt den vorhandenen `StateFlow` mit
+`collectAsStateWithLifecycle` und reicht ausschließlich State und die vier
+vorhandenen Eingabe-Callbacks an den stateless
+`MarketDataCalculationDemoScreen` weiter. Der Screen enthält keine Domainlogik,
+keine Systemzeit und keinen Repository- oder Servicezugriff. Er stellt
+Eingaben, CalculationTypes, Loading, Eingabefehler und typisierte Resultate dar.
+Rohwerte bleiben unverändert; locale-basierte Rundung findet ausschließlich in
+der Debug-Anzeige statt. Alle sichtbaren Texte liegen in Debug-Ressourcen.
+
+Die allgemeine `MarketDataCalculationViewModelFactory` im Main-Presentation-
+Package besitzt ausschließlich den Application-Service als Abhängigkeit. Die
+Debug-Composition erzeugt pro Aufruf einen neuen vollständigen lokalen
+Objektgraphen aus In-Memory-Repositories, expliziten Policies, Orchestrator,
+Application-Service und Factory. Sie verwendet genau ein neutrales Produkt mit
+der ISIN `DE000DEMO001`, Quelle `demo-source` und dem festen expliziten
+Bewertungszeitpunkt `1700000000000`. Es werden weder Systemzeit noch echte
+Produkte, Emittenten oder Marktdaten verwendet.
+
+Fünf Factory-Tests, vier Debug-Composition-Tests und zwanzig semantics-basierte
+Compose-Szenarien sichern die neuen Verträge ab. Demo-Activity, Screen,
+Composition, Manifest und Ressourcen liegen ausschließlich unter `src/debug`.
+Der Release-Build enthält dadurch keinen Demo-Code und keine Demo-Daten. Der
+sichtbare Hinweis kennzeichnet den Bildschirm als interne lokale Testdaten-
+Demo und stellt klar, dass keine Anlageberatung erfolgt.

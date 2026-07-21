@@ -141,6 +141,47 @@ vom bestehenden UI-nahen Altpfad aus `TradePlannerScreen`,
 getrennt. Eine Demo-Composition und die konkrete Factory bleiben **OFFEN** und
 werden erst in einem eigenen kleinen Schritt analysiert.
 
+#### 5.1.2 Debug-exklusive Engine-Demo
+
+Der vorhandene Marktdaten-Presentation-Vertrag wird über eine vollständig vom
+produktiven App-Einstieg getrennte Debug-Composition sichtbar ausführbar. Die
+allgemeine `MarketDataCalculationViewModelFactory` liegt im Main-Package
+`de.konavigator.app.presentation.marketdata` und besitzt ausschließlich den
+`MarketDataCalculationApplicationService` als Konstruktorabhängigkeit. Sie
+erzeugt nur das zugehörige ViewModel und führt keine Repository-Erzeugung oder
+Dependency Injection durch.
+
+Alle demospezifischen Typen liegen unter
+`src/debug/java/de/konavigator/app/debug/marketdata`. Ein Debug-Manifest
+registriert `MarketDataCalculationDemoActivity` als zweiten Launcher-Einstieg.
+Die bestehende `MainActivity` und ihr `TradePlannerScreen` werden nicht
+verändert und referenzieren keine Debug-Typen. Da Activity, Screen,
+Composition, Ressourcen und Manifest-Erweiterung ausschließlich im
+Debug-Source-Set liegen, enthält der Release-Build weder Demo-UI noch Demo-Daten.
+
+Die Debug-Activity bildet den Composition Root: Sie erzeugt einmalig eine
+Factory über `MarketDataCalculationDemoComposition`, bindet das ViewModel an
+ihren Lifecycle und rendert die Route im bestehenden `KONavigatorTheme`. Die
+Route sammelt den `StateFlow` lifecycle-sicher und verbindet exakt die vier
+ViewModel-Eingabemethoden mit dem stateless Screen. Der Screen kennt weder
+Application-Service noch Repositories, Policies, Orchestrator oder
+Domainmodelle und führt keine fachliche Berechnung aus.
+
+`MarketDataCalculationDemoComposition` erzeugt bei jedem Aufruf einen neuen,
+vollständigen lokalen Objektgraphen: genau eine neutrale Produktspezifikation,
+genau einen kompatiblen Quote, beide In-Memory-Repositories, explizite
+Freshness- und Source-Policies, Orchestrator, Application-Service und Factory.
+Der feste Bewertungszeitpunkt wird als UI-Eingabe übergeben; Systemzeit wird
+nicht gelesen. Es gibt keinen global mutierbaren Zustand und keine echten
+Produkt-, Emittenten- oder Marktdaten.
+
+Sichtbare Texte und Demo-Hinweise liegen ausschließlich in Debug-Ressourcen.
+Die UI formatiert rohe Resultatwerte locale-basiert nur zur Anzeige und
+verändert den fachlichen State nicht. Der Debug-Pfad bleibt vollständig vom
+alten `UnderlyingRepository`-, `UnderlyingSearchEngine`- und
+`UnderlyingTestData`-Pfad getrennt. Eine echte Release-Composition und die
+schrittweise Migration des Trade Planners bleiben **OFFEN**.
+
 ### 5.2 Application Layer
 
 Der Application Layer enthält:
