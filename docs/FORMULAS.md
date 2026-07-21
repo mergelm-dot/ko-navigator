@@ -50,6 +50,36 @@ Theoretische Modellwerte sind stets klar von realen Emittentenpreisen zu untersc
 
 Zusätzlich werden `Intrinsic` als innerer Wert, `InvestedAmount` als tatsächlich eingesetzter Gesamtbetrag, `ExitValue` als Nettoerlös und `PnL_abs` beziehungsweise `PnL_pct` als Gewinn oder Verlust verwendet. Währungen sind mit einem eindeutigen Währungscode, beispielsweise `EUR` oder `USD`, zu führen.
 
+### Brokerneutrale Einstiegskursrelation
+
+Die Version-1-Relation vergleicht ausschließlich den geplanten Einstiegskurs
+des Basiswerts mit dessen aktuellem Kurs:
+
+```text
+plannedEntryPrice < currentPrice
+→ BELOW_CURRENT
+
+plannedEntryPrice > currentPrice
+→ ABOVE_CURRENT
+
+plannedEntryPrice == currentPrice
+→ AT_CURRENT
+```
+
+Beide Werte müssen endlich und größer als `0` sein. Die Validierung des
+aktuellen Kurses erfolgt zuerst und besitzt bei zwei ungültigen Werten Vorrang.
+Erst danach wird der geplante Einstiegskurs geprüft.
+
+Die Gleichheit ist exakt. Es gibt keine vorherige Rundung, absolute oder
+relative Toleranz, Epsilon-Regel oder Tick-Size-Annahme. Unmittelbar
+benachbarte darstellbare `Double`-Werte werden deshalb als unterhalb
+beziehungsweise oberhalb klassifiziert.
+
+Die Relation ist unabhängig von Long und Short. Aus ihr wird kein technischer
+Broker-Ordertyp und keine Kauf- oder Verkaufsentscheidung abgeleitet. Sie
+beschreibt ausschließlich zwei Kurse des Basiswerts und keine Order über ein
+KO-Produkt.
+
 ### Handelbare Produktmarktdaten
 
 `P_bid` ist der aktuell verfügbare Verkaufspreis des KO-Produkts, `P_ask`

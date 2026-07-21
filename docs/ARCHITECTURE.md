@@ -284,6 +284,36 @@ Verbindliche Regeln:
 
 Die Domain verarbeitet typisierte Werte und liefert strukturierte Ergebnisse. Sie darf nicht voraussetzen, wie ein Wert in der UI eingegeben oder dargestellt wurde.
 
+#### 5.3.1 Brokerneutrale Einstiegskursrelation
+
+Das Package `de.konavigator.app.domain.tradeplanning` enthält die isolierte
+Auswertung der Relation zwischen aktuellem Basiswertkurs und geplantem
+Einstiegskurs. Der Datenfluss lautet:
+
+```text
+currentPrice + plannedEntryPrice
+→ EntryPriceRelationEvaluator
+→ typisierte EntryPriceRelation oder strukturierter Fehler
+```
+
+`EntryPriceRelation` unterscheidet ausschließlich `BELOW_CURRENT`,
+`AT_CURRENT` und `ABOVE_CURRENT`. `EntryPriceRelationEvaluationError` enthält
+die beiden Codes `INVALID_CURRENT_PRICE` und `INVALID_PLANNED_ENTRY_PRICE`.
+`EntryPriceRelationEvaluationResult` trennt `Success(relation)` und
+`Failure(error)` ohne Nullable-Ergebnis oder Exception als Standardfluss.
+
+Der zustandslose `EntryPriceRelationEvaluator` erhält genau zwei `Double`-Werte
+und kennt keine Handelsrichtung. Er validiert beide lokalen Operanden und
+verwendet bei zwei positiven, endlichen Kursen in Version 1 exakte numerische
+Gleichheit ohne Rundung, Toleranz oder Tick-Size-Annahme.
+
+Preisrelation, Handelsrichtung, technischer Broker-Ordertyp und UI-Erklärung
+sind getrennte Verantwortungen. Aus der Relation wird insbesondere keine Kauf-
+oder Verkaufsorder und keine Strategie abgeleitet. Der Domainbaustein besitzt
+keine Engine-, Application-, Repository-, Marktdaten-, UI-, Android- oder
+Compose-Abhängigkeit. Eine spätere Anbindung über Presentation-Verträge und ein
+`TradePlannerViewModel` bleibt offen.
+
 ### 5.4 Data Layer
 
 Der Data Layer enthält:

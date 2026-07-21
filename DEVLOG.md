@@ -441,3 +441,28 @@ Neun fokussierte JVM-Tests sichern Konstruktor und öffentliche API, den
 synchronen Aufruf, die unveränderte Long- und Short-Weitergabe, gültige und
 ungültige Engine-Resultate, Ratio und Wechselkurs sowie die Freiheit von
 Repository-, Marktdaten-, UI-, Android- und Compose-Abhängigkeiten ab.
+
+---
+
+## Entwicklungsschritt 22B.1 – Brokerneutrale Einstiegskursrelation typisiert
+
+Das neue Package `de.konavigator.app.domain.tradeplanning` enthält einen
+isolierten Domainbaustein für die Relation zwischen aktuellem Basiswertkurs und
+geplantem Einstiegskurs. `EntryPriceRelation` unterscheidet ausschließlich
+`BELOW_CURRENT`, `AT_CURRENT` und `ABOVE_CURRENT`. Zwei strukturierte
+Fehlercodes bilden einen ungültigen aktuellen Kurs beziehungsweise einen
+ungültigen geplanten Einstiegskurs ohne Benutzertexte ab.
+
+Der zustandslose `EntryPriceRelationEvaluator` prüft zuerst den aktuellen Kurs
+und danach den geplanten Einstieg jeweils auf Endlichkeit und einen Wert größer
+als `0.0`. Nur zwei gültige Werte werden klassifiziert. Version 1 verwendet
+exakte numerische Gleichheit ohne Rundung, Toleranz, Epsilon- oder
+Tick-Size-Annahme; unmittelbar benachbarte `Double`-Werte bleiben daher
+unterschiedliche Relationen.
+
+Die Relation kennt weder Long oder Short noch Kauf, Verkauf, Broker-Ordertypen
+oder Strategiehinweise. Sie ist nicht an UI, Engine, Application-Service,
+Repository oder Marktdaten angebunden. Die bestehende Compose-Ordertyp-Logik
+bleibt bis zu einer späteren, gesondert geprüften Migration unverändert aktiv.
+19 fokussierte JVM-Tests sichern Relation, Grenznachbarn, Validierung,
+Fehlerpriorität, Determinismus und die Android-/Compose-freie API ab.
