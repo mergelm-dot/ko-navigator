@@ -8,11 +8,15 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import de.konavigator.app.domain.availability.MarketDataCalculationType
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiError
@@ -96,9 +100,13 @@ class MarketDataCalculationDemoScreenTest {
     @Test
     fun scenario07ProductIsinCallbackReceivesExactText() {
         var received = ""
-        setScreen(onProductIsinChanged = { received = it })
+        setInteractiveScreen(
+            onProductIsinChanged = { received = it }
+        )
 
-        composeRule.onNodeWithTag(PRODUCT_ISIN_TAG).performTextInput("  de000Demo001  ")
+        composeRule.onNodeWithTag(PRODUCT_ISIN_TAG)
+            .performClick()
+            .performTextInput("  de000Demo001  ")
 
         composeRule.runOnIdle {
             assertEquals("  de000Demo001  ", received)
@@ -108,9 +116,12 @@ class MarketDataCalculationDemoScreenTest {
     @Test
     fun scenario08EvaluationTimeCallbackReceivesExactText() {
         var received = ""
-        setScreen(onEvaluationTimeChanged = { received = it })
+        setInteractiveScreen(
+            onEvaluationTimeChanged = { received = it }
+        )
 
         composeRule.onNodeWithTag(EVALUATION_TIME_TAG)
+            .performClick()
             .performTextInput("-9223372036854775808")
 
         composeRule.runOnIdle {
@@ -161,17 +172,14 @@ class MarketDataCalculationDemoScreenTest {
     fun scenario12PurchasePriceIsDisplayed() {
         setScreen(completedState(MarketDataCalculationUiResult.PurchasePrice(2.0, "EUR")))
 
-        composeRule.onNodeWithTag(RESULT_CARD_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Kaufpreis").assertIsDisplayed()
-        composeRule.onNodeWithText("2,0000 EUR").assertIsDisplayed()
+        assertResultCardContains("Kaufpreis", "2,0000 EUR")
     }
 
     @Test
     fun scenario13SalePriceIsDisplayed() {
         setScreen(completedState(MarketDataCalculationUiResult.SalePrice(1.8, "EUR")))
 
-        composeRule.onNodeWithText("Verkaufspreis").assertIsDisplayed()
-        composeRule.onNodeWithText("1,8000 EUR").assertIsDisplayed()
+        assertResultCardContains("Verkaufspreis", "1,8000 EUR")
     }
 
     @Test
@@ -186,17 +194,18 @@ class MarketDataCalculationDemoScreenTest {
             )
         )
 
-        composeRule.onNodeWithText("Spread").assertIsDisplayed()
-        composeRule.onNodeWithText("Absolut: 0,2000 EUR").assertIsDisplayed()
-        composeRule.onNodeWithText("Relativ: 10,00 %").assertIsDisplayed()
+        assertResultCardContains(
+            "Spread",
+            "Absolut: 0,2000 EUR",
+            "Relativ: 10,00 %"
+        )
     }
 
     @Test
     fun scenario15MidPriceIsDisplayed() {
         setScreen(completedState(MarketDataCalculationUiResult.MidPrice(1.9, "EUR")))
 
-        composeRule.onNodeWithText("Mittelpreis").assertIsDisplayed()
-        composeRule.onNodeWithText("1,9000 EUR").assertIsDisplayed()
+        assertResultCardContains("Mittelpreis", "1,9000 EUR")
     }
 
     @Test
@@ -218,7 +227,7 @@ class MarketDataCalculationDemoScreenTest {
         composeRule.onNodeWithText("Bewertungszeitpunkt ist erforderlich.").assertIsDisplayed()
         composeRule.onNodeWithText(
             "Bewertungszeitpunkt muss eine ganze Zahl in Millisekunden sein."
-        ).assertIsDisplayed()
+        ).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -339,6 +348,38 @@ class MarketDataCalculationDemoScreenTest {
                 )
             }
         }
+    }
+
+    private fun setInteractiveScreen(
+        onProductIsinChanged: (String) -> Unit = {},
+        onEvaluationTimeChanged: (String) -> Unit = {}
+    ) {
+        composeRule.setContent {
+            var state by remember { mutableStateOf(MarketDataCalculationUiState()) }
+            KONavigatorTheme(dynamicColor = false) {
+                MarketDataCalculationDemoScreen(
+                    state = state,
+                    onProductIsinChanged = { value ->
+                        onProductIsinChanged(value)
+                        state = state.copy(productIsinInput = value)
+                    },
+                    onCalculationTypeChanged = {},
+                    onEvaluationTimeChanged = { value ->
+                        onEvaluationTimeChanged(value)
+                        state = state.copy(evaluationTimeEpochMillisInput = value)
+                    },
+                    onCalculateClicked = {}
+                )
+            }
+        }
+    }
+
+    private fun assertResultCardContains(vararg expectedTexts: String) {
+        val resultCardMatcher = expectedTexts.fold(hasTestTag(RESULT_CARD_TAG)) { matcher, text ->
+            matcher and hasAnyDescendant(hasText(text))
+        }
+
+        composeRule.onNode(resultCardMatcher).assertIsDisplayed()
     }
 
     private fun validState(
