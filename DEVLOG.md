@@ -345,3 +345,39 @@ Es wurden keine Produktions- oder Demodaten eingebaut und keine automatische
 Composition eingeführt. Netzwerk, Datenbank, Provider, DTOs, Mapper, UI,
 ViewModel und Android-Instrumentation bleiben außerhalb dieses Schritts. Der
 bestehende `UnderlyingRepository`-Altpfad bleibt unverändert und getrennt.
+
+---
+
+## Konsolidierungsschritt 20A – Presentation-Vertrag und Marktdaten-ViewModel eingeführt
+
+Das neue Package `de.konavigator.app.presentation.marketdata` bildet einen
+isolierten Presentation-Vertrag zwischen dem bestehenden
+`MarketDataCalculationApplicationService` und einer späteren Compose-UI. Der
+immutable `MarketDataCalculationUiState` bewahrt ISIN, CalculationType und den
+explizit eingegebenen Bewertungszeitpunkt unverändert auf. Seine berechnete
+Button-Aktivierung prüft nur Pflichtfelder, Long-Parsebarkeit und Ladezustand;
+eine ISIN-Fachvalidierung oder versteckte Systemzeit gibt es nicht.
+
+`MarketDataCalculationUiSubmission` trennt Idle, Loading, strukturierte
+UI-Eingabefehler und abgeschlossene Ergebnisse. Die typisierten UI-Resultate
+bilden Kaufpreis, Verkaufspreis, beide Spreadwerte, Mid-Preis und verdichtete
+Fehlerkategorien ohne Benutzertexte oder Throwables ab. Alle erfolgreichen
+Werte werden roh und ungerundet übernommen; Formatierung bleibt einer späteren
+Compose-Schicht vorbehalten.
+
+Das `MarketDataCalculationViewModel` besitzt ausschließlich den
+Application-Service als Konstruktorabhängigkeit, stellt einen read-only
+`StateFlow` bereit und verarbeitet vier explizite Eingabemethoden. Es erzeugt
+den Application-Request ohne Normalisierung, setzt vor dem Serviceaufruf
+Loading, verhindert parallele Mehrfachklicks und bricht eine laufende
+Auswertung bei jeder Eingabeänderung ab. Ein Request-Token verhindert, dass
+ein veraltetes Resultat später einen neueren State überschreibt.
+`CancellationException` bleibt Cancellation; andere unerwartete Exceptions
+werden ohne Payload auf `UNEXPECTED_FAILURE` verdichtet.
+
+23 fokussierte JVM-Tests mit kontrolliertem Main-Dispatcher sichern State,
+UI-Eingabevalidierung, exakte Requestweitergabe, Coroutine- und Abbruchverhalten
+sowie das vollständige Mapping der Application- und Domainresultate ab. Eine
+Compose-, Factory-, Navigation-, MainActivity- oder Demo-Anbindung wurde noch
+nicht eingeführt. Der bestehende `TradePlannerScreen` und der
+`UnderlyingRepository`-Altpfad bleiben unverändert und getrennt.

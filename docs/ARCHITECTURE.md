@@ -30,7 +30,8 @@ Für Berechnungen existieren derzeit `TradeCalculationEngine`, `KoCalculator` un
 
 Der aktuelle Stand umfasst außerdem:
 
-- keine ViewModels,
+- ein isoliertes, noch nicht an Compose angebundenes ViewModel für den neuen
+  Marktdatenberechnungspfad,
 - keine Dependency Injection,
 - keine Navigation,
 - keine Netzwerk- oder Persistenzschicht,
@@ -102,6 +103,43 @@ Verbindliche Regeln:
 - Nutzereingaben werden validiert und als strukturierter State dargestellt.
 - Anzeigeformatierung verändert keine fachlichen Werte.
 - Ein Screen rendert State und sendet Events; er entscheidet nicht über Fachabläufe.
+
+#### 5.1.1 Presentation-Vertrag für Marktdatenberechnungen
+
+Das Package `de.konavigator.app.presentation.marketdata` enthält den ersten
+isolierten Presentation-Vertrag des neuen KO-Produktpfads. Der
+`MarketDataCalculationUiState` hält die drei unveränderten UI-Eingaben und den
+typisierten Submission-Zustand. Sein read-only `StateFlow` wird ausschließlich
+vom `MarketDataCalculationViewModel` aktualisiert. Vier explizite Methoden
+übernehmen ISIN, CalculationType und Bewertungszeitpunkt beziehungsweise
+starten die Berechnung.
+
+Die erlaubte UI-Validierung beschränkt sich auf eine nicht leere ISIN, einen
+nicht leeren Bewertungszeitpunkt und dessen Long-Parsebarkeit. Sie führt keine
+ISIN-Fachvalidierung und keine Normalisierung aus. Negative Epoch-Werte und die
+Long-Grenzwerte bleiben zulässig. Der Bewertungszeitpunkt wird ausdrücklich
+vom Benutzerfluss bereitgestellt; das ViewModel liest keine Systemzeit.
+
+`MarketDataCalculationUiSubmission` trennt Idle, Loading, Eingabefehler und
+abgeschlossene Resultate. `MarketDataCalculationUiResult` unterscheidet die
+vier fachlichen Erfolgswerttypen und verdichtete, UI-nahe Fehlerkategorien.
+Application- und Domain-Fehlerdetails werden dabei nicht als freie Texte oder
+Fehlerlisten in den UI-State übernommen. Erfolgswerte bleiben roh und
+ungerundet und werden erst in einer späteren Compose-Schicht formatiert.
+
+Das ViewModel hängt ausschließlich vom
+`MarketDataCalculationApplicationService` sowie dessen Application- und
+Domain-Vertragstypen ab. Es kennt keine Repositories, Policies oder
+Orchestrator-Komponenten und führt keine Domainberechnung aus. Laufende Jobs
+werden bei Eingabeänderungen abgebrochen; ein typisierter Loading-Zustand
+verhindert parallele Requests und veraltete Resultate.
+
+Der neue Pfad ist noch nicht an einen Screen, eine ViewModelFactory,
+`MainActivity`, Navigation oder Demo-Daten angebunden. Er bleibt ausdrücklich
+vom bestehenden UI-nahen Altpfad aus `TradePlannerScreen`,
+`UnderlyingRepository`, `UnderlyingSearchEngine` und `UnderlyingTestData`
+getrennt. Eine Demo-Composition und die konkrete Factory bleiben **OFFEN** und
+werden erst in einem eigenen kleinen Schritt analysiert.
 
 ### 5.2 Application Layer
 
