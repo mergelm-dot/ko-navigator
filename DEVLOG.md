@@ -466,3 +466,36 @@ Repository oder Marktdaten angebunden. Die bestehende Compose-Ordertyp-Logik
 bleibt bis zu einer späteren, gesondert geprüften Migration unverändert aktiv.
 19 fokussierte JVM-Tests sichern Relation, Grenznachbarn, Validierung,
 Fehlerpriorität, Determinismus und die Android-/Compose-freie API ab.
+
+---
+
+## Entwicklungsschritt 22C.1 – Trade-Planner-Presentation-Verträge eingeführt
+
+Das neue Package `de.konavigator.app.presentation.tradeplanner` enthält einen
+minimalen typisierten Presentation-Vertrag und ein isoliertes synchrones
+`TradePlannerViewModel`. Der immutable State bewahrt aktuellen Basiswertkurs,
+geplanten Einstieg und Zielhebel als unveränderte Eingabestrings auf und führt
+die Richtung über `TradeDirection`. Fünf explizite Methoden ändern jeweils nur
+ihren Statebereich beziehungsweise starten die Berechnung.
+
+Erst beim Berechnungsaufruf werden lokale Parsingkopien getrimmt, Dezimalkommas
+in Punkte überführt und mit `toDoubleOrNull()` geparst. Pflicht-, Parse-,
+Endlichkeits- und Wertebereichsfehler werden vollständig mit höchstens einem
+Fehler je Feld in stabiler Reihenfolge gesammelt. Nach erfolgreicher
+Presentation-Validierung wird zuerst die brokerneutrale Einstiegskursrelation
+ausgewertet und erst danach der synchrone `TradePlanningApplicationService`
+aufgerufen.
+
+Der vollständige Übergangsinput verwendet weiterhin `exchangeRate = 1.0` und
+`ratio = 0.01` sowie das explizite Mapping von `TradeDirection` auf den
+bestehenden Boolean-Vertrag. Engine-Fehler werden auf vier strukturierte
+Presentation-Codes abgebildet; inkonsistente Legacy-Resultate erhalten einen
+eigenen Code. Der bestehende Domain-Freitext wird vollständig ignoriert, und
+Rechenwerte werden weder gerundet noch formatiert.
+
+Der Pfad verwendet einen read-only `StateFlow`, aber keine Coroutines, keinen
+Loading-Zustand, keine Systemzeit und keine Repository- oder
+Marktdatenkomponenten. Eine Anbindung an `TradePlannerScreen`, `MainActivity`,
+Factory oder Composition wurde nicht vorgenommen. 30 fokussierte JVM-Tests
+sichern State, Parsing, Validierung, Relation, Inputkonstruktion, Mapping und
+die Verantwortungsgrenzen ab.

@@ -182,6 +182,49 @@ alten `UnderlyingRepository`-, `UnderlyingSearchEngine`- und
 `UnderlyingTestData`-Pfad getrennt. Eine echte Release-Composition und die
 schrittweise Migration des Trade Planners bleiben **OFFEN**.
 
+#### 5.1.3 Trade-Planner-Presentation-Vertrag
+
+Das Package `de.konavigator.app.presentation.tradeplanner` enthält den
+isolierten Presentation-Vertrag für die theoretische Trade-Planung. Der
+immutable `TradePlannerUiState` bewahrt drei unveränderte Eingabestrings, die
+typisierte `TradeDirection` und einen Submission-Zustand. Das
+`TradePlannerViewModel` stellt diesen State als read-only `StateFlow` bereit
+und besitzt ausschließlich den `TradePlanningApplicationService` als
+Konstruktorabhängigkeit.
+
+Der synchrone Datenfluss lautet:
+
+```text
+UI-Strings
+→ Parsing und Presentation-Validierung
+→ EntryPriceRelationEvaluator
+→ TradePlanningApplicationService
+→ TradeCalculationEngine
+→ typisiertes TradePlannerUiResult
+```
+
+`TradePlannerUiSubmission` unterscheidet ausschließlich `Idle`,
+`InvalidInput(errors)` und `Completed(result)`. Der Pfad benötigt weder
+Coroutines noch Loading oder `SavedStateHandle`. Jede Eingabeänderung bewahrt
+den Originalstring und setzt ein vorhandenes Ergebnis auf `Idle` zurück. Erst
+der explizite Berechnungsaufruf parst lokale Kopien und sammelt UI-nahe Fehler
+in stabiler Feldreihenfolge.
+
+Nach erfolgreicher Eingabeprüfung wird die brokerneutrale Preisrelation vor
+dem Serviceaufruf bestimmt. Der Übergangsadapter erzeugt den bestehenden
+`TradeCalculationInput` mit `exchangeRate = 1.0`, `ratio = 0.01` und einem
+expliziten Mapping von `TradeDirection` auf den vorläufigen Boolean-Vertrag.
+Das Presentation-Result übernimmt nur vollständige, ungerundete Rechenwerte.
+Engine-Fehler werden typisiert abgebildet; der vorhandene Domain-Freitext wird
+nicht in den Presentation-Vertrag übernommen.
+
+Das ViewModel kennt keine Repositories, Marktdaten, Systemzeit, Android-
+Ressourcen, Compose-Komponenten oder Broker-Ordertypen. Es ist noch nicht an
+`TradePlannerScreen`, `MainActivity`, eine Factory oder eine produktive
+Composition angebunden. Underlying-Suche, Assetauswahl, Broker und Emittenten
+bleiben während dieser schrittweisen Migration lokal im bestehenden
+Composable.
+
 ### 5.2 Application Layer
 
 Der Application Layer enthält:
