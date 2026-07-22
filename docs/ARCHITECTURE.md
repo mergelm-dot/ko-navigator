@@ -24,9 +24,9 @@ Die Architektur verfolgt folgende Ziele:
 
 > **Bestandsaufnahme:** Dieser Abschnitt beschreibt ausschließlich den derzeitigen Stand. Er ist nicht mit der Zielarchitektur gleichzusetzen.
 
-Der KO Navigator ist aktuell eine Android-App mit Jetpack Compose und einem App-Modul. `MainActivity` ist der Einstiegspunkt und zeigt `TradePlannerScreen` als aktive Hauptoberfläche an. Die Basiswertsuche arbeitet mit lokalen Testdaten über `UnderlyingRepository`, `UnderlyingSearchEngine` und `UnderlyingSearchField`.
+Der KO Navigator ist aktuell eine Android-App mit Jetpack Compose und einem App-Modul. `MainActivity` ist der Einstiegspunkt und rendert `TradePlannerRoute` als aktive Hauptoberfläche. Die Route verbindet das Activity-seitig verwaltete `TradePlannerViewModel` mit dem state-gesteuerten `TradePlannerScreen`. Die Basiswertsuche arbeitet weiterhin mit lokalen Testdaten über `UnderlyingRepository`, `UnderlyingSearchEngine` und `UnderlyingSearchField`.
 
-Für Berechnungen existieren derzeit `TradeCalculationEngine`, `KoCalculator` und `PriceConverter`. Die Berechnungsengine ist über die neue Route und den state-gesteuerten Screen vorbereitet, aber noch nicht an die aktive `MainActivity` angebunden. Parallel bestehen weiterhin `CalculatorScreen` mit direktem `KoCalculator`-Zugriff, die Orchestrierung durch `TradeCalculationEngine` und eine Zertifikatspreisberechnung in `PriceConverter`. Diese Überschneidungen sind schrittweise zu konsolidieren.
+Für Berechnungen existieren derzeit `TradeCalculationEngine`, `KoCalculator` und `PriceConverter`. Der theoretische Trade-Planning-Pfad ist über Composition, Factory, ViewModel, Route und Screen an die aktive `MainActivity` angebunden. Parallel bestehen weiterhin `CalculatorScreen` mit direktem `KoCalculator`-Zugriff und eine Zertifikatspreisberechnung in `PriceConverter`. Diese Überschneidungen sind schrittweise zu konsolidieren.
 
 Der aktuelle Stand umfasst außerdem:
 
@@ -221,7 +221,7 @@ nicht in den Presentation-Vertrag übernommen.
 Das ViewModel kennt keine Repositories, Marktdaten, Systemzeit, Android-
 Ressourcen, Compose-Komponenten oder Broker-Ordertypen. Es ist über
 `TradePlannerRoute` an den state-gesteuerten `TradePlannerScreen` angebunden;
-die produktive `MainActivity` verwendet diese Route noch nicht.
+die produktive `MainActivity` verwendet diese Route als aktiven UI-Einstieg.
 Underlying-Suche, Assetauswahl, Broker und Emittenten bleiben während dieser
 schrittweisen Migration lokal im bestehenden Composable.
 
@@ -253,10 +253,11 @@ bestehende `TradeCalculationEngine`-Object, erzeugt aber einen neuen
 Service noch ViewModel-State global gespeichert. Der Composition-Pfad besitzt
 keine Android-Context-, Repository-, MarketData- oder Debug-Abhängigkeit.
 
-Die Factory-Lebensdauer muss bei der noch offenen `MainActivity`-Anbindung
-Activity-seitig außerhalb der Recomposition liegen, damit Recomposition keinen
-neuen Objektgraphen erzeugt. Route und state-gesteuerter Screen sind bereits
-vorhanden und besitzen selbst keine Composition-Verantwortung.
+Die `MainActivity` erzeugt die Factory einmalig über ein nicht
+thread-synchronisiertes `lazy` außerhalb der Recomposition. Das ViewModel wird
+mit `ViewModelProvider` aus dem Activity-`ViewModelStore` bezogen und überlebt
+damit Konfigurationsänderungen gemäß dem Android-Lifecycle. Route und
+state-gesteuerter Screen besitzen selbst keine Composition-Verantwortung.
 
 #### 5.1.5 Trade-Planner-Route und state-gesteuerter Screen
 
@@ -313,10 +314,22 @@ Bid/Ask, Spread, Zeitstempel oder andere Marktdaten ab. Der
 als Kaufpreis bezeichnet. Ein abgeschlossenes Fehlerresultat mappt einen der
 vier CalculationError-Codes in eine neutrale Fehlerbox.
 
-`MainActivity` bleibt bis Schritt 22E.2 unverändert. Ein vorübergehender,
-klar markierter No-Argument-Wrapper hält deshalb nur einen lokalen
-Übergangszustand ohne Parsing oder Fachlogik bereit. Mit der Activity-Anbindung
-in Schritt 22E.2 muss dieser Wrapper entfernt werden.
+Der aktive Datenfluss lautet:
+
+```text
+MainActivity
+→ TradePlannerComposition
+→ TradePlannerViewModelFactory
+→ TradePlannerViewModel
+→ TradePlannerRoute
+→ TradePlannerScreen
+```
+
+`MainActivity` erzeugt weder Application-Service noch Engine und kennt keine
+Domain-Berechnungsdetails. Die Factory liegt außerhalb der Recomposition, das
+ViewModel im Activity-`ViewModelStore`, und die Route sammelt dessen StateFlow
+lifecycle-sicher. Der temporäre No-Argument-Wrapper ist vollständig entfernt;
+produktiv existiert nur noch der state- und callback-gesteuerte Screen-Vertrag.
 
 ### 5.2 Application Layer
 

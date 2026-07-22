@@ -1,6 +1,5 @@
 package de.konavigator.app
 
-import de.konavigator.app.screens.TradePlannerScreen
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import android.os.Bundle
@@ -40,6 +39,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
+import de.konavigator.app.composition.TradePlannerComposition
+import de.konavigator.app.presentation.tradeplanner.TradePlannerRoute
+import de.konavigator.app.presentation.tradeplanner.TradePlannerViewModel
 import de.konavigator.app.ui.theme.KONavigatorTheme
 
 private val AppBackground = Color(0xFF060B10)
@@ -51,6 +54,17 @@ private val PrimaryText = Color(0xFFF3F4F6)
 private val SecondaryText = Color(0xFF9CA3AF)
 
 class MainActivity : ComponentActivity() {
+
+    private val tradePlannerViewModelFactory by lazy(LazyThreadSafetyMode.NONE) {
+        TradePlannerComposition.createViewModelFactory()
+    }
+
+    private val tradePlannerViewModel by lazy(LazyThreadSafetyMode.NONE) {
+        ViewModelProvider(
+            this,
+            tradePlannerViewModelFactory
+        )[TradePlannerViewModel::class.java]
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,7 +80,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             KONavigatorTheme {
-                TradePlannerScreen()
+                TradePlannerRoute(
+                    viewModel = tradePlannerViewModel
+                )
             }
         }
     }

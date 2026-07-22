@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -44,6 +45,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -70,44 +73,6 @@ private val PrimaryText = Color(0xFFF3F4F6)
 private val SecondaryText = Color(0xFF9CA3AF)
 private val AccentGreen = Color(0xFF20C967)
 private val DangerRed = Color(0xFFFF4D4D)
-
-/**
- * Temporärer Kompatibilitäts-Wrapper für die noch unveränderte MainActivity.
- * Wird in Schritt 22E.2 zusammen mit der produktiven Activity-Anbindung entfernt.
- */
-@Composable
-fun TradePlannerScreen() {
-    var transitionState by remember { mutableStateOf(TradePlannerUiState()) }
-
-    TradePlannerScreen(
-        state = transitionState,
-        onCurrentPriceChanged = { value ->
-            transitionState = transitionState.copy(
-                currentUnderlyingPriceInput = value,
-                submission = TradePlannerUiSubmission.Idle
-            )
-        },
-        onPlannedEntryPriceChanged = { value ->
-            transitionState = transitionState.copy(
-                plannedEntryPriceInput = value,
-                submission = TradePlannerUiSubmission.Idle
-            )
-        },
-        onTargetLeverageChanged = { value ->
-            transitionState = transitionState.copy(
-                targetLeverageInput = value,
-                submission = TradePlannerUiSubmission.Idle
-            )
-        },
-        onDirectionChanged = { value ->
-            transitionState = transitionState.copy(
-                direction = value,
-                submission = TradePlannerUiSubmission.Idle
-            )
-        },
-        onCalculateClicked = {}
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -310,6 +275,33 @@ fun TradePlannerScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                Text(
+                    text = "Richtung",
+                    color = SecondaryText,
+                    fontSize = 15.sp
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    DirectionOption(
+                        text = "Long",
+                        selected = state.direction == TradeDirection.LONG,
+                        onClick = { onDirectionChanged(TradeDirection.LONG) },
+                        accentColor = accentColor
+                    )
+
+                    DirectionOption(
+                        text = "Short",
+                        selected = state.direction == TradeDirection.SHORT,
+                        onClick = { onDirectionChanged(TradeDirection.SHORT) },
+                        accentColor = accentColor
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 PlannerTextField(
                     label = "Aktueller Kurs",
                     value = state.currentUnderlyingPriceInput,
@@ -350,32 +342,6 @@ fun TradePlannerScreen(
                     },
                     modifier = Modifier.testTag(TRADE_PLANNER_TARGET_LEVERAGE_TAG)
                 )
-
-                Text(
-                    text = "Richtung",
-                    color = SecondaryText,
-                    fontSize = 15.sp
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    DirectionOption(
-                        text = "Long",
-                        selected = state.direction == TradeDirection.LONG,
-                        onClick = { onDirectionChanged(TradeDirection.LONG) },
-                        accentColor = accentColor
-                    )
-
-                    DirectionOption(
-                        text = "Short",
-                        selected = state.direction == TradeDirection.SHORT,
-                        onClick = { onDirectionChanged(TradeDirection.SHORT) },
-                        accentColor = accentColor
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
 
                 Button(
                     onClick = onCalculateClicked,
@@ -426,7 +392,12 @@ private fun PlannerTextField(
         },
         isError = isError,
         supportingText = supportingText?.let { text ->
-            { Text(text) }
+            {
+                Text(
+                    text = text,
+                    modifier = Modifier.semantics(mergeDescendants = true) {}
+                )
+            }
         },
         singleLine = true,
         keyboardOptions = KeyboardOptions(
@@ -466,19 +437,23 @@ private fun DirectionOption(
         ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RadioButton(
-            selected = selected,
-            onClick = null,
-            colors = RadioButtonDefaults.colors(
-                selectedColor = accentColor,
-                unselectedColor = SecondaryText
+        Box(modifier = Modifier.clearAndSetSemantics {}) {
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = accentColor,
+                    unselectedColor = SecondaryText
+                )
             )
-        )
+        }
 
         Text(
             text = text,
             color = PrimaryText,
-            modifier = Modifier.padding(end = 8.dp),
+            modifier = Modifier
+                .semantics(mergeDescendants = true) {}
+                .padding(end = 8.dp),
             fontSize = 16.sp
         )
     }

@@ -572,3 +572,39 @@ und Entfernung der alten Ordertypen ab. Vier Route-Tests prüfen initiale
 Darstellung, exakte ViewModel-Änderungen, Berechnung samt gerendertem Resultat
 und die ausgeschlossenen Route-Abhängigkeiten. `MainActivity` ist noch nicht
 an Route, Factory und Composition angebunden.
+
+---
+
+## Entwicklungsschritt 22E.2 – Trade-Planner produktiv an MainActivity angebunden
+
+`MainActivity` erzeugt die `TradePlannerViewModelFactory` einmalig Activity-seitig
+außerhalb der Recomposition über `TradePlannerComposition`. Das
+`TradePlannerViewModel` wird mit `ViewModelProvider` aus dem
+Activity-`ViewModelStore` bezogen. Innerhalb der unveränderten Theme-Struktur ist
+`TradePlannerRoute` nun der aktive UI-Einstieg; Service, Engine,
+Einstiegskursrelation, Repositories und Marktdaten bleiben aus der Activity
+ausgeschlossen.
+
+Der temporäre No-Argument-Kompatibilitäts-Wrapper wurde vollständig entfernt.
+Produktiv verbleibt nur der state- und callback-gesteuerte Screen-Vertrag. Beim
+ersten vollständigen Lauf auf einem realen Gerät wurden zudem ausschließlich im
+Screen die Semantikgrenzen der bestehenden Feldfehler und typisierten
+Long-/Short-Auswahl präzisiert. Die Richtungsauswahl steht im unveränderten
+Eingabebereich vor den drei Berechnungsfeldern, damit sie im initialen
+Geräte-Viewport direkt erreichbar ist. Fachlogik, Texte, Styling und Callbacks
+blieben unverändert.
+
+Der JVM-Lauf bestätigte erneut 806/806 Tests. `assembleDebug` und
+`assembleDebugAndroidTest` waren erfolgreich. Auf einem autorisierten OPPO
+CPH2791 mit Android 16 (SDK 36) liefen alle 42 Instrumentationstests erfolgreich,
+darunter alle 21 Trade-Planner-Tests; der Gradle-Lauf endete mit
+`BUILD SUCCESSFUL`.
+
+Der praktische Gerätetest bestätigte den normalen Start über `MainActivity`, die
+Editierbarkeit aller drei Berechnungseingaben, die Long-/Short-Umschaltung,
+gültige Berechnung und theoretische Ergebnisbox sowie eine feldnahe Meldung bei
+ungültiger Eingabe. Die entfernten Ordertypen erscheinen nicht, Scrollen
+funktioniert, und die aktuelle UI blieb im Portrait- und Landscape-Modus
+nutzbar. Nach Wiederherstellung der ursprünglichen Portrait-Sperre startete die
+App dreimal hintereinander kalt und absturzfrei wieder in der aktuellen
+Trade-Planner-Oberfläche.
