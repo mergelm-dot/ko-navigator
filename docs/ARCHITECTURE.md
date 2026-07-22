@@ -26,7 +26,7 @@ Die Architektur verfolgt folgende Ziele:
 
 Der KO Navigator ist aktuell eine Android-App mit Jetpack Compose und einem App-Modul. `MainActivity` ist der Einstiegspunkt und zeigt `TradePlannerScreen` als aktive Hauptoberfläche an. Die Basiswertsuche arbeitet mit lokalen Testdaten über `UnderlyingRepository`, `UnderlyingSearchEngine` und `UnderlyingSearchField`.
 
-Für Berechnungen existieren derzeit `TradeCalculationEngine`, `KoCalculator` und `PriceConverter`. Die Berechnungsengine ist noch nicht vollständig an die aktive UI angebunden. Gleichzeitig bestehen mehrere teilweise parallele Rechenpfade: Die aktive Oberfläche führt einzelne Berechnungen selbst aus, `CalculatorScreen` greift direkt auf `KoCalculator` zu, `TradeCalculationEngine` orchestriert einen weiteren Ablauf, und `PriceConverter` enthält gegenwärtig ebenfalls eine Zertifikatspreisberechnung. Diese Überschneidungen sind schrittweise zu konsolidieren.
+Für Berechnungen existieren derzeit `TradeCalculationEngine`, `KoCalculator` und `PriceConverter`. Die Berechnungsengine ist über die neue Route und den state-gesteuerten Screen vorbereitet, aber noch nicht an die aktive `MainActivity` angebunden. Parallel bestehen weiterhin `CalculatorScreen` mit direktem `KoCalculator`-Zugriff, die Orchestrierung durch `TradeCalculationEngine` und eine Zertifikatspreisberechnung in `PriceConverter`. Diese Überschneidungen sind schrittweise zu konsolidieren.
 
 Der aktuelle Stand umfasst außerdem:
 
@@ -219,8 +219,9 @@ Engine-Fehler werden typisiert abgebildet; der vorhandene Domain-Freitext wird
 nicht in den Presentation-Vertrag übernommen.
 
 Das ViewModel kennt keine Repositories, Marktdaten, Systemzeit, Android-
-Ressourcen, Compose-Komponenten oder Broker-Ordertypen. Es ist noch nicht an
-`TradePlannerScreen`, `MainActivity` oder eine Route angebunden.
+Ressourcen, Compose-Komponenten oder Broker-Ordertypen. Es ist über
+`TradePlannerRoute` an den state-gesteuerten `TradePlannerScreen` angebunden;
+die produktive `MainActivity` verwendet diese Route noch nicht.
 Underlying-Suche, Assetauswahl, Broker und Emittenten bleiben während dieser
 schrittweisen Migration lokal im bestehenden Composable.
 
@@ -252,10 +253,70 @@ bestehende `TradeCalculationEngine`-Object, erzeugt aber einen neuen
 Service noch ViewModel-State global gespeichert. Der Composition-Pfad besitzt
 keine Android-Context-, Repository-, MarketData- oder Debug-Abhängigkeit.
 
-Die Anbindung an `MainActivity`, eine spätere `TradePlannerRoute` und den
-`TradePlannerScreen` bleibt einem eigenen Entwicklungsschritt vorbehalten. Die
-Factory-Lebensdauer muss dabei Activity-seitig außerhalb der Recomposition
-liegen, damit Recomposition keinen neuen Objektgraphen erzeugt.
+Die Factory-Lebensdauer muss bei der noch offenen `MainActivity`-Anbindung
+Activity-seitig außerhalb der Recomposition liegen, damit Recomposition keinen
+neuen Objektgraphen erzeugt. Route und state-gesteuerter Screen sind bereits
+vorhanden und besitzen selbst keine Composition-Verantwortung.
+
+#### 5.1.5 Trade-Planner-Route und state-gesteuerter Screen
+
+Die produktive Route liegt unter
+`de.konavigator.app.presentation.tradeplanner.TradePlannerRoute` und besitzt
+den Vertrag:
+
+```kotlin
+@Composable
+fun TradePlannerRoute(
+    viewModel: TradePlannerViewModel,
+    modifier: Modifier = Modifier
+)
+```
+
+Sie ist ein reiner Compose-Adapter: `collectAsStateWithLifecycle` sammelt den
+`StateFlow` lifecycle-sicher, danach reicht die Route State, Modifier und exakt
+die fünf vorhandenen Eingabemethoden an den Screen weiter. Sie besitzt keinen
+eigenen Zustand, erzeugt kein ViewModel und kennt weder Factory, Composition,
+Application-Service noch Engine. Dafür ist `lifecycle-runtime-compose` nun als
+`implementation` im Main-Classpath verfügbar; es wurde keine weitere
+Abhängigkeit ergänzt.
+
+Der Screen-Vertrag lautet:
+
+```kotlin
+@Composable
+fun TradePlannerScreen(
+    state: TradePlannerUiState,
+    onCurrentPriceChanged: (String) -> Unit,
+    onPlannedEntryPriceChanged: (String) -> Unit,
+    onTargetLeverageChanged: (String) -> Unit,
+    onDirectionChanged: (TradeDirection) -> Unit,
+    onCalculateClicked: () -> Unit,
+    modifier: Modifier = Modifier
+)
+```
+
+Aktueller Kurs, geplanter Einstieg, Zielhebel und Richtung werden ausschließlich
+aus dem Presentation-State dargestellt. Das Composable enthält dafür weder
+Parsing und Eingabevalidierung noch Prozentformeln, Broker-Ordertypen oder
+Strategieerklärungen. Nur Basiswertsuche und Assetauswahl sowie Broker- und
+Emittentenauswahl bleiben vorläufig lokale UI-Zustände. Ein fehlender Assetpreis
+wird über beide Preis-Callbacks als leerer String weitergegeben und niemals als
+künstlicher Nullpreis dargestellt.
+
+`Idle` zeigt keine Submission-Box. `InvalidInput` mappt die sechs strukturierten
+Fehler ausschließlich feldnah. Ein abgeschlossenes Erfolgsresultat zeigt die
+neutrale Einstiegskursrelation sowie vier rohe Rechenwerte locale-basiert und
+nur zur Anzeige formatiert. Die Box ist ausdrücklich eine theoretische
+Modellrechnung und bildet weder Produktidentität noch WKN, ISIN, Emittent,
+Bid/Ask, Spread, Zeitstempel oder andere Marktdaten ab. Der
+`certificatePrice` wird als vereinfachter theoretischer Produktwert und nicht
+als Kaufpreis bezeichnet. Ein abgeschlossenes Fehlerresultat mappt einen der
+vier CalculationError-Codes in eine neutrale Fehlerbox.
+
+`MainActivity` bleibt bis Schritt 22E.2 unverändert. Ein vorübergehender,
+klar markierter No-Argument-Wrapper hält deshalb nur einen lokalen
+Übergangszustand ohne Parsing oder Fachlogik bereit. Mit der Activity-Anbindung
+in Schritt 22E.2 muss dieser Wrapper entfernt werden.
 
 ### 5.2 Application Layer
 

@@ -527,3 +527,48 @@ MarketData-Komponenten oder Debug-Abhängigkeiten. `MainActivity`, Route und
 15 neue fokussierte JVM-Tests sichern Factory-Vertrag, exakte
 Abhängigkeitsidentitäten, Objektgraph, Instanztrennung, deterministisches
 Verhalten und die ausgeschlossenen Verantwortungsbereiche ab.
+
+---
+
+## Entwicklungsschritt 22E.1 – Trade-Planner-Route und state-gesteuerten Screen eingeführt
+
+Die neue produktive `TradePlannerRoute` im Package
+`de.konavigator.app.presentation.tradeplanner` sammelt den read-only
+`StateFlow` des übergebenen `TradePlannerViewModel` mit
+`collectAsStateWithLifecycle`. Sie reicht den vollständigen State, exakt fünf
+ViewModel-Callbacks und den äußeren `Modifier` an den `TradePlannerScreen`
+weiter. Die Route besitzt keinen eigenen State und kennt weder Factory,
+Composition, Application-Service noch Berechnungsengine.
+
+Der `TradePlannerScreen` besitzt nun einen state-gesteuerten Vertrag aus
+`TradePlannerUiState` und fünf Callbacks. Aktueller Basiswertkurs, geplanter
+Einstiegskurs, Zielhebel und `TradeDirection` werden nicht mehr lokal
+gespiegelt. Lokale Zustände bleiben vorläufig ausschließlich für Basiswertsuche
+und Assetauswahl sowie Broker- und Emittentenauswahl bestehen. Bei einer
+Assetauswahl wird ein vorhandener Kurs locale-stabil wie bisher formatiert an
+beide Preis-Callbacks gegeben; ein fehlender Kurs wird als leerer String
+weitergereicht.
+
+Die frühere Komma-Parsinglogik, lokale Eingabevalidierung, Prozentformel und
+Buy-/Sell-/Market-Ordertypmatrix einschließlich Strategieerklärungen wurden
+vollständig aus dem Composable entfernt. Alle sechs strukturierten Inputfehler
+werden feldnah auf Ressourcen gemappt. Erfolgreiche Submissions zeigen eine
+neutrale theoretische Ergebnisbox mit locale-basierter reiner
+Darstellungsformatierung; sie enthält keine Produktidentität, keine Marktdaten
+und keine echte Zertifikatskarte. Der theoretische Wert wird ausdrücklich
+nicht als Kaufpreis bezeichnet. Vier CalculationError-Werte werden in einer
+neutralen Fehlerbox dargestellt.
+
+Da `MainActivity` in diesem Schritt absichtlich unverändert bleibt, stellt ein
+klar markierter No-Argument-Kompatibilitäts-Wrapper nur einen lokalen
+Übergangszustand bereit. Er enthält keine fachliche Logik und muss mit der
+Activity-Anbindung in Schritt 22E.2 entfernt werden. Die
+`lifecycle-runtime-compose`-Abhängigkeit liegt nun im Main-Classpath.
+
+17 semantics-basierte Screen-Tests sichern State und Callback-Vertrag,
+Long/Short-Typisierung, alle Fehler- und Relationstexte, die neutrale
+Ergebnisdarstellung, die verbliebenen lokalen UI-Bereiche sowie Scrollbarkeit
+und Entfernung der alten Ordertypen ab. Vier Route-Tests prüfen initiale
+Darstellung, exakte ViewModel-Änderungen, Berechnung samt gerendertem Resultat
+und die ausgeschlossenen Route-Abhängigkeiten. `MainActivity` ist noch nicht
+an Route, Factory und Composition angebunden.

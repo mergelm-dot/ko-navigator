@@ -1,3 +1,30 @@
 <resources>
     <string name="app_name">KO Navigator</string>
+    <string name="trade_planner_planned_entry_price_label">Geplanter Einstiegskurs</string>
+    <string name="trade_planner_calculate">BERECHNUNG AUSFÜHREN</string>
+
+    <string name="trade_planner_relation_below_current">Der geplante Einstieg liegt unter dem aktuellen Basiswertkurs.</string>
+    <string name="trade_planner_relation_at_current">Der geplante Einstieg entspricht dem aktuellen Basiswertkurs.</string>
+    <string name="trade_planner_relation_above_current">Der geplante Einstieg liegt über dem aktuellen Basiswertkurs.</string>
+
+    <string name="trade_planner_error_current_price_required">Aktueller Kurs ist erforderlich.</string>
+    <string name="trade_planner_error_current_price_invalid">Aktueller Kurs muss eine endliche Zahl größer als 0 sein.</string>
+    <string name="trade_planner_error_planned_entry_price_required">Geplanter Einstiegskurs ist erforderlich.</string>
+    <string name="trade_planner_error_planned_entry_price_invalid">Geplanter Einstiegskurs muss eine endliche Zahl größer als 0 sein.</string>
+    <string name="trade_planner_error_target_leverage_required">Zielhebel ist erforderlich.</string>
+    <string name="trade_planner_error_target_leverage_invalid">Zielhebel muss eine endliche Zahl größer als 1 sein.</string>
+
+    <string name="trade_planner_error_invalid_planned_entry_price">Der geplante Einstiegskurs konnte nicht verarbeitet werden.</string>
+    <string name="trade_planner_error_invalid_target_leverage">Der Zielhebel konnte nicht verarbeitet werden.</string>
+    <string name="trade_planner_error_invalid_derived_knockout_price">Die theoretische KO-Barriere konnte nicht berechnet werden.</string>
+    <string name="trade_planner_error_inconsistent_calculation_result">Das Berechnungsergebnis ist unvollständig und kann nicht angezeigt werden.</string>
+
+    <string name="trade_planner_result_title">Theoretisches Berechnungsergebnis</string>
+    <string name="trade_planner_result_relation">Einstiegskursrelation</string>
+    <string name="trade_planner_result_model_value">Vereinfachter theoretischer Produktwert</string>
+    <string name="trade_planner_result_knockout_price">Theoretische KO-Barriere</string>
+    <string name="trade_planner_result_distance_absolute">KO-Abstand absolut</string>
+    <string name="trade_planner_result_distance_percent">KO-Abstand prozentual</string>
+    <string name="trade_planner_result_percent_value">%1$s %%</string>
+    <string name="trade_planner_result_model_notice">Vereinfachte Modellrechnung – kein handelbarer Produktpreis und keine Anlageberatung.</string>
 </resources>

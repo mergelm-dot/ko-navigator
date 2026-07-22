@@ -1,9 +1,8 @@
 package de.konavigator.app.screens
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
-import de.konavigator.app.components.UnderlyingSearchField
-import de.konavigator.app.components.IssuerSelector
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,38 +14,54 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import de.konavigator.app.models.IssuerOption
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import de.konavigator.app.R
+import de.konavigator.app.components.IssuerSelector
+import de.konavigator.app.components.UnderlyingSearchField
+import de.konavigator.app.domain.model.TradeDirection
+import de.konavigator.app.domain.tradeplanning.EntryPriceRelation
+import de.konavigator.app.models.IssuerOption
+import de.konavigator.app.models.UnderlyingAsset
+import de.konavigator.app.presentation.tradeplanner.TradePlannerUiCalculationError
+import de.konavigator.app.presentation.tradeplanner.TradePlannerUiInputError
+import de.konavigator.app.presentation.tradeplanner.TradePlannerUiResult
+import de.konavigator.app.presentation.tradeplanner.TradePlannerUiState
+import de.konavigator.app.presentation.tradeplanner.TradePlannerUiSubmission
+import java.text.NumberFormat
+import java.util.Locale
 
 private val AppBackground = Color(0xFF040A0E)
 private val CardBackground = Color(0xFF0C171D)
@@ -56,17 +71,58 @@ private val SecondaryText = Color(0xFF9CA3AF)
 private val AccentGreen = Color(0xFF20C967)
 private val DangerRed = Color(0xFFFF4D4D)
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Temporärer Kompatibilitäts-Wrapper für die noch unveränderte MainActivity.
+ * Wird in Schritt 22E.2 zusammen mit der produktiven Activity-Anbindung entfernt.
+ */
 @Composable
 fun TradePlannerScreen() {
+    var transitionState by remember { mutableStateOf(TradePlannerUiState()) }
+
+    TradePlannerScreen(
+        state = transitionState,
+        onCurrentPriceChanged = { value ->
+            transitionState = transitionState.copy(
+                currentUnderlyingPriceInput = value,
+                submission = TradePlannerUiSubmission.Idle
+            )
+        },
+        onPlannedEntryPriceChanged = { value ->
+            transitionState = transitionState.copy(
+                plannedEntryPriceInput = value,
+                submission = TradePlannerUiSubmission.Idle
+            )
+        },
+        onTargetLeverageChanged = { value ->
+            transitionState = transitionState.copy(
+                targetLeverageInput = value,
+                submission = TradePlannerUiSubmission.Idle
+            )
+        },
+        onDirectionChanged = { value ->
+            transitionState = transitionState.copy(
+                direction = value,
+                submission = TradePlannerUiSubmission.Idle
+            )
+        },
+        onCalculateClicked = {}
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TradePlannerScreen(
+    state: TradePlannerUiState,
+    onCurrentPriceChanged: (String) -> Unit,
+    onPlannedEntryPriceChanged: (String) -> Unit,
+    onTargetLeverageChanged: (String) -> Unit,
+    onDirectionChanged: (TradeDirection) -> Unit,
+    onCalculateClicked: () -> Unit,
+    modifier: Modifier = Modifier
+) {
 
     var underlying by remember { mutableStateOf("NVIDIA") }
-    var selectedAsset by remember { mutableStateOf<de.konavigator.app.models.UnderlyingAsset?>(null) }
-    var currentPrice by remember { mutableStateOf("100,00") }
-    var entryPrice by remember { mutableStateOf("95,00") }
-    var leverage by remember { mutableStateOf("3") }
-    var direction by remember { mutableStateOf("Long") }
-    var showOrderHint by remember { mutableStateOf(true) }
+    var selectedAsset by remember { mutableStateOf<UnderlyingAsset?>(null) }
     var selectedBroker by remember {
         mutableStateOf("Scalable Capital")
     }
@@ -92,79 +148,30 @@ fun TradePlannerScreen() {
         )
     }
 
-    var issuerExpanded by remember {
-        mutableStateOf(false)
+    val accentColor = if (state.direction == TradeDirection.LONG) {
+        AccentGreen
+    } else {
+        DangerRed
     }
-    val accentColor =
-        if (direction == "Long") AccentGreen else DangerRed
-    val current = currentPrice
-        .replace(",", ".")
-        .toDoubleOrNull()
-
-    val entry = entryPrice
-        .replace(",", ".")
-        .toDoubleOrNull()
-    val entryDifferencePercent =
-        if (current != null && current != 0.0 && entry != null) {
-            ((entry - current) / current) * 100.0
-        } else {
-            null
-        }
-
-    val entryDifferenceText =
-        entryDifferencePercent?.let { difference ->
-            String.format(
-                java.util.Locale.GERMANY,
-                "%+.2f %%",
-                difference
-            )
-        }
-    val selectedCurrency =
-        selectedAsset?.currency ?: "EUR"
-
-    val orderType = when {
-        current == null || entry == null -> ""
-
-        direction == "Long" && entry < current ->
-            "Buy Limit"
-
-        direction == "Long" && entry > current ->
-            "Buy Stop"
-
-        direction == "Short" && entry > current ->
-            "Sell Limit"
-
-        direction == "Short" && entry < current ->
-            "Sell Stop"
-
-        else ->
-            "Market"
+    val selectedCurrency = selectedAsset?.currency
+    val inputErrors = (state.submission as? TradePlannerUiSubmission.InvalidInput)
+        ?.errors
+        .orEmpty()
+    val currentPriceError = inputErrors.firstOrNull {
+        it == TradePlannerUiInputError.CURRENT_PRICE_REQUIRED ||
+            it == TradePlannerUiInputError.CURRENT_PRICE_INVALID
     }
-
-            val orderExplanation = when (orderType) {
-            "Buy Limit" ->
-                "Du versuchst, unterhalb des aktuellen Kurses günstiger einzusteigen. Der Kauf erfolgt nur, wenn der Basiswert deinen Kaufkurs erreicht."
-
-            "Buy Stop" ->
-                "Du steigst erst ein, wenn der Basiswert über deinen Kaufkurs steigt. Das eignet sich beispielsweise für einen bestätigten Ausbruch."
-
-            "Sell Limit" ->
-                "Du planst den Short-Einstieg oberhalb des aktuellen Kurses. Die Order wird erst bei Erreichen des Verkaufskurses ausgelöst."
-
-            "Sell Stop" ->
-                "Du steigst erst ein, wenn der Basiswert unter deinen Verkaufskurs fällt. Das eignet sich beispielsweise für einen bestätigten Abwärtstrend."
-
-            "Market" ->
-                "Der geplante Einstieg entspricht ungefähr dem aktuellen Kurs und würde grundsätzlich sofort ausgeführt."
-
-            else ->
-                "Bitte gib einen gültigen aktuellen Kurs und Einstiegskurs ein."
-
-
+    val plannedEntryPriceError = inputErrors.firstOrNull {
+        it == TradePlannerUiInputError.PLANNED_ENTRY_PRICE_REQUIRED ||
+            it == TradePlannerUiInputError.PLANNED_ENTRY_PRICE_INVALID
+    }
+    val targetLeverageError = inputErrors.firstOrNull {
+        it == TradePlannerUiInputError.TARGET_LEVERAGE_REQUIRED ||
+            it == TradePlannerUiInputError.TARGET_LEVERAGE_INVALID
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(AppBackground)
             .statusBarsPadding()
@@ -215,19 +222,13 @@ fun TradePlannerScreen() {
                     value = underlying,
                     onValueChange = { underlying = it },
                     onAssetSelected = { asset ->
-
                         selectedAsset = asset
-
                         underlying = asset.displayName
-
-                        val formattedPrice = String.format(
-                            java.util.Locale.GERMANY,
-                            "%.2f",
-                            asset.currentPrice ?: 0.0
-                        )
-
-                        currentPrice = formattedPrice
-                        entryPrice = formattedPrice
+                        val formattedPrice = asset.currentPrice?.let { price ->
+                            String.format(Locale.GERMANY, "%.2f", price)
+                        }.orEmpty()
+                        onCurrentPriceChanged(formattedPrice)
+                        onPlannedEntryPriceChanged(formattedPrice)
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -311,29 +312,43 @@ fun TradePlannerScreen() {
 
                 PlannerTextField(
                     label = "Aktueller Kurs",
-                    value = currentPrice,
-                    onValueChange = { currentPrice = it },
+                    value = state.currentUnderlyingPriceInput,
+                    onValueChange = onCurrentPriceChanged,
                     numeric = true,
                     suffix = selectedCurrency,
-                    accentColor = accentColor
+                    accentColor = accentColor,
+                    isError = currentPriceError != null,
+                    supportingText = currentPriceError?.let {
+                        stringResource(inputErrorResource(it))
+                    },
+                    modifier = Modifier.testTag(TRADE_PLANNER_CURRENT_PRICE_TAG)
                 )
 
                 PlannerTextField(
-                    label = if (direction == "Long") "Kaufkurs" else "Verkaufskurs",
-                    value = entryPrice,
-                    onValueChange = { entryPrice = it },
+                    label = stringResource(R.string.trade_planner_planned_entry_price_label),
+                    value = state.plannedEntryPriceInput,
+                    onValueChange = onPlannedEntryPriceChanged,
                     numeric = true,
                     suffix = selectedCurrency,
-                    differenceText = entryDifferenceText,
-                    accentColor = accentColor
+                    accentColor = accentColor,
+                    isError = plannedEntryPriceError != null,
+                    supportingText = plannedEntryPriceError?.let {
+                        stringResource(inputErrorResource(it))
+                    },
+                    modifier = Modifier.testTag(TRADE_PLANNER_PLANNED_ENTRY_PRICE_TAG)
                 )
 
                 PlannerTextField(
                     label = "Hebel",
-                    value = leverage,
-                    onValueChange = { leverage = it },
+                    value = state.targetLeverageInput,
+                    onValueChange = onTargetLeverageChanged,
                     numeric = true,
-                            accentColor = accentColor
+                    accentColor = accentColor,
+                    isError = targetLeverageError != null,
+                    supportingText = targetLeverageError?.let {
+                        stringResource(inputErrorResource(it))
+                    },
+                    modifier = Modifier.testTag(TRADE_PLANNER_TARGET_LEVERAGE_TAG)
                 )
 
                 Text(
@@ -348,77 +363,42 @@ fun TradePlannerScreen() {
                 ) {
                     DirectionOption(
                         text = "Long",
-                        selected = direction == "Long",
-                        onClick = { direction = "Long" },
+                        selected = state.direction == TradeDirection.LONG,
+                        onClick = { onDirectionChanged(TradeDirection.LONG) },
                         accentColor = accentColor
                     )
 
                     DirectionOption(
                         text = "Short",
-                        selected = direction == "Short",
-                        onClick = { direction = "Short" },
+                        selected = state.direction == TradeDirection.SHORT,
+                        onClick = { onDirectionChanged(TradeDirection.SHORT) },
                         accentColor = accentColor
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = orderType,
-                    color = accentColor,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                if (showOrderHint) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = orderExplanation,
-                    color = SecondaryText,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
-                )
-            }
-                TextButton(
-                    onClick = {
-                        showOrderHint = !showOrderHint
-                    }
-                ) {
-                    Text(
-                        text = if (showOrderHint) {
-                            "Hinweis ausblenden"
-                        } else {
-                            "Hinweis anzeigen"
-                        },
-                        color = SecondaryText
-                    )
-                }
-
-
-                Spacer(modifier = Modifier.height(4.dp))
-
                 Button(
-                    onClick = {
-                        // Die Zertifikatssuche ergänzen wir später.
-                    },
+                    onClick = onCalculateClicked,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(58.dp),
+                        .height(58.dp)
+                        .testTag(TRADE_PLANNER_CALCULATE_TAG),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor =
-                            if (direction == "Long") AccentGreen
-                            else DangerRed,
+                        containerColor = accentColor,
                         contentColor = Color.Black
                     )
                 ) {
                     Text(
-                        text = "PASSENDE ZERTIFIKATE FINDEN",
+                        text = stringResource(R.string.trade_planner_calculate),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
+
+        TradePlannerSubmissionContent(state.submission)
     }
 }
 
@@ -430,37 +410,23 @@ private fun PlannerTextField(
     accentColor: Color,
     numeric: Boolean = false,
     suffix: String? = null,
-    differenceText: String? = null
+    isError: Boolean = false,
+    supportingText: String? = null,
+    modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         label = {
             Text(label)
         },
-        suffix = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (differenceText != null) {
-                    Text(
-                        text = differenceText,
-                        color = when {
-                            differenceText.startsWith("+") -> AccentGreen
-                            differenceText.startsWith("-") ||
-                                    differenceText.startsWith("−") -> DangerRed
-                            else -> SecondaryText
-                        },
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                if (suffix != null) {
-                    Text(suffix)
-                }
-            }
+        suffix = suffix?.let { valueSuffix ->
+            { Text(valueSuffix) }
+        },
+        isError = isError,
+        supportingText = supportingText?.let { text ->
+            { Text(text) }
         },
         singleLine = true,
         keyboardOptions = KeyboardOptions(
@@ -492,10 +458,17 @@ private fun DirectionOption(
     onClick: () -> Unit,
     accentColor: Color
 ) {
-    Row {
-        RadioButton(
+    Row(
+        modifier = Modifier.selectable(
             selected = selected,
             onClick = onClick,
+            role = Role.RadioButton
+        ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = null,
             colors = RadioButtonDefaults.colors(
                 selectedColor = accentColor,
                 unselectedColor = SecondaryText
@@ -505,9 +478,190 @@ private fun DirectionOption(
         Text(
             text = text,
             color = PrimaryText,
-            modifier = Modifier.padding(top = 12.dp),
+            modifier = Modifier.padding(end = 8.dp),
             fontSize = 16.sp
         )
     }
 }
+
+@Composable
+private fun TradePlannerSubmissionContent(
+    submission: TradePlannerUiSubmission
+) {
+    when (submission) {
+        TradePlannerUiSubmission.Idle,
+        is TradePlannerUiSubmission.InvalidInput -> Unit
+
+        is TradePlannerUiSubmission.Completed -> {
+            Spacer(modifier = Modifier.height(20.dp))
+            when (val result = submission.result) {
+                is TradePlannerUiResult.Success -> TradePlannerResultCard(result)
+                is TradePlannerUiResult.Failure -> TradePlannerFailureCard(result.error)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TradePlannerResultCard(result: TradePlannerUiResult.Success) {
+    val modelValueFormatter = rememberNumberFormatter(
+        minimumFractionDigits = 4,
+        maximumFractionDigits = 8
+    )
+    val priceFormatter = rememberNumberFormatter(
+        minimumFractionDigits = 2,
+        maximumFractionDigits = 8
+    )
+    val percentFormatter = rememberNumberFormatter(
+        minimumFractionDigits = 2,
+        maximumFractionDigits = 4
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(TRADE_PLANNER_RESULT_TAG),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        border = BorderStroke(width = 1.dp, color = BorderColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.trade_planner_result_title),
+                color = PrimaryText,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            ResultValueRow(
+                label = stringResource(R.string.trade_planner_result_relation),
+                value = stringResource(relationResource(result.relation))
+            )
+            ResultValueRow(
+                label = stringResource(R.string.trade_planner_result_model_value),
+                value = modelValueFormatter.format(result.certificatePrice)
+            )
+            ResultValueRow(
+                label = stringResource(R.string.trade_planner_result_knockout_price),
+                value = priceFormatter.format(result.knockoutPrice)
+            )
+            ResultValueRow(
+                label = stringResource(R.string.trade_planner_result_distance_absolute),
+                value = priceFormatter.format(result.distanceToKnockoutAbsolute)
+            )
+            ResultValueRow(
+                label = stringResource(R.string.trade_planner_result_distance_percent),
+                value = stringResource(
+                    R.string.trade_planner_result_percent_value,
+                    percentFormatter.format(result.distanceToKnockoutPercent)
+                )
+            )
+            Text(
+                text = stringResource(R.string.trade_planner_result_model_notice),
+                color = SecondaryText,
+                fontSize = 13.sp,
+                lineHeight = 18.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun TradePlannerFailureCard(error: TradePlannerUiCalculationError) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(TRADE_PLANNER_ERROR_TAG),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        border = BorderStroke(width = 1.dp, color = BorderColor)
+    ) {
+        Text(
+            text = stringResource(calculationErrorResource(error)),
+            modifier = Modifier.padding(20.dp),
+            color = DangerRed,
+            fontSize = 15.sp,
+            lineHeight = 20.sp
+        )
+    }
+}
+
+@Composable
+private fun ResultValueRow(
+    label: String,
+    value: String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(text = label, color = SecondaryText, fontSize = 13.sp)
+        Text(text = value, color = PrimaryText, fontSize = 15.sp)
+    }
+}
+
+@Composable
+private fun rememberNumberFormatter(
+    minimumFractionDigits: Int,
+    maximumFractionDigits: Int
+): NumberFormat {
+    val locale = Locale.getDefault()
+    return remember(locale, minimumFractionDigits, maximumFractionDigits) {
+        NumberFormat.getNumberInstance(locale).apply {
+            this.minimumFractionDigits = minimumFractionDigits
+            this.maximumFractionDigits = maximumFractionDigits
+            isGroupingUsed = false
+        }
+    }
+}
+
+@StringRes
+private fun inputErrorResource(error: TradePlannerUiInputError): Int = when (error) {
+    TradePlannerUiInputError.CURRENT_PRICE_REQUIRED ->
+        R.string.trade_planner_error_current_price_required
+
+    TradePlannerUiInputError.CURRENT_PRICE_INVALID ->
+        R.string.trade_planner_error_current_price_invalid
+
+    TradePlannerUiInputError.PLANNED_ENTRY_PRICE_REQUIRED ->
+        R.string.trade_planner_error_planned_entry_price_required
+
+    TradePlannerUiInputError.PLANNED_ENTRY_PRICE_INVALID ->
+        R.string.trade_planner_error_planned_entry_price_invalid
+
+    TradePlannerUiInputError.TARGET_LEVERAGE_REQUIRED ->
+        R.string.trade_planner_error_target_leverage_required
+
+    TradePlannerUiInputError.TARGET_LEVERAGE_INVALID ->
+        R.string.trade_planner_error_target_leverage_invalid
+}
+
+@StringRes
+private fun calculationErrorResource(error: TradePlannerUiCalculationError): Int = when (error) {
+    TradePlannerUiCalculationError.INVALID_PLANNED_ENTRY_PRICE ->
+        R.string.trade_planner_error_invalid_planned_entry_price
+
+    TradePlannerUiCalculationError.INVALID_TARGET_LEVERAGE ->
+        R.string.trade_planner_error_invalid_target_leverage
+
+    TradePlannerUiCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE ->
+        R.string.trade_planner_error_invalid_derived_knockout_price
+
+    TradePlannerUiCalculationError.INCONSISTENT_CALCULATION_RESULT ->
+        R.string.trade_planner_error_inconsistent_calculation_result
+}
+
+@StringRes
+private fun relationResource(relation: EntryPriceRelation): Int = when (relation) {
+    EntryPriceRelation.BELOW_CURRENT -> R.string.trade_planner_relation_below_current
+    EntryPriceRelation.AT_CURRENT -> R.string.trade_planner_relation_at_current
+    EntryPriceRelation.ABOVE_CURRENT -> R.string.trade_planner_relation_above_current
+}
+
+private const val TRADE_PLANNER_CURRENT_PRICE_TAG = "trade_planner_current_price"
+private const val TRADE_PLANNER_PLANNED_ENTRY_PRICE_TAG =
+    "trade_planner_planned_entry_price"
+private const val TRADE_PLANNER_TARGET_LEVERAGE_TAG = "trade_planner_target_leverage"
+private const val TRADE_PLANNER_CALCULATE_TAG = "trade_planner_calculate"
+private const val TRADE_PLANNER_RESULT_TAG = "trade_planner_result"
+private const val TRADE_PLANNER_ERROR_TAG = "trade_planner_error"
 
