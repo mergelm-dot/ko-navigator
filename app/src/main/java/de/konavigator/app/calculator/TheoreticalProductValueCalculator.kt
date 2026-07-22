@@ -4,12 +4,12 @@ import de.konavigator.app.domain.currency.CurrencyCode
 import de.konavigator.app.domain.currency.CurrencyConversion
 
 /**
- * Berechnet einen ungerundeten theoretischen Produktwert aus positivem
- * KO-Abstand, Bezugsverhältnis und typisiertem Währungskontext.
+ * Aktiver Bestandteil der [TradeCalculationEngine] zur Berechnung des ungerundeten
+ * theoretischen Werts in Basiswertwährung und des theoretischen Produktwerts.
+ * Dabei werden Ratio und typisierte [CurrencyConversion] berücksichtigt.
  *
- * Der Calculator ist noch nicht an die bestehende [TradeCalculationEngine]
- * angebunden. Er kennt weder Richtung, UI, Marktdaten, Repositories,
- * Kursquellen, Systemzeit noch handelbare Produktpreise.
+ * Der Calculator enthält weder KO- noch Hebelberechnung und ist frei von
+ * Android- und Infrastrukturabhängigkeiten.
  */
 object TheoreticalProductValueCalculator {
 
