@@ -12,9 +12,9 @@ package de.konavigator.app.calculator
  * übernimmt weder UI-State, Anzeigeformatierung, Benutzertexte noch Repository-,
  * Netzwerk-, Android- oder Compose-Verantwortung.
  *
- * Ist-Zustand: [calculateTrade] berechnet einzelne Formeln noch direkt und gibt
- * Meldungen als Benutzertext zurück. Diese bekannten Abweichungen bleiben bis
- * zu gesondert freigegebenen Konsolidierungsschritten bestehen.
+ * [calculateTrade] validiert und orchestriert den aktiven theoretischen
+ * Planungsvertrag. FX- und Ratio-Mathematik werden ausschließlich an den
+ * [TheoreticalProductValueCalculator] delegiert; der Engine-Kern rundet nicht.
  */
 object TradeCalculationEngine {
 
@@ -24,34 +24,34 @@ object TradeCalculationEngine {
 
         if (!input.plannedEntryPrice.isFinite() || input.plannedEntryPrice <= 0.0) {
             return invalidResult(
-                input = input,
-                error = TradeCalculationError.INVALID_PLANNED_ENTRY_PRICE,
-                message = "Der geplante Einstiegskurs muss endlich und größer als 0 sein."
+                TradeCalculationError.INVALID_PLANNED_ENTRY_PRICE
             )
         }
 
-        if (!input.leverage.isFinite() || input.leverage <= 1.0) {
+        if (!input.targetLeverage.isFinite() || input.targetLeverage <= 1.0) {
             return invalidResult(
-                input = input,
-                error = TradeCalculationError.INVALID_TARGET_LEVERAGE,
-                message = "Der Zielhebel muss endlich und größer als 1 sein."
+                TradeCalculationError.INVALID_TARGET_LEVERAGE
+            )
+        }
+
+        if (!input.ratio.isFinite() || input.ratio <= 0.0) {
+            return invalidResult(
+                TradeCalculationError.INVALID_RATIO
             )
         }
 
         val knockoutPrice =
             if (input.isLong) {
                 input.plannedEntryPrice *
-                        (1.0 - 1.0 / input.leverage)
+                        (1.0 - 1.0 / input.targetLeverage)
             } else {
                 input.plannedEntryPrice *
-                        (1.0 + 1.0 / input.leverage)
+                        (1.0 + 1.0 / input.targetLeverage)
             }
 
         if (!knockoutPrice.isFinite() || knockoutPrice <= 0.0) {
             return invalidResult(
-                input = input,
-                error = TradeCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE,
-                message = "Die berechnete theoretische KO-Barriere ist ungültig."
+                TradeCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE
             )
         }
 
@@ -69,43 +69,74 @@ object TradeCalculationEngine {
                 isLong = input.isLong
             )
 
-        val certificatePrice =
-            KoCalculator.calculateCertificatePrice(
-                underlyingPrice = input.plannedEntryPrice,
-                knockoutPrice = knockoutPrice,
+        if (
+            !distanceToKnockoutAbsolute.isFinite() ||
+            distanceToKnockoutAbsolute <= 0.0 ||
+            !distanceToKnockoutPercent.isFinite() ||
+            distanceToKnockoutPercent <= 0.0
+        ) {
+            return invalidResult(
+                TradeCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE
+            )
+        }
+
+        val productValueResult =
+            TheoreticalProductValueCalculator.calculate(
+                knockoutDistanceAbsolute = distanceToKnockoutAbsolute,
                 ratio = input.ratio,
-                isLong = input.isLong
+                currencyConversion = input.currencyConversion
             )
 
-        return TradeCalculationResult(
-            certificatePrice = certificatePrice,
-            underlyingPrice = input.plannedEntryPrice,
-            leverage = input.leverage,
-            knockoutPrice = knockoutPrice,
-            distanceToKnockoutAbsolute = distanceToKnockoutAbsolute,
-            distanceToKnockoutPercent = distanceToKnockoutPercent,
-            isValid = true,
-            message = "Theoretische KO-Barriere erfolgreich berechnet.",
-            error = null
-        )
+        return when (productValueResult) {
+            is TheoreticalProductValueCalculationResult.Success ->
+                TradeCalculationResult(
+                    isValid = true,
+                    underlyingPrice = input.plannedEntryPrice,
+                    knockoutPrice = knockoutPrice,
+                    theoreticalValueInUnderlyingCurrency =
+                        productValueResult.theoreticalValueInUnderlyingCurrency,
+                    theoreticalProductValue =
+                        productValueResult.theoreticalProductValue,
+                    underlyingCurrency = productValueResult.underlyingCurrency,
+                    productCurrency = productValueResult.productCurrency,
+                    distanceToKnockoutAbsolute = distanceToKnockoutAbsolute,
+                    distanceToKnockoutPercent = distanceToKnockoutPercent,
+                    error = null
+                )
+
+            is TheoreticalProductValueCalculationResult.Failure ->
+                invalidResult(productValueResult.error.toTradeCalculationError())
+        }
     }
 
     private fun invalidResult(
-        input: TradeCalculationInput,
-        error: TradeCalculationError,
-        message: String
+        error: TradeCalculationError
     ): TradeCalculationResult {
         return TradeCalculationResult(
-            certificatePrice = null,
-            underlyingPrice = input.plannedEntryPrice,
-            leverage = input.leverage,
+            isValid = false,
+            underlyingPrice = null,
             knockoutPrice = null,
+            theoreticalValueInUnderlyingCurrency = null,
+            theoreticalProductValue = null,
+            underlyingCurrency = null,
+            productCurrency = null,
             distanceToKnockoutAbsolute = null,
             distanceToKnockoutPercent = null,
-            isValid = false,
-            message = message,
             error = error
         )
+    }
+
+    private fun TheoreticalProductValueCalculationError.toTradeCalculationError():
+        TradeCalculationError = when (this) {
+        TheoreticalProductValueCalculationError.INVALID_KNOCKOUT_DISTANCE,
+        TheoreticalProductValueCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE ->
+            TradeCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE
+
+        TheoreticalProductValueCalculationError.INVALID_RATIO ->
+            TradeCalculationError.INVALID_RATIO
+
+        TheoreticalProductValueCalculationError.INVALID_EXCHANGE_RATE ->
+            TradeCalculationError.INVALID_EXCHANGE_RATE
     }
 }
 

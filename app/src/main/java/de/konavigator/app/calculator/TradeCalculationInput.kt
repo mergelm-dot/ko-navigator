@@ -1,16 +1,18 @@
 package de.konavigator.app.calculator
 
+import de.konavigator.app.domain.currency.CurrencyConversion
+
 data class TradeCalculationInput(
 
     val underlyingPrice: Double,
 
     val plannedEntryPrice: Double,
 
-    val leverage: Double,
+    val targetLeverage: Double,
 
     val isLong: Boolean,
 
-    val exchangeRate: Double = 1.0,
+    val ratio: Double,
 
-    val ratio: Double = 0.01
+    val currencyConversion: CurrencyConversion
 )

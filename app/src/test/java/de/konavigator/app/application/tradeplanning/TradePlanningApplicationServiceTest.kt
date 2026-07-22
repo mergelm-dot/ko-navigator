@@ -4,6 +4,10 @@ import de.konavigator.app.calculator.TradeCalculationEngine
 import de.konavigator.app.calculator.TradeCalculationError
 import de.konavigator.app.calculator.TradeCalculationInput
 import de.konavigator.app.calculator.TradeCalculationResult
+import de.konavigator.app.domain.currency.CurrencyCode
+import de.konavigator.app.domain.currency.CurrencyCodeCreationResult
+import de.konavigator.app.domain.currency.CurrencyConversion
+import de.konavigator.app.domain.currency.CurrencyConversionCreationResult
 import java.lang.reflect.Modifier
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -46,10 +50,10 @@ class TradePlanningApplicationServiceTest {
         val input = TradeCalculationInput(
             underlyingPrice = 123.456789,
             plannedEntryPrice = 98.7654321,
-            leverage = 4.25,
+            targetLeverage = 4.25,
             isLong = true,
-            exchangeRate = 1.123456,
-            ratio = 0.0375
+            ratio = 0.0375,
+            currencyConversion = crossCurrency("USD", "EUR", 1.123456)
         )
 
         assertEquals(TradeCalculationEngine.calculateTrade(input), service().execute(input))
@@ -60,10 +64,10 @@ class TradePlanningApplicationServiceTest {
         val input = TradeCalculationInput(
             underlyingPrice = 876.54321,
             plannedEntryPrice = 234.56789,
-            leverage = 7.75,
+            targetLeverage = 7.75,
             isLong = false,
-            exchangeRate = 0.912345,
-            ratio = 0.0625
+            ratio = 0.0625,
+            currencyConversion = crossCurrency("EUR", "USD", 0.912345)
         )
 
         assertEquals(TradeCalculationEngine.calculateTrade(input), service().execute(input))
@@ -82,7 +86,7 @@ class TradePlanningApplicationServiceTest {
 
     @Test
     fun invalidTradeCalculationResultAndStructuredErrorAreReturnedUnchanged() {
-        val input = validInput().copy(leverage = 1.0)
+        val input = validInput().copy(targetLeverage = 1.0)
         val expected = TradeCalculationEngine.calculateTrade(input)
         val actual = service().execute(input)
 
@@ -92,13 +96,16 @@ class TradePlanningApplicationServiceTest {
     }
 
     @Test
-    fun ratioAndExchangeRateAreForwardedUnchanged() {
+    fun ratioAndCurrencyConversionAreForwardedUnchanged() {
+        val conversion = crossCurrency("USD", "EUR", 1.987654321)
         val input = validInput().copy(
-            exchangeRate = 1.987654321,
-            ratio = 0.123456789
+            ratio = 0.123456789,
+            currencyConversion = conversion
         )
 
         assertEquals(TradeCalculationEngine.calculateTrade(input), service().execute(input))
+        assertEquals(0.123456789, input.ratio, 0.0)
+        assertEquals(conversion, input.currencyConversion)
     }
 
     @Test
@@ -127,11 +134,35 @@ class TradePlanningApplicationServiceTest {
     private fun validInput() = TradeCalculationInput(
         underlyingPrice = 110.0,
         plannedEntryPrice = 100.0,
-        leverage = 5.0,
+        targetLeverage = 5.0,
         isLong = true,
-        exchangeRate = 1.0,
-        ratio = 0.01
+        ratio = 0.01,
+        currencyConversion = CurrencyConversion.SameCurrency(currencyCode("EUR"))
     )
+
+    private fun crossCurrency(
+        underlyingCurrency: String,
+        productCurrency: String,
+        rate: Double
+    ): CurrencyConversion.CrossCurrency =
+        when (
+            val result = CurrencyConversion.CrossCurrency.create(
+                currencyCode(underlyingCurrency),
+                currencyCode(productCurrency),
+                rate
+            )
+        ) {
+            is CurrencyConversionCreationResult.Success -> result.conversion
+            is CurrencyConversionCreationResult.Failure ->
+                error("Unexpected invalid test conversion: ${result.error}")
+        }
+
+    private fun currencyCode(value: String): CurrencyCode =
+        when (val result = CurrencyCode.create(value)) {
+            is CurrencyCodeCreationResult.Success -> result.currencyCode
+            is CurrencyCodeCreationResult.Failure ->
+                error("Unexpected invalid test currency: ${result.error}")
+        }
 
     private fun publicBusinessMethods() =
         TradePlanningApplicationService::class.java.declaredMethods

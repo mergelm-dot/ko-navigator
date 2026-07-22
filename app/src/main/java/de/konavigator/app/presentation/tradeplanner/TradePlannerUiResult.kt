@@ -14,7 +14,7 @@ sealed interface TradePlannerUiResult {
 
     data class Success(
         val relation: EntryPriceRelation,
-        val certificatePrice: Double,
+        val theoreticalProductValue: Double,
         val knockoutPrice: Double,
         val distanceToKnockoutAbsolute: Double,
         val distanceToKnockoutPercent: Double
@@ -28,23 +28,35 @@ sealed interface TradePlannerUiResult {
 enum class TradePlannerUiCalculationError {
     INVALID_PLANNED_ENTRY_PRICE,
     INVALID_TARGET_LEVERAGE,
+    INVALID_RATIO,
     INVALID_DERIVED_KNOCKOUT_PRICE,
+    INVALID_EXCHANGE_RATE,
+    INVALID_THEORETICAL_PRODUCT_VALUE,
     INCONSISTENT_CALCULATION_RESULT
 }
 
 internal fun TradeCalculationResult.toTradePlannerUiResult(
     relation: EntryPriceRelation
 ): TradePlannerUiResult {
-    val certificatePriceValue = certificatePrice
+    val underlyingPriceValue = underlyingPrice
     val knockoutPriceValue = knockoutPrice
+    val theoreticalValueInUnderlyingCurrencyValue =
+        theoreticalValueInUnderlyingCurrency
+    val theoreticalProductValueValue = theoreticalProductValue
+    val underlyingCurrencyValue = underlyingCurrency
+    val productCurrencyValue = productCurrency
     val distanceToKnockoutAbsoluteValue = distanceToKnockoutAbsolute
     val distanceToKnockoutPercentValue = distanceToKnockoutPercent
 
     if (isValid) {
         if (
             error != null ||
-            certificatePriceValue == null ||
+            underlyingPriceValue == null ||
             knockoutPriceValue == null ||
+            theoreticalValueInUnderlyingCurrencyValue == null ||
+            theoreticalProductValueValue == null ||
+            underlyingCurrencyValue == null ||
+            productCurrencyValue == null ||
             distanceToKnockoutAbsoluteValue == null ||
             distanceToKnockoutPercentValue == null
         ) {
@@ -53,7 +65,7 @@ internal fun TradeCalculationResult.toTradePlannerUiResult(
 
         return TradePlannerUiResult.Success(
             relation = relation,
-            certificatePrice = certificatePriceValue,
+            theoreticalProductValue = theoreticalProductValueValue,
             knockoutPrice = knockoutPriceValue,
             distanceToKnockoutAbsolute = distanceToKnockoutAbsoluteValue,
             distanceToKnockoutPercent = distanceToKnockoutPercentValue
@@ -61,8 +73,12 @@ internal fun TradeCalculationResult.toTradePlannerUiResult(
     }
 
     val hasAnyCalculation =
-        certificatePriceValue != null ||
+        underlyingPriceValue != null ||
             knockoutPriceValue != null ||
+            theoreticalValueInUnderlyingCurrencyValue != null ||
+            theoreticalProductValueValue != null ||
+            underlyingCurrencyValue != null ||
+            productCurrencyValue != null ||
             distanceToKnockoutAbsoluteValue != null ||
             distanceToKnockoutPercentValue != null
     if (error == null || hasAnyCalculation) {
@@ -80,8 +96,17 @@ private fun TradeCalculationError.toTradePlannerUiCalculationError():
     TradeCalculationError.INVALID_TARGET_LEVERAGE ->
         TradePlannerUiCalculationError.INVALID_TARGET_LEVERAGE
 
+    TradeCalculationError.INVALID_RATIO ->
+        TradePlannerUiCalculationError.INVALID_RATIO
+
     TradeCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE ->
         TradePlannerUiCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE
+
+    TradeCalculationError.INVALID_EXCHANGE_RATE ->
+        TradePlannerUiCalculationError.INVALID_EXCHANGE_RATE
+
+    TradeCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE ->
+        TradePlannerUiCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE
 }
 
 private fun inconsistentCalculationResult() =

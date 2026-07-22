@@ -3,6 +3,9 @@ package de.konavigator.app.presentation.tradeplanner
 import androidx.lifecycle.ViewModel
 import de.konavigator.app.application.tradeplanning.TradePlanningApplicationService
 import de.konavigator.app.calculator.TradeCalculationInput
+import de.konavigator.app.domain.currency.CurrencyCode
+import de.konavigator.app.domain.currency.CurrencyCodeCreationResult
+import de.konavigator.app.domain.currency.CurrencyConversion
 import de.konavigator.app.domain.model.TradeDirection
 import de.konavigator.app.domain.tradeplanning.EntryPriceRelationEvaluationError
 import de.konavigator.app.domain.tradeplanning.EntryPriceRelationEvaluationResult
@@ -172,8 +175,27 @@ internal fun createTradeCalculationInput(
 ) = TradeCalculationInput(
     underlyingPrice = currentUnderlyingPrice,
     plannedEntryPrice = plannedEntryPrice,
-    leverage = targetLeverage,
+    targetLeverage = targetLeverage,
     isLong = direction == TradeDirection.LONG,
-    exchangeRate = 1.0,
-    ratio = 0.01
+    ratio = TRANSITIONAL_THEORETICAL_RATIO,
+    currencyConversion = CurrencyConversion.SameCurrency(
+        TRANSITIONAL_THEORETICAL_CURRENCY
+    )
 )
+
+/**
+ * Explizite Übergangsannahmen des aktuellen abstrakten Planers.
+ *
+ * `XXX` ist hier ein neutraler, nicht als reale Produkt- oder
+ * Basiswertwährung ausgegebener Rechenkontext. Die UI besitzt noch keinen
+ * vollständigen Währungsvertrag. Ratio und Currency werden deshalb zentral
+ * und sichtbar gesetzt, nicht als Engine-Defaults oder Cross-Currency-Fallback.
+ */
+private const val TRANSITIONAL_THEORETICAL_RATIO = 0.01
+
+private val TRANSITIONAL_THEORETICAL_CURRENCY: CurrencyCode =
+    when (val result = CurrencyCode.create("XXX")) {
+        is CurrencyCodeCreationResult.Success -> result.currencyCode
+        is CurrencyCodeCreationResult.Failure ->
+            error("Invalid transitional theoretical currency: ${result.error}")
+    }

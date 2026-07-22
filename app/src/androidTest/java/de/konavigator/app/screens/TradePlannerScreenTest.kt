@@ -193,7 +193,7 @@ class TradePlannerScreenTest {
     }
 
     @Test
-    fun scenario10AllFourCalculationErrorsAreMapped() {
+    fun scenario10AllSevenCalculationErrorsAreMapped() {
         lateinit var showError: (TradePlannerUiCalculationError) -> Unit
         composeRule.setContent {
             var state by remember {
@@ -209,8 +209,14 @@ class TradePlannerScreenTest {
                 "Der geplante Einstiegskurs konnte nicht verarbeitet werden.",
             TradePlannerUiCalculationError.INVALID_TARGET_LEVERAGE to
                 "Der Zielhebel konnte nicht verarbeitet werden.",
+            TradePlannerUiCalculationError.INVALID_RATIO to
+                "Das Bezugsverhältnis konnte nicht verarbeitet werden.",
             TradePlannerUiCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE to
                 "Die theoretische KO-Barriere konnte nicht berechnet werden.",
+            TradePlannerUiCalculationError.INVALID_EXCHANGE_RATE to
+                "Der Währungskontext konnte nicht verarbeitet werden.",
+            TradePlannerUiCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE to
+                "Der theoretische Produktwert konnte nicht berechnet werden.",
             TradePlannerUiCalculationError.INCONSISTENT_CALCULATION_RESULT to
                 "Das Berechnungsergebnis ist unvollständig und kann nicht angezeigt werden."
         )
@@ -324,7 +330,7 @@ class TradePlannerScreenTest {
         submission = TradePlannerUiSubmission.Completed(
             TradePlannerUiResult.Success(
                 relation = relation,
-                certificatePrice = 1.25,
+                theoreticalProductValue = 1.25,
                 knockoutPrice = 75.0,
                 distanceToKnockoutAbsolute = 20.0,
                 distanceToKnockoutPercent = 21.0526

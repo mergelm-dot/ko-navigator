@@ -698,3 +698,41 @@ Damit bleiben auch die bestehenden Charakterisierungstests und das aktuelle
 Laufzeitverhalten unverändert. Ein Gerätetest ist für diesen reinen JVM- und
 Dokumentationsschritt nicht erforderlich. ADR-0008 dokumentiert die
 abgestimmte Entscheidung und den späteren Migrationspfad.
+
+---
+
+## Entwicklungsschritt 23D.2 – Aktiven Engine-Pfad auf FX-/Ratio-Vertrag migriert
+
+`TradeCalculationInput` verlangt jetzt `targetLeverage`, Ratio und den
+typisierten `CurrencyConversion`-Kontext ohne stille Defaults. Das alte
+`exchangeRate`-Feld wurde entfernt. `TradeCalculationEngine` validiert Ratio
+defensiv und delegiert die gesamte FX-/Ratio-Produktwertberechnung an den
+`TheoreticalProductValueCalculator`. Cross-Currency wird mit der verbindlichen
+Richtung Basiswertwährung je Produktwährung durch Division umgerechnet.
+
+`TradeCalculationResult` führt den ungerundeten theoretischen Wert in
+Basiswertwährung, den ungerundeten theoretischen Produktwert sowie beide
+Ergebniswährungen. Das missverständliche Feld `certificatePrice`, Domain-
+Freitexte und die frühzeitige Cent-Rundung wurden aus dem aktiven Engine-Pfad
+entfernt. KO- und Distanzformeln blieben unverändert. Ungültige Ratio-Werte und
+ungültige abgeleitete Produktwerte liefern strukturierte Fehler.
+
+Der `TradePlanningApplicationService` bleibt ein unveränderter synchroner
+Durchreicher. Das ViewModel setzt für den noch abstrakten UI-Pfad zentral und
+sichtbar die Übergangsannahmen Ratio `0.01` und `SameCurrency(XXX)`. Es gibt
+keine neue Ratio-, FX- oder Währungsanzeige. Der bestehende Ergebniswert wurde
+intern zu `theoreticalProductValue` umbenannt; die sichtbare neutrale
+Bezeichnung und die Anzahl der Ergebniszeilen bleiben unverändert.
+
+Die bisherigen Charakterisierungstests für ignoriertes FX, akzeptierte Ratio
+`0` und frühe Cent-Rundung wurden nicht entfernt, sondern in fachliche
+Regressionstests für FX-Division, Ratio-Validierung und ungerundete kleine
+Werte umgewandelt. Der JVM-Bestand umfasst nun 846 Tests. Der Android-Testcode
+wurde ausschließlich an Feldname und neue strukturierte Fehlerabbildungen
+angepasst. `KoCalculator.calculateCertificatePrice` und `PriceConverter`
+bleiben als Legacy-Code vorhanden, werden vom aktiven Engine-Pfad aber nicht
+mehr verwendet.
+
+Ein berechneter theoretischer Hebel, Zielhebelabweichung, reale Produktdaten,
+Bid/Ask, Spread, MarketData-Integration und BigDecimal bleiben ausdrücklich
+außerhalb dieses Schritts.

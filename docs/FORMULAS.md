@@ -367,14 +367,15 @@ D_pct = 20,00 / 100,00 × 100 = 20,00 %
 
 Ein Long mit `S = 79,00 EUR` und `KO = 80,00 EUR` hat folglich `D_abs = -1,00 EUR`; dieser negative Wert darf nicht als positiver Abstand angezeigt werden.
 
-### Aktuell charakterisiertes Engine-Verhalten
+### Historisch charakterisiertes Engine-Verhalten bis Schritt 23D.1
 
-Dieser Abschnitt beschreibt ausschließlich den durch Referenztests gesicherten
-Ist-Zustand von `TradeCalculationEngine` und der bestehenden
+Dieser Abschnitt beschreibt ausschließlich den bis Schritt 23D.1 durch
+Referenztests gesicherten historischen Zustand von `TradeCalculationEngine`
+und der bestehenden
 `KoCalculator.calculateCertificatePrice`-Übergangsfunktion. Er erweitert oder
 ändert weder das fachliche Zielmodell noch eine akzeptierte
-Architekturentscheidung. Die nachfolgend genannten Abweichungen bleiben offen
-und sind nicht fachlich freigegeben.
+Architekturentscheidung. Die nachfolgend genannten Abweichungen waren nicht
+fachlich freigegeben und sind für den aktiven Engine-Pfad inzwischen abgelöst.
 
 Im normalen endlichen Wertebereich mit `S_entry > 0` und `L_target > 1`
 verwendet die Engine die in Abschnitt 5 dokumentierten KO-Formeln. Daraus
@@ -385,14 +386,14 @@ D_abs = S_entry / L_target
 D_pct = 100 / L_target
 ```
 
-Der aktuelle Übergangswert vor Rundung lautet für beide Richtungen:
+Der damalige Übergangswert vor Rundung lautete für beide Richtungen:
 
 ```text
 TransitionalValue_raw = D_abs × R
 ```
 
-`KoCalculator.calculateCertificatePrice` rundet diesen Wert bereits innerhalb
-der Berechnung auf zwei Dezimalstellen:
+`KoCalculator.calculateCertificatePrice` rundete diesen Wert im damaligen
+aktiven Pfad innerhalb der Berechnung auf zwei Dezimalstellen:
 
 ```text
 TransitionalValue_current = round(TransitionalValue_raw × 100) / 100
@@ -402,14 +403,12 @@ Dadurch können kleine positive Rohwerte als `0.00` zurückgegeben werden. Der
 Wert ist weiterhin weder ein vollständiger theoretischer Modellpreis noch ein
 realer Emittenten-, Bid-, Ask- oder handelbarer Produktpreis.
 
-Für den aktuellen Engine-Vertrag gelten außerdem folgende bekannte, durch
+Für den damaligen Engine-Vertrag galten außerdem folgende durch
 Charakterisierungstests belegte Abweichungen:
 
-- `exchangeRate` wird derzeit weder validiert noch in der Berechnung
-  angewendet. Die verbindliche FX-Konvention aus Abschnitt 8 bleibt das
-  fachliche Ziel.
-- `ratio` wird derzeit nicht validiert. Insbesondere wird `R = 0` aktuell als
-  gültiger Input verarbeitet und erzeugt einen Übergangswert von `0.00`.
+- `exchangeRate` wurde weder validiert noch in der Berechnung angewendet.
+- `ratio` wurde nicht validiert. Insbesondere wurde `R = 0` als gültiger Input
+  verarbeitet und erzeugte einen Übergangswert von `0.00`.
 - `underlyingPrice` beeinflusst die Engine-Berechnung derzeit nicht. Der
   aktuelle Basiswertkurs wird vorgelagert für die brokerneutrale
   Einstiegskursrelation verwendet; KO, Übergangswert und Abstände beziehen
@@ -417,12 +416,17 @@ Charakterisierungstests belegte Abweichungen:
 - Bei sehr großen, aber endlichen Zielhebeln kann `1 / L_target` im
   `Double`-Verhalten so klein sein, dass `1 − 1 / L_target` beziehungsweise
   `1 + 1 / L_target` auf `1.0` rundet. Dann kann die berechnete KO-Barriere
-  exakt dem Einstieg entsprechen, während das aktuelle Resultat weiterhin als
-  gültig markiert wird.
+  exakt dem Einstieg entsprechen, während das damalige Resultat weiterhin als
+  gültig markiert wurde.
 
-FX-Anwendung, Ratio-Validierung, Obergrenze des Zielhebels, Rundungsgrenze und
-die Berechnung eines tatsächlichen Hebels sind weiterhin getrennt fachlich zu
-entscheiden. Die Referenztests legitimieren keine dieser Ist-Abweichungen.
+Seit Schritt 23D.2 verwendet der aktive Engine-Pfad den typisierten
+`CurrencyConversion`-Vertrag, validiert Ratio, wendet FX durch Division an und
+liefert den theoretischen Produktwert ohne Cent-Rundung. Sehr kleine positive
+Werte bleiben positiv. Ein durch `Double` zu Abstand `0` degenerierter Fall
+wird als `INVALID_THEORETICAL_PRODUCT_VALUE` abgelehnt. Die alten
+Charakterisierungstests wurden in Regressionstests für diesen Zielvertrag
+umgewandelt. Die Zielhebelobergrenze und die Berechnung eines theoretischen
+Ist-Hebels bleiben gesondert offen.
 
 ## 7. Vereinfachter innerer Wert
 
@@ -865,11 +869,12 @@ nicht berücksichtigte Faktoren ausdrücklich aus.
 
 ## 22. Isolierter FX-/Ratio-Produktwertvertrag
 
-Der neue `TheoreticalProductValueCalculator` bildet den fachlich freigegebenen
-Zielvertrag isoliert ab. Er ist noch nicht an `TradeCalculationEngine`, den
-Trade Planner oder den MarketData-Pfad angebunden. Das im Abschnitt
-„Aktuell charakterisiertes Engine-Verhalten“ dokumentierte Laufzeitverhalten
-bleibt daher unverändert und ist klar von diesem Zielvertrag zu trennen.
+Der `TheoreticalProductValueCalculator` bildet den fachlich freigegebenen
+Zielvertrag ab. Seit Schritt 23D.2 ist er an `TradeCalculationEngine`
+angebunden; der Trade Planner verwendet ihn über den bestehenden Application-
+und Presentation-Pfad. Der MarketData-Pfad bleibt getrennt. Das im Abschnitt
+„Historisch charakterisiertes Engine-Verhalten bis Schritt 23D.1“
+dokumentierte frühere Laufzeitverhalten ist klar vom aktiven Vertrag getrennt.
 
 Das Bezugsverhältnis lautet auf Basiswerteinheiten je Produktstück. Für einen
 positiven gerichteten KO-Abstand gilt ohne Rundung:
@@ -922,3 +927,18 @@ abgeleiteten Werte müssen positiv und endlich sein. Der neue Calculator rundet
 weder Zwischen- noch Ergebniswerte. FX-Quelle, Zeitstempel, Freshness,
 Providerzugriff, handelbare Preise und ein berechneter theoretischer Hebel sind
 nicht Teil dieses isolierten Vertrags.
+
+### 22.1 Aktiver Engine-Vertrag seit Schritt 23D.2
+
+`TradeCalculationInput` verlangt Ratio und `CurrencyConversion` ohne Defaults.
+Die Engine validiert Einstieg, Zielhebel und Ratio, berechnet KO-Barriere und
+gerichtete Distanzen mit den unveränderten Formeln und delegiert anschließend
+die gesamte FX-/Ratio-Produktwertberechnung an
+`TheoreticalProductValueCalculator`.
+
+Das aktive Resultat führt den ungerundeten Wert in Basiswertwährung, den
+ungerundeten theoretischen Produktwert sowie beide Währungen. Es enthält kein
+Feld `certificatePrice`. `KoCalculator.calculateCertificatePrice` und
+`PriceConverter` bleiben als Legacy-Komponenten vorhanden, werden vom aktiven
+Engine-Pfad aber nicht mehr aufgerufen. Ein theoretischer Ist-Hebel ist noch
+nicht Bestandteil des Resultats.

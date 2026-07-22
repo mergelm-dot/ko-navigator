@@ -4,6 +4,9 @@ import de.konavigator.app.application.tradeplanning.TradePlanningApplicationServ
 import de.konavigator.app.calculator.TradeCalculationEngine
 import de.konavigator.app.calculator.TradeCalculationError
 import de.konavigator.app.calculator.TradeCalculationResult
+import de.konavigator.app.domain.currency.CurrencyCode
+import de.konavigator.app.domain.currency.CurrencyCodeCreationResult
+import de.konavigator.app.domain.currency.CurrencyConversion
 import de.konavigator.app.domain.model.TradeDirection
 import de.konavigator.app.domain.tradeplanning.EntryPriceRelation
 import java.lang.reflect.Modifier
@@ -248,7 +251,7 @@ class TradePlannerViewModelTest {
     }
 
     @Test
-    fun scenario20CompleteTradeCalculationInputContainsAllValuesAndDefaults() {
+    fun scenario20CompleteTradeCalculationInputContainsExplicitTransitionalAssumptions() {
         val input = createTradeCalculationInput(
             currentUnderlyingPrice = 123.456789,
             plannedEntryPrice = 98.7654321,
@@ -258,26 +261,28 @@ class TradePlannerViewModelTest {
 
         assertEquals(123.456789, input.underlyingPrice, 0.0)
         assertEquals(98.7654321, input.plannedEntryPrice, 0.0)
-        assertEquals(4.25, input.leverage, 0.0)
+        assertEquals(4.25, input.targetLeverage, 0.0)
         assertFalse(input.isLong)
-        assertEquals(1.0, input.exchangeRate, 0.0)
         assertEquals(0.01, input.ratio, 0.0)
+        assertEquals(
+            CurrencyConversion.SameCurrency(currencyCode("XXX")),
+            input.currencyConversion
+        )
     }
 
     @Test
     fun scenario21ValidDomainResultMapsCompletelyAndWithoutRounding() {
         val result = validDomainResult(
-            certificatePrice = 1.234567891,
+            theoreticalProductValue = 1.234567891,
             knockoutPrice = 76.543219876,
             distanceAbsolute = 18.706780124,
-            distancePercent = 19.6407136488189,
-            message = "ignored"
+            distancePercent = 19.6407136488189
         )
 
         assertEquals(
             TradePlannerUiResult.Success(
                 relation = EntryPriceRelation.BELOW_CURRENT,
-                certificatePrice = 1.234567891,
+                theoreticalProductValue = 1.234567891,
                 knockoutPrice = 76.543219876,
                 distanceToKnockoutAbsolute = 18.706780124,
                 distanceToKnockoutPercent = 19.6407136488189
@@ -293,8 +298,14 @@ class TradePlannerViewModelTest {
                 TradePlannerUiCalculationError.INVALID_PLANNED_ENTRY_PRICE,
             TradeCalculationError.INVALID_TARGET_LEVERAGE to
                 TradePlannerUiCalculationError.INVALID_TARGET_LEVERAGE,
+            TradeCalculationError.INVALID_RATIO to
+                TradePlannerUiCalculationError.INVALID_RATIO,
             TradeCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE to
-                TradePlannerUiCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE
+                TradePlannerUiCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE,
+            TradeCalculationError.INVALID_EXCHANGE_RATE to
+                TradePlannerUiCalculationError.INVALID_EXCHANGE_RATE,
+            TradeCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE to
+                TradePlannerUiCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE
         )
 
         mappings.forEach { (domainError, uiError) ->
@@ -308,7 +319,7 @@ class TradePlannerViewModelTest {
             invalidDomainResult(error = null),
             invalidDomainResult(
                 error = TradeCalculationError.INVALID_TARGET_LEVERAGE
-            ).copy(certificatePrice = 1.0)
+            ).copy(theoreticalProductValue = 1.0)
         )
         inconsistentResults.forEach { result ->
             assertEquals(
@@ -321,17 +332,25 @@ class TradePlannerViewModelTest {
     }
 
     @Test
-    fun scenario23DomainMessageIsNotPartOfPresentationContract() {
-        val first = validDomainResult(message = "first sensitive detail")
+    fun scenario23DomainCurrencyTransparencyIsNotAddedToCurrentPresentationContract() {
+        val first = validDomainResult(
+            theoreticalUnderlyingValue = 1.5,
+            underlyingCurrency = currencyCode("USD"),
+            productCurrency = currencyCode("EUR")
+        )
             .toTradePlannerUiResult(EntryPriceRelation.BELOW_CURRENT)
-        val second = validDomainResult(message = "second unrelated detail")
+        val second = validDomainResult(
+            theoreticalUnderlyingValue = 1.25,
+            underlyingCurrency = currencyCode("EUR"),
+            productCurrency = currencyCode("EUR")
+        )
             .toTradePlannerUiResult(EntryPriceRelation.BELOW_CURRENT)
 
         assertEquals(first, second)
         assertTrue(
             presentationFields().none {
-                it.name.contains("message", ignoreCase = true) ||
-                    it.name.contains("text", ignoreCase = true)
+                it.name.contains("currency", ignoreCase = true) ||
+                    it.name.contains("ratio", ignoreCase = true)
             }
         )
     }
@@ -346,15 +365,19 @@ class TradePlannerViewModelTest {
         )
         assertEquals(123.456789123, input.underlyingPrice, 0.0)
         assertEquals(98.765432198, input.plannedEntryPrice, 0.0)
-        assertEquals(4.123456789, input.leverage, 0.0)
+        assertEquals(4.123456789, input.targetLeverage, 0.0)
 
         val mapped = validDomainResult(
-            certificatePrice = 1.000000009,
+            theoreticalProductValue = 1.000000009,
             knockoutPrice = 2.000000008,
             distanceAbsolute = 3.000000007,
             distancePercent = 4.000000006
         ).toTradePlannerUiResult(EntryPriceRelation.ABOVE_CURRENT)
-        assertEquals(1.000000009, (mapped as TradePlannerUiResult.Success).certificatePrice, 0.0)
+        assertEquals(
+            1.000000009,
+            (mapped as TradePlannerUiResult.Success).theoreticalProductValue,
+            0.0
+        )
     }
 
     @Test
@@ -455,7 +478,7 @@ class TradePlannerViewModelTest {
             setOf("Success", "Failure"),
             TradePlannerUiResult::class.java.declaredClasses.map { it.simpleName }.toSet()
         )
-        assertEquals(4, TradePlannerUiCalculationError.entries.size)
+        assertEquals(7, TradePlannerUiCalculationError.entries.size)
 
         val forbidden = listOf(
             "android.content.Context",
@@ -500,36 +523,47 @@ class TradePlannerViewModelTest {
         (viewModel.uiState.value.submission as TradePlannerUiSubmission.InvalidInput).errors
 
     private fun validDomainResult(
-        certificatePrice: Double = 1.25,
+        theoreticalUnderlyingValue: Double = 1.25,
+        theoreticalProductValue: Double = 1.25,
+        underlyingCurrency: CurrencyCode = currencyCode("EUR"),
+        productCurrency: CurrencyCode = currencyCode("EUR"),
         knockoutPrice: Double = 75.0,
         distanceAbsolute: Double = 20.0,
-        distancePercent: Double = 21.05263157894737,
-        message: String = "success"
+        distancePercent: Double = 21.05263157894737
     ) = TradeCalculationResult(
-        certificatePrice = certificatePrice,
+        isValid = true,
         underlyingPrice = 95.0,
-        leverage = 3.0,
         knockoutPrice = knockoutPrice,
+        theoreticalValueInUnderlyingCurrency = theoreticalUnderlyingValue,
+        theoreticalProductValue = theoreticalProductValue,
+        underlyingCurrency = underlyingCurrency,
+        productCurrency = productCurrency,
         distanceToKnockoutAbsolute = distanceAbsolute,
         distanceToKnockoutPercent = distancePercent,
-        isValid = true,
-        message = message,
         error = null
     )
 
     private fun invalidDomainResult(
         error: TradeCalculationError?
     ) = TradeCalculationResult(
-        certificatePrice = null,
-        underlyingPrice = 95.0,
-        leverage = 3.0,
+        isValid = false,
+        underlyingPrice = null,
         knockoutPrice = null,
+        theoreticalValueInUnderlyingCurrency = null,
+        theoreticalProductValue = null,
+        underlyingCurrency = null,
+        productCurrency = null,
         distanceToKnockoutAbsolute = null,
         distanceToKnockoutPercent = null,
-        isValid = false,
-        message = "ignored failure detail",
         error = error
     )
+
+    private fun currencyCode(value: String): CurrencyCode =
+        when (val result = CurrencyCode.create(value)) {
+            is CurrencyCodeCreationResult.Success -> result.currencyCode
+            is CurrencyCodeCreationResult.Failure ->
+                error("Unexpected invalid test currency: ${result.error}")
+        }
 
     private fun publicApiTypeNames(): Set<String> = buildSet {
         TradePlannerViewModel::class.java.constructors.forEach { constructor ->

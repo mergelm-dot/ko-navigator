@@ -518,7 +518,7 @@ private fun TradePlannerResultCard(result: TradePlannerUiResult.Success) {
             )
             ResultValueRow(
                 label = stringResource(R.string.trade_planner_result_model_value),
-                value = modelValueFormatter.format(result.certificatePrice)
+                value = modelValueFormatter.format(result.theoreticalProductValue)
             )
             ResultValueRow(
                 label = stringResource(R.string.trade_planner_result_knockout_price),
@@ -620,8 +620,17 @@ private fun calculationErrorResource(error: TradePlannerUiCalculationError): Int
     TradePlannerUiCalculationError.INVALID_TARGET_LEVERAGE ->
         R.string.trade_planner_error_invalid_target_leverage
 
+    TradePlannerUiCalculationError.INVALID_RATIO ->
+        R.string.trade_planner_error_invalid_ratio
+
     TradePlannerUiCalculationError.INVALID_DERIVED_KNOCKOUT_PRICE ->
         R.string.trade_planner_error_invalid_derived_knockout_price
+
+    TradePlannerUiCalculationError.INVALID_EXCHANGE_RATE ->
+        R.string.trade_planner_error_invalid_exchange_rate
+
+    TradePlannerUiCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE ->
+        R.string.trade_planner_error_invalid_theoretical_product_value
 
     TradePlannerUiCalculationError.INCONSISTENT_CALCULATION_RESULT ->
         R.string.trade_planner_error_inconsistent_calculation_result

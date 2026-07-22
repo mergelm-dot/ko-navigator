@@ -1281,10 +1281,32 @@ Coroutine-, Systemzeit-, Provider- oder MarketData-Abhängigkeit. Quelle,
 Zeitstempel und Freshness einer realen FX-Quote bleiben ausdrücklich der
 späteren `CurrencyPolicy` und dem `FXRateProvider` gemäß ADR-0001 vorbehalten.
 
-Der Vertrag ist noch nicht an `TradeCalculationEngine`,
-`TradeCalculationInput`, `TradeCalculationResult`, den Application Service,
-das ViewModel oder die UI angebunden. Der bestehende aktive Engine-Pfad und
-seine frühe Cent-Rundung bleiben zunächst unverändert charakterisiert. Der
-nächste Migrationsschritt kann die Engine kontrolliert auf den typisierten
-FX-/Ratio-Vertrag und den ungerundeten Produktwert umstellen, ohne Currency-
-Grundlagen und aktive Formeländerung erneut zu vermischen. Siehe ADR-0008.
+Seit Schritt 23D.2 ist der Vertrag kontrolliert an den aktiven
+Trade-Planning-Pfad angebunden:
+
+```text
+TradeCalculationEngine
+→ KO- und Distanzberechnung
+→ TheoreticalProductValueCalculator
+→ typisierter FX-/Ratio-Vertrag
+→ TradeCalculationResult
+```
+
+`TradeCalculationInput` verlangt Ratio und `CurrencyConversion` ausdrücklich;
+es bestehen keine Engine-Defaults für diese Werte. Das Resultat führt den
+ungerundeten theoretischen Wert in Basiswertwährung, den ungerundeten
+theoretischen Produktwert sowie beide Ergebniswährungen. Der aktive Engine-Pfad
+ruft `KoCalculator.calculateCertificatePrice` nicht mehr auf und enthält keine
+Cent-Rundung.
+
+Der Application Service bleibt ein synchroner Durchreicher. Weil der aktuelle
+ViewModel-Vertrag noch keine fachlich belastbare Währungsinformation besitzt,
+setzt das ViewModel zentral und sichtbar die Übergangsannahmen Ratio `0.01` und
+`SameCurrency(XXX)`. `XXX` wird nicht als reale Basiswert- oder
+Produktwährung ausgegeben. Die UI zeigt weiterhin ausschließlich die bereits
+vorhandenen Ergebniszeilen; FX, Ratio und Währungen werden noch nicht ergänzt.
+
+`KoCalculator.calculateCertificatePrice` und `PriceConverter` bleiben als
+getrennt zu bereinigender Legacy-Code erhalten, gehören aber nicht mehr zum
+aktiven Engine-Datenfluss. Der berechnete theoretische Hebel am geplanten
+Einstieg folgt erst in Schritt 23D.3. Siehe ADR-0008.

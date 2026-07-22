@@ -15,7 +15,7 @@ Dieses Dokument ist das verbindliche Register wichtiger Architekturentscheidunge
 | ADR-0005 | Mehrdimensionaler Zertifikats-Qualitätsscore | Accepted | Nicht begonnen |
 | ADR-0006 | Explainable Engine für Produktauswahl und Berechnung | Accepted | Nicht begonnen |
 | ADR-0007 | Confidence Score für die Berechnungszuverlässigkeit | Accepted | Nicht begonnen |
-| ADR-0008 | Typisierter FX-/Ratio-Produktwertvertrag | Accepted | Isolierte Teilbasis umgesetzt |
+| ADR-0008 | Typisierter FX-/Ratio-Produktwertvertrag | Accepted | Aktiver Engine-Pfad migriert |
 
 ## ADR-0001 – CurrencyPolicy als verbindliche Währungsgrenze
 
@@ -322,3 +322,15 @@ Laufzeitverhalten oder seine Charakterisierungstests vorzeitig zu verändern.
 - `docs/FORMULAS.md`
 - `DEVLOG.md`
 - `docs/DECISIONS.md`
+
+### Implementierungsstatus
+
+Schritt 23D.1 führte die typisierten Currency-Verträge und den reinen
+Produktwertcalculator zunächst isoliert ein. Seit Schritt 23D.2 verwendet der
+aktive `TradeCalculationEngine`-Pfad `CurrencyConversion` und eine explizite
+Ratio ohne Defaults. FX wird durch Division angewendet, der theoretische
+Produktwert bleibt ungerundet und beide Ergebniswährungen werden mitgeführt.
+
+Der aktuelle ViewModel-Pfad verwendet weiterhin ausdrücklich gekennzeichnete
+Übergangsannahmen. FX-Provider, Quelle, Zeitstempel, Freshness, MarketData und
+der berechnete theoretische Ist-Hebel bleiben außerhalb dieser Aktivierung.

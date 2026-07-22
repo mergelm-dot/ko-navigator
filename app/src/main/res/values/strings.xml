@@ -16,7 +16,10 @@
 
     <string name="trade_planner_error_invalid_planned_entry_price">Der geplante Einstiegskurs konnte nicht verarbeitet werden.</string>
     <string name="trade_planner_error_invalid_target_leverage">Der Zielhebel konnte nicht verarbeitet werden.</string>
+    <string name="trade_planner_error_invalid_ratio">Das Bezugsverhältnis konnte nicht verarbeitet werden.</string>
     <string name="trade_planner_error_invalid_derived_knockout_price">Die theoretische KO-Barriere konnte nicht berechnet werden.</string>
+    <string name="trade_planner_error_invalid_exchange_rate">Der Währungskontext konnte nicht verarbeitet werden.</string>
+    <string name="trade_planner_error_invalid_theoretical_product_value">Der theoretische Produktwert konnte nicht berechnet werden.</string>
     <string name="trade_planner_error_inconsistent_calculation_result">Das Berechnungsergebnis ist unvollständig und kann nicht angezeigt werden.</string>
 
     <string name="trade_planner_result_title">Theoretisches Berechnungsergebnis</string>

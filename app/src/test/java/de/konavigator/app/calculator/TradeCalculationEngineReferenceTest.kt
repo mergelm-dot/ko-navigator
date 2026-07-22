@@ -1,5 +1,9 @@
 package de.konavigator.app.calculator
 
+import de.konavigator.app.domain.currency.CurrencyCode
+import de.konavigator.app.domain.currency.CurrencyCodeCreationResult
+import de.konavigator.app.domain.currency.CurrencyConversion
+import de.konavigator.app.domain.currency.CurrencyConversionCreationResult
 import kotlin.math.abs
 import kotlin.math.max
 import org.junit.Assert.assertEquals
@@ -17,16 +21,17 @@ class TradeCalculationEngineReferenceTest {
             plannedEntryPrice = 100.0,
             targetLeverage = 4.0,
             isLong = true,
-            exchangeRate = 1.0,
             ratio = 0.01
         )
 
         assertSuccessfulReference(
             result = result,
             expectedPlannedEntryPrice = 100.0,
-            expectedTargetLeverage = 4.0,
             expectedKnockoutPrice = 75.0,
-            expectedCertificatePrice = 0.25,
+            expectedTheoreticalUnderlyingValue = 0.25,
+            expectedTheoreticalProductValue = 0.25,
+            expectedUnderlyingCurrency = "EUR",
+            expectedProductCurrency = "EUR",
             expectedDistanceAbsolute = 25.0,
             expectedDistancePercent = 25.0
         )
@@ -39,65 +44,64 @@ class TradeCalculationEngineReferenceTest {
             plannedEntryPrice = 96.0,
             targetLeverage = 3.0,
             isLong = true,
-            exchangeRate = 1.0,
             ratio = 0.01
         )
 
         assertSuccessfulReference(
             result = result,
             expectedPlannedEntryPrice = 96.0,
-            expectedTargetLeverage = 3.0,
             expectedKnockoutPrice = 64.0,
-            expectedCertificatePrice = 0.32,
+            expectedTheoreticalUnderlyingValue = 0.32,
+            expectedTheoreticalProductValue = 0.32,
+            expectedUnderlyingCurrency = "EUR",
+            expectedProductCurrency = "EUR",
             expectedDistanceAbsolute = 32.0,
             expectedDistancePercent = 33.333333333333336
         )
     }
 
     @Test
-    fun longReferenceWithNonDefaultRatioCurrentlyIgnoresExchangeRate() {
+    fun longUsdToEurReferenceAppliesFxByDivisionExactlyOnce() {
         val result = calculate(
             underlyingPrice = 120.0,
             plannedEntryPrice = 110.0,
             targetLeverage = 5.0,
             isLong = true,
-            exchangeRate = 1.1,
-            ratio = 0.1
+            ratio = 0.1,
+            currencyConversion = crossCurrency("USD", "EUR", 1.1)
         )
 
-        // Characterizes a known deviation only: FX is currently ignored, so
-        // 2.20 is returned. The documented target conversion would divide the
-        // raw 2.20 by 1.1. This test does not legitimize the current behavior.
         assertSuccessfulReference(
             result = result,
             expectedPlannedEntryPrice = 110.0,
-            expectedTargetLeverage = 5.0,
             expectedKnockoutPrice = 88.0,
-            expectedCertificatePrice = 2.20,
+            expectedTheoreticalUnderlyingValue = 2.20,
+            expectedTheoreticalProductValue = 2.0,
+            expectedUnderlyingCurrency = "USD",
+            expectedProductCurrency = "EUR",
             expectedDistanceAbsolute = 22.0,
             expectedDistancePercent = 20.0
         )
     }
 
     @Test
-    fun longCurrentCentRoundingTurnsVerySmallPositiveValueIntoZero() {
+    fun longVerySmallPositiveProductValueRemainsPositiveAndUnrounded() {
         val result = calculate(
             underlyingPrice = 10.0,
             plannedEntryPrice = 10.0,
             targetLeverage = 5.0,
             isLong = true,
-            exchangeRate = 1.0,
             ratio = 0.0001
         )
 
-        // The positive raw value 2.0 * 0.0001 = 0.0002 is currently rounded
-        // inside the calculator to 0.00. This is characterization, not approval.
         assertSuccessfulReference(
             result = result,
             expectedPlannedEntryPrice = 10.0,
-            expectedTargetLeverage = 5.0,
             expectedKnockoutPrice = 8.0,
-            expectedCertificatePrice = 0.0,
+            expectedTheoreticalUnderlyingValue = 0.0002,
+            expectedTheoreticalProductValue = 0.0002,
+            expectedUnderlyingCurrency = "EUR",
+            expectedProductCurrency = "EUR",
             expectedDistanceAbsolute = 2.0,
             expectedDistancePercent = 20.0
         )
@@ -110,16 +114,17 @@ class TradeCalculationEngineReferenceTest {
             plannedEntryPrice = 100.0,
             targetLeverage = 4.0,
             isLong = false,
-            exchangeRate = 1.0,
             ratio = 0.01
         )
 
         assertSuccessfulReference(
             result = result,
             expectedPlannedEntryPrice = 100.0,
-            expectedTargetLeverage = 4.0,
             expectedKnockoutPrice = 125.0,
-            expectedCertificatePrice = 0.25,
+            expectedTheoreticalUnderlyingValue = 0.25,
+            expectedTheoreticalProductValue = 0.25,
+            expectedUnderlyingCurrency = "EUR",
+            expectedProductCurrency = "EUR",
             expectedDistanceAbsolute = 25.0,
             expectedDistancePercent = 25.0
         )
@@ -132,138 +137,128 @@ class TradeCalculationEngineReferenceTest {
             plannedEntryPrice = 90.0,
             targetLeverage = 3.0,
             isLong = false,
-            exchangeRate = 1.0,
             ratio = 0.01
         )
 
         assertSuccessfulReference(
             result = result,
             expectedPlannedEntryPrice = 90.0,
-            expectedTargetLeverage = 3.0,
             expectedKnockoutPrice = 120.0,
-            expectedCertificatePrice = 0.30,
+            expectedTheoreticalUnderlyingValue = 0.30,
+            expectedTheoreticalProductValue = 0.30,
+            expectedUnderlyingCurrency = "EUR",
+            expectedProductCurrency = "EUR",
             expectedDistanceAbsolute = 30.0,
             expectedDistancePercent = 33.333333333333336
         )
     }
 
     @Test
-    fun shortReferenceWithNonDefaultRatioCurrentlyIgnoresExchangeRate() {
+    fun shortUsdToEurReferenceAppliesFxByDivisionExactlyOnce() {
         val result = calculate(
             underlyingPrice = 100.0,
             plannedEntryPrice = 110.0,
             targetLeverage = 5.0,
             isLong = false,
-            exchangeRate = 1.1,
-            ratio = 0.1
+            ratio = 0.1,
+            currencyConversion = crossCurrency("USD", "EUR", 1.1)
         )
 
-        // Characterizes the same known deviation as the Long reference: FX is
-        // ignored and 2.20 is returned. This test does not approve that behavior.
         assertSuccessfulReference(
             result = result,
             expectedPlannedEntryPrice = 110.0,
-            expectedTargetLeverage = 5.0,
             expectedKnockoutPrice = 132.0,
-            expectedCertificatePrice = 2.20,
+            expectedTheoreticalUnderlyingValue = 2.20,
+            expectedTheoreticalProductValue = 2.0,
+            expectedUnderlyingCurrency = "USD",
+            expectedProductCurrency = "EUR",
             expectedDistanceAbsolute = 22.0,
             expectedDistancePercent = 20.0
         )
     }
 
     @Test
-    fun shortCurrentCentRoundingTurnsVerySmallPositiveValueIntoZero() {
+    fun shortVerySmallPositiveProductValueRemainsPositiveAndUnrounded() {
         val result = calculate(
             underlyingPrice = 10.0,
             plannedEntryPrice = 10.0,
             targetLeverage = 5.0,
             isLong = false,
-            exchangeRate = 1.0,
             ratio = 0.0001
         )
 
-        // The positive raw value 2.0 * 0.0001 = 0.0002 is currently rounded
-        // inside the calculator to 0.00. This is characterization, not approval.
         assertSuccessfulReference(
             result = result,
             expectedPlannedEntryPrice = 10.0,
-            expectedTargetLeverage = 5.0,
             expectedKnockoutPrice = 12.0,
-            expectedCertificatePrice = 0.0,
+            expectedTheoreticalUnderlyingValue = 0.0002,
+            expectedTheoreticalProductValue = 0.0002,
+            expectedUnderlyingCurrency = "EUR",
+            expectedProductCurrency = "EUR",
             expectedDistanceAbsolute = 2.0,
             expectedDistancePercent = 20.0
         )
     }
 
     @Test
-    fun currentlyIgnoresExchangeRateWhenAllOtherInputsMatch() {
-        val withIdentityExchangeRate = calculate(exchangeRate = 1.0)
-        val withDifferentExchangeRate = calculate(exchangeRate = 1.25)
-
-        // This equality documents an open defect in the current contract. It
-        // must change deliberately when the documented FX policy is implemented.
-        assertEquals(withIdentityExchangeRate, withDifferentExchangeRate)
-    }
-
-    @Test
-    fun currentlyAcceptsZeroRatioAndReturnsZeroModelValue() {
+    fun eurToUsdReferenceAppliesFxByDivisionExactlyOnce() {
         val result = calculate(
             plannedEntryPrice = 100.0,
             targetLeverage = 5.0,
-            ratio = 0.0
+            ratio = 0.2,
+            currencyConversion = crossCurrency("EUR", "USD", 0.8)
         )
 
-        // Zero ratio is not fachlich approved. The test only records that the
-        // current engine accepts it and returns a zero transitional model value.
         assertSuccessfulReference(
             result = result,
             expectedPlannedEntryPrice = 100.0,
-            expectedTargetLeverage = 5.0,
             expectedKnockoutPrice = 80.0,
-            expectedCertificatePrice = 0.0,
+            expectedTheoreticalUnderlyingValue = 4.0,
+            expectedTheoreticalProductValue = 5.0,
+            expectedUnderlyingCurrency = "EUR",
+            expectedProductCurrency = "USD",
             expectedDistanceAbsolute = 20.0,
             expectedDistancePercent = 20.0
         )
     }
 
     @Test
-    fun extremeFiniteLongLeverageCurrentlyRoundsKnockoutToEntry() {
+    fun zeroRatioIsRejectedWithStructuredError() {
+        val result = calculate(
+            plannedEntryPrice = 100.0,
+            targetLeverage = 5.0,
+            ratio = 0.0
+        )
+
+        assertInvalidReference(result, TradeCalculationError.INVALID_RATIO)
+    }
+
+    @Test
+    fun extremeFiniteLongLeverageRejectsZeroProductValue() {
         val result = calculate(
             plannedEntryPrice = 100.0,
             targetLeverage = Double.MAX_VALUE,
             isLong = true
         )
 
-        assertSuccessfulReference(
-            result = result,
-            expectedPlannedEntryPrice = 100.0,
-            expectedTargetLeverage = Double.MAX_VALUE,
-            expectedKnockoutPrice = 100.0,
-            expectedCertificatePrice = 0.0,
-            expectedDistanceAbsolute = 0.0,
-            expectedDistancePercent = 0.0
+        assertInvalidReference(
+            result,
+            TradeCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE
         )
-        assertEquals(100.0, result.knockoutPrice!!, 0.0)
     }
 
     @Test
-    fun extremeFiniteShortLeverageCurrentlyRoundsKnockoutToEntry() {
+    fun extremeFiniteShortLeverageRejectsZeroProductValue() {
         val result = calculate(
             plannedEntryPrice = 100.0,
             targetLeverage = Double.MAX_VALUE,
             isLong = false
         )
 
-        assertSuccessfulReference(
-            result = result,
-            expectedPlannedEntryPrice = 100.0,
-            expectedTargetLeverage = Double.MAX_VALUE,
-            expectedKnockoutPrice = 100.0,
-            expectedCertificatePrice = 0.0,
-            expectedDistanceAbsolute = 0.0,
-            expectedDistancePercent = 0.0
+        assertInvalidReference(
+            result,
+            TradeCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE
         )
-        assertEquals(100.0, result.knockoutPrice!!, 0.0)
     }
 
     @Test
@@ -275,18 +270,22 @@ class TradeCalculationEngineReferenceTest {
         assertSuccessfulReference(
             result = longResult,
             expectedPlannedEntryPrice = 100.0,
-            expectedTargetLeverage = targetLeverage,
             expectedKnockoutPrice = 2.220446049250313E-14,
-            expectedCertificatePrice = 1.0,
+            expectedTheoreticalUnderlyingValue = 0.9999999999999998,
+            expectedTheoreticalProductValue = 0.9999999999999998,
+            expectedUnderlyingCurrency = "EUR",
+            expectedProductCurrency = "EUR",
             expectedDistanceAbsolute = 99.99999999999997,
             expectedDistancePercent = 99.99999999999997
         )
         assertSuccessfulReference(
             result = shortResult,
             expectedPlannedEntryPrice = 100.0,
-            expectedTargetLeverage = targetLeverage,
             expectedKnockoutPrice = 199.99999999999997,
-            expectedCertificatePrice = 1.0,
+            expectedTheoreticalUnderlyingValue = 0.9999999999999998,
+            expectedTheoreticalProductValue = 0.9999999999999998,
+            expectedUnderlyingCurrency = "EUR",
+            expectedProductCurrency = "EUR",
             expectedDistanceAbsolute = 99.99999999999997,
             expectedDistancePercent = 99.99999999999997
         )
@@ -303,7 +302,6 @@ class TradeCalculationEngineReferenceTest {
             plannedEntryPrice = 95.0,
             targetLeverage = 5.0,
             isLong = false,
-            exchangeRate = 1.0,
             ratio = 0.1
         )
         val changedCurrentPriceInput = firstInput.copy(underlyingPrice = 1_000.0)
@@ -319,21 +317,39 @@ class TradeCalculationEngineReferenceTest {
         assertEquals(first, changedCurrentPrice)
     }
 
+    @Test
+    fun ratioZeroPointZeroZeroOneIsAppliedExactlyOnce() {
+        val result = calculate(ratio = 0.001)
+
+        assertSuccessfulReference(
+            result = result,
+            expectedPlannedEntryPrice = 100.0,
+            expectedKnockoutPrice = 80.0,
+            expectedTheoreticalUnderlyingValue = 0.02,
+            expectedTheoreticalProductValue = 0.02,
+            expectedUnderlyingCurrency = "EUR",
+            expectedProductCurrency = "EUR",
+            expectedDistanceAbsolute = 20.0,
+            expectedDistancePercent = 20.0
+        )
+    }
+
     private fun calculate(
         underlyingPrice: Double = 110.0,
         plannedEntryPrice: Double = 100.0,
         targetLeverage: Double = 5.0,
         isLong: Boolean = true,
-        exchangeRate: Double = 1.0,
-        ratio: Double = 0.01
+        ratio: Double = 0.01,
+        currencyConversion: CurrencyConversion =
+            CurrencyConversion.SameCurrency(currencyCode("EUR"))
     ): TradeCalculationResult = TradeCalculationEngine.calculateTrade(
         input(
             underlyingPrice = underlyingPrice,
             plannedEntryPrice = plannedEntryPrice,
             targetLeverage = targetLeverage,
             isLong = isLong,
-            exchangeRate = exchangeRate,
-            ratio = ratio
+            ratio = ratio,
+            currencyConversion = currencyConversion
         )
     )
 
@@ -342,36 +358,45 @@ class TradeCalculationEngineReferenceTest {
         plannedEntryPrice: Double,
         targetLeverage: Double,
         isLong: Boolean,
-        exchangeRate: Double,
-        ratio: Double
+        ratio: Double,
+        currencyConversion: CurrencyConversion =
+            CurrencyConversion.SameCurrency(currencyCode("EUR"))
     ) = TradeCalculationInput(
         underlyingPrice = underlyingPrice,
         plannedEntryPrice = plannedEntryPrice,
-        leverage = targetLeverage,
+        targetLeverage = targetLeverage,
         isLong = isLong,
-        exchangeRate = exchangeRate,
-        ratio = ratio
+        ratio = ratio,
+        currencyConversion = currencyConversion
     )
 
     private fun assertSuccessfulReference(
         result: TradeCalculationResult,
         expectedPlannedEntryPrice: Double,
-        expectedTargetLeverage: Double,
         expectedKnockoutPrice: Double,
-        expectedCertificatePrice: Double,
+        expectedTheoreticalUnderlyingValue: Double,
+        expectedTheoreticalProductValue: Double,
+        expectedUnderlyingCurrency: String,
+        expectedProductCurrency: String,
         expectedDistanceAbsolute: Double,
         expectedDistancePercent: Double
     ) {
         assertTrue(result.isValid)
         assertNull(result.error)
-        assertEquals(expectedPlannedEntryPrice, result.underlyingPrice, 0.0)
-        assertEquals(expectedTargetLeverage, result.leverage, 0.0)
+        assertEquals(expectedPlannedEntryPrice, result.underlyingPrice!!, 0.0)
         assertNotNull(result.knockoutPrice)
-        assertNotNull(result.certificatePrice)
+        assertNotNull(result.theoreticalValueInUnderlyingCurrency)
+        assertNotNull(result.theoreticalProductValue)
         assertNotNull(result.distanceToKnockoutAbsolute)
         assertNotNull(result.distanceToKnockoutPercent)
         assertHybridEquals(expectedKnockoutPrice, result.knockoutPrice!!)
-        assertRoundedModelValueEquals(expectedCertificatePrice, result.certificatePrice!!)
+        assertHybridEquals(
+            expectedTheoreticalUnderlyingValue,
+            result.theoreticalValueInUnderlyingCurrency!!
+        )
+        assertHybridEquals(expectedTheoreticalProductValue, result.theoreticalProductValue!!)
+        assertEquals(currencyCode(expectedUnderlyingCurrency), result.underlyingCurrency)
+        assertEquals(currencyCode(expectedProductCurrency), result.productCurrency)
         assertHybridEquals(expectedDistanceAbsolute, result.distanceToKnockoutAbsolute!!)
         assertHybridEquals(expectedDistancePercent, result.distanceToKnockoutPercent!!)
     }
@@ -387,19 +412,55 @@ class TradeCalculationEngineReferenceTest {
         )
     }
 
-    private fun assertRoundedModelValueEquals(expected: Double, actual: Double) {
-        assertEquals(expected, actual, ROUNDED_MODEL_VALUE_TOLERANCE)
-    }
-
     private fun allCalculatedValuesAreFinite(result: TradeCalculationResult) =
         result.knockoutPrice!!.isFinite() &&
-            result.certificatePrice!!.isFinite() &&
+            result.theoreticalValueInUnderlyingCurrency!!.isFinite() &&
+            result.theoreticalProductValue!!.isFinite() &&
             result.distanceToKnockoutAbsolute!!.isFinite() &&
             result.distanceToKnockoutPercent!!.isFinite()
+
+    private fun assertInvalidReference(
+        result: TradeCalculationResult,
+        expectedError: TradeCalculationError
+    ) {
+        assertTrue(!result.isValid)
+        assertEquals(expectedError, result.error)
+        assertNull(result.underlyingPrice)
+        assertNull(result.knockoutPrice)
+        assertNull(result.theoreticalValueInUnderlyingCurrency)
+        assertNull(result.theoreticalProductValue)
+        assertNull(result.underlyingCurrency)
+        assertNull(result.productCurrency)
+        assertNull(result.distanceToKnockoutAbsolute)
+        assertNull(result.distanceToKnockoutPercent)
+    }
+
+    private fun crossCurrency(
+        underlyingCurrency: String,
+        productCurrency: String,
+        rate: Double
+    ): CurrencyConversion.CrossCurrency =
+        when (
+            val result = CurrencyConversion.CrossCurrency.create(
+                currencyCode(underlyingCurrency),
+                currencyCode(productCurrency),
+                rate
+            )
+        ) {
+            is CurrencyConversionCreationResult.Success -> result.conversion
+            is CurrencyConversionCreationResult.Failure ->
+                error("Unexpected invalid test conversion: ${result.error}")
+        }
+
+    private fun currencyCode(value: String): CurrencyCode =
+        when (val result = CurrencyCode.create(value)) {
+            is CurrencyCodeCreationResult.Success -> result.currencyCode
+            is CurrencyCodeCreationResult.Failure ->
+                error("Unexpected invalid test currency: ${result.error}")
+        }
 
     private companion object {
         const val ABSOLUTE_TOLERANCE = 1e-12
         const val RELATIVE_TOLERANCE = 1e-12
-        const val ROUNDED_MODEL_VALUE_TOLERANCE = 1e-12
     }
 }

@@ -1,22 +1,26 @@
 package de.konavigator.app.calculator
 
+import de.konavigator.app.domain.currency.CurrencyCode
+
 data class TradeCalculationResult(
 
-    val certificatePrice: Double?,
+    val isValid: Boolean,
 
-    val underlyingPrice: Double,
-
-    val leverage: Double,
+    val underlyingPrice: Double?,
 
     val knockoutPrice: Double?,
+
+    val theoreticalValueInUnderlyingCurrency: Double?,
+
+    val theoreticalProductValue: Double?,
+
+    val underlyingCurrency: CurrencyCode?,
+
+    val productCurrency: CurrencyCode?,
 
     val distanceToKnockoutAbsolute: Double?,
 
     val distanceToKnockoutPercent: Double?,
-
-    val isValid: Boolean,
-
-    val message: String = "",
 
     val error: TradeCalculationError? = null
 )
