@@ -15,6 +15,7 @@ Dieses Dokument ist das verbindliche Register wichtiger Architekturentscheidunge
 | ADR-0005 | Mehrdimensionaler Zertifikats-Qualitätsscore | Accepted | Nicht begonnen |
 | ADR-0006 | Explainable Engine für Produktauswahl und Berechnung | Accepted | Nicht begonnen |
 | ADR-0007 | Confidence Score für die Berechnungszuverlässigkeit | Accepted | Nicht begonnen |
+| ADR-0008 | Typisierter FX-/Ratio-Produktwertvertrag | Accepted | Isolierte Teilbasis umgesetzt |
 
 ## ADR-0001 – CurrencyPolicy als verbindliche Währungsgrenze
 
@@ -253,3 +254,71 @@ Die Trennung von Datenzuverlässigkeit und Produktqualität verhindert irreführ
 - `docs/FORMULAS.md`
 - `DEVLOG.md`
 - `AGENTS.md`
+
+## ADR-0008 – Typisierter FX-/Ratio-Produktwertvertrag
+
+- **Status:** Accepted
+- **Datum:** 2026-07-22
+
+### Problemstellung
+
+Der bestehende `TradeCalculationInput` führt Wechselkurs und Bezugsverhältnis
+als unbeschriftete `Double`-Werte mit stillen Defaults. Der aktive Engine-Pfad
+ignoriert den Wechselkurs, validiert das Bezugsverhältnis nicht und rundet
+seinen Übergangswert frühzeitig. Eine direkte Migration würde Währungsrichtung,
+Validierung, Formelkorrektur und bestehendes Laufzeitverhalten in einem großen
+Schritt vermischen.
+
+### Entscheidung
+
+Als isolierte Teilbasis werden `CurrencyCode`, `CurrencyConversion` und der
+reine `TheoreticalProductValueCalculator` eingeführt. `CurrencyCode`
+normalisiert syntaktisch gültige dreistellige ASCII-Codes, ohne die Existenz
+einer offiziellen Währung zu behaupten. `CurrencyConversion` unterscheidet
+explizit zwischen identischer Währung ohne numerische Rate und Cross-Currency
+mit verschiedenen Währungen.
+
+Die Cross-Currency-Rate bedeutet verbindlich Einheiten der Basiswertwährung je
+einer Einheit Produktwährung. Die Umrechnung in die Produktwährung erfolgt
+durch Division. Das Bezugsverhältnis bedeutet Basiswerteinheiten je
+Produktstück. Ratio und Cross-Currency-Rate müssen positiv und endlich sein.
+Der neue Calculator berechnet:
+
+```text
+theoreticalValueInUnderlyingCurrency = knockoutDistanceAbsolute × ratio
+
+theoreticalProductValue =
+    theoreticalValueInUnderlyingCurrency
+    / underlyingCurrencyPerProductCurrencyRate
+```
+
+Im Same-Currency-Fall bleibt der Wert numerisch unverändert. Der Calculator
+rundet nicht. `TradeCalculationEngine`, ihre Input-/Resulttypen und der aktive
+Trade-Planner-Pfad werden durch diese Entscheidung noch nicht migriert.
+
+### Begründung
+
+Der geschlossene Conversion-Vertrag verhindert unbeschriftete FX-Richtungen,
+künstliche Same-Currency-Raten und ungültige Cross-Currency-Zustände. Die
+isolierte reine Berechnung lässt sich vollständig testen, ohne das bestehende
+Laufzeitverhalten oder seine Charakterisierungstests vorzeitig zu verändern.
+
+### Auswirkungen auf Architektur
+
+- Das neue Package `de.konavigator.app.domain.currency` enthält ausschließlich
+  typisierte, providerfreie Currency-Verträge.
+- FX-Quelle, Zeitstempel, Freshness und Providerzugriff bleiben Aufgabe der
+  späteren `CurrencyPolicy` gemäß ADR-0001.
+- Der neue Produktwertcalculator ist synchron, deterministisch, Android-frei,
+  repositoryfrei und ungerundet.
+- Die spätere Engine-Migration verwendet diesen Vertrag in einem gesondert
+  freizugebenden Schritt.
+- Der bestehende Engine-, Application-, Presentation-, UI- und MarketData-Pfad
+  bleibt unverändert.
+
+### Betroffene Dokumente
+
+- `docs/ARCHITECTURE.md`
+- `docs/FORMULAS.md`
+- `DEVLOG.md`
+- `docs/DECISIONS.md`

@@ -1255,3 +1255,36 @@ Stammdatenvalidierung
 Die genaue Aufteilung in Policies und Orchestratoren bleibt implementierungsnah
 zu entscheiden. Die Reihenfolge drückt die verbindliche Fachregel aus, dass
 blockierende Datenfehler vor Berechnung und weichem Scoring behandelt werden.
+
+## 23. Isolierter FX-/Ratio-Produktwertvertrag
+
+Das Package `de.konavigator.app.domain.currency` enthält als erste isolierte
+Teilbasis der langfristigen Currency-Architektur zwei neue Verträge:
+
+- `CurrencyCode` normalisiert und validiert ausschließlich syntaktische,
+  dreistellige ASCII-Währungscodes. Die Prüfung behauptet nicht, dass jeder
+  syntaktisch gültige Code eine offiziell existierende Währung bezeichnet.
+- `CurrencyConversion` ist ein geschlossener Vertrag aus `SameCurrency` und
+  `CrossCurrency`. Same-Currency führt keine numerische Rate. Cross-Currency
+  verlangt verschiedene Währungen sowie eine positive, endliche Rate mit der
+  eindeutigen Richtung Basiswertwährung je Produktwährung.
+
+Der neue `TheoreticalProductValueCalculator` liegt im bestehenden
+Calculator-Package. Er berechnet synchron und ohne Rundung zuerst den
+ratio-skalierten Wert in Basiswertwährung und konvertiert ihn anschließend bei
+Cross-Currency durch Division in die Produktwährung. Resultate und erwartbare
+Fehler werden als kleine geschlossene Verträge im selben Calculator-Kontext
+geführt.
+
+Die Komponente besitzt keine Android-, Compose-, Repository-, Netzwerk-,
+Coroutine-, Systemzeit-, Provider- oder MarketData-Abhängigkeit. Quelle,
+Zeitstempel und Freshness einer realen FX-Quote bleiben ausdrücklich der
+späteren `CurrencyPolicy` und dem `FXRateProvider` gemäß ADR-0001 vorbehalten.
+
+Der Vertrag ist noch nicht an `TradeCalculationEngine`,
+`TradeCalculationInput`, `TradeCalculationResult`, den Application Service,
+das ViewModel oder die UI angebunden. Der bestehende aktive Engine-Pfad und
+seine frühe Cent-Rundung bleiben zunächst unverändert charakterisiert. Der
+nächste Migrationsschritt kann die Engine kontrolliert auf den typisierten
+FX-/Ratio-Vertrag und den ungerundeten Produktwert umstellen, ohne Currency-
+Grundlagen und aktive Formeländerung erneut zu vermischen. Siehe ADR-0008.

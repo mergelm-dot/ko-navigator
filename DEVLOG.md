@@ -665,3 +665,36 @@ wurde geändert. Die Charakterisierung ist keine fachliche Freigabe der
 Abweichungen. Der nächste fachliche Schritt muss den FX-, Ratio- und
 tatsächlichen Hebelvertrag gezielt und getrennt entscheiden, bevor diese
 Bereiche produktiv erweitert werden.
+
+---
+
+## Entwicklungsschritt 23D.1 – Isolierten FX-/Ratio-Produktwertvertrag implementiert
+
+Mit `CurrencyCode`, `CurrencyConversion` und
+`TheoreticalProductValueCalculator` wurden drei neue isolierte
+Produktivverträge eingeführt. `CurrencyCode` trimmt und normalisiert
+dreistellige ASCII-Währungscodes, ohne eine externe Währungsdatenbank oder
+stille Ersatzwerte zu verwenden. `CurrencyConversion` unterscheidet den
+Same-Currency-Fall ohne numerische Rate von Cross-Currency mit verschiedenen
+Währungen und einer positiven, endlichen Rate.
+
+Die FX-Richtung ist typisiert als Basiswertwährung je Produktwährung. Der neue
+Calculator wendet das Bezugsverhältnis als Basiswerteinheiten je Produktstück
+exakt einmal an und teilt den Wert in Basiswertwährung bei Cross-Currency durch
+die beschriftete Rate. Abstand, Ratio und abgeleitete Werte werden defensiv auf
+positive Endlichkeit geprüft. Es findet keine Rundung statt; insbesondere
+bleiben sehr kleine positive Modellwerte positiv.
+
+Exakt 18 neue JVM-Tests prüfen Currency-Normalisierung, ungültige Codes,
+Same-/Cross-Currency-Verträge, ungültige FX-Raten, Ratio- und
+Abstandsvalidierung, USD→EUR, EUR→USD, Same-Currency, die genau einmalige
+Ratio-Anwendung, ungerundete Kleinwerte, Determinismus und die Freiheit von
+Android-, Repository-, MarketData-, Systemzeit- und Coroutine-Abhängigkeiten.
+
+`TradeCalculationEngine`, `TradeCalculationInput`, `TradeCalculationResult`,
+`KoCalculator`, `PriceConverter`, Application Service, ViewModel, UI und der
+MarketData-Pfad sind unverändert und nicht mit dem neuen Vertrag verbunden.
+Damit bleiben auch die bestehenden Charakterisierungstests und das aktuelle
+Laufzeitverhalten unverändert. Ein Gerätetest ist für diesen reinen JVM- und
+Dokumentationsschritt nicht erforderlich. ADR-0008 dokumentiert die
+abgestimmte Entscheidung und den späteren Migrationspfad.

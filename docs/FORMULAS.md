@@ -862,3 +862,63 @@ Keine Dimension darf aus einer anderen abgeleitet oder durch sie ersetzt
 werden. Die Explanation nennt mindestens Hebel, Spread, KO-Abstand, Emittent,
 Datenalter und Qualitätsbewertung, soweit verfügbar, und weist fehlende oder
 nicht berücksichtigte Faktoren ausdrücklich aus.
+
+## 22. Isolierter FX-/Ratio-Produktwertvertrag
+
+Der neue `TheoreticalProductValueCalculator` bildet den fachlich freigegebenen
+Zielvertrag isoliert ab. Er ist noch nicht an `TradeCalculationEngine`, den
+Trade Planner oder den MarketData-Pfad angebunden. Das im Abschnitt
+„Aktuell charakterisiertes Engine-Verhalten“ dokumentierte Laufzeitverhalten
+bleibt daher unverändert und ist klar von diesem Zielvertrag zu trennen.
+
+Das Bezugsverhältnis lautet auf Basiswerteinheiten je Produktstück. Für einen
+positiven gerichteten KO-Abstand gilt ohne Rundung:
+
+```text
+theoreticalValueInUnderlyingCurrency =
+    knockoutDistanceAbsolute × ratio
+```
+
+Einheiten:
+
+```text
+(Basiswertwährung / Basiswerteinheit)
+× (Basiswerteinheiten / Produktstück)
+= Basiswertwährung / Produktstück
+```
+
+Für verschiedene Währungen ist die Rate eindeutig definiert als:
+
+```text
+underlyingCurrencyPerProductCurrencyRate =
+    Basiswertwährung / Produktwährung
+```
+
+Die Umrechnung erfolgt durch Division:
+
+```text
+theoreticalProductValue =
+    theoreticalValueInUnderlyingCurrency
+    / underlyingCurrencyPerProductCurrencyRate
+```
+
+Einheiten:
+
+```text
+(Basiswertwährung / Produktstück)
+/ (Basiswertwährung / Produktwährung)
+= Produktwährung / Produktstück
+```
+
+Bei identischer Basiswert- und Produktwährung wird keine künstliche numerische
+Rate mitgeführt:
+
+```text
+theoreticalProductValue = theoreticalValueInUnderlyingCurrency
+```
+
+`knockoutDistanceAbsolute`, `ratio`, die Cross-Currency-Rate und beide
+abgeleiteten Werte müssen positiv und endlich sein. Der neue Calculator rundet
+weder Zwischen- noch Ergebniswerte. FX-Quelle, Zeitstempel, Freshness,
+Providerzugriff, handelbare Preise und ein berechneter theoretischer Hebel sind
+nicht Teil dieses isolierten Vertrags.
