@@ -768,3 +768,38 @@ auf 863 erfolgreiche Tests. Die Android-Testquellen umfassen nun 43
 kompilierte Instrumentationstests. `assembleDebug` und
 `assembleDebugAndroidTest` sind erfolgreich. Ein Gerätetest der sichtbaren
 Hebelzeilen ist in diesem Umsetzungsschritt noch nicht erfolgt.
+
+---
+
+## Entwicklungsschritt 24A – Strukturiertes Mock-Daten-Szenario-Kit eingeführt
+
+Das neue test-only Package `de.konavigator.app.scenarios` ergänzt die
+vorhandenen Unit- und Referenztests um einen begrenzten, strukturierten Katalog
+vollständiger Berechnungsfälle der realen `TradeCalculationEngine`. Es enthält
+ein typisiertes Szenariomodell, zentral gepflegte Fixtures und einen
+JUnit-4-parameterisierten Vertragstest. Eine zweite Testumgebung, ein neues
+Modul oder externe Datenquellen wurden nicht eingeführt.
+
+Der Katalog umfasst exakt 25 Szenarien: 15 Erfolgsfälle und 10 Fehlerfälle.
+Abgedeckt sind Long und Short, Same- und Cross-Currency in beiden Richtungen,
+die Ratios `0.1`, `0.01` und `0.001`, niedrige und hohe gültige Zielhebel,
+ein hoher gültiger Einstieg, ein normaler Dezimalpreis, ein sehr kleiner
+positiver Produktwert, numerische Overflow-Fälle und die bestehende
+Validierungspriorität. Ein klar benanntes Characterization-Szenario sichert
+den aktuellen Ist-Vertrag, dass `input.underlyingPrice` die Engine-Mathematik
+nicht beeinflusst und `result.underlyingPrice` den geplanten Einstieg enthält.
+
+Alle erwarteten numerischen Werte sind feste, vorab unabhängig geprüfte
+Literale. Die Fixtures bauen keine Produktionsformel nach und verwenden weder
+Produktionscalculator noch Engine-Ausgaben zur Sollwerterzeugung. Jeder
+Erfolgsfall prüft sämtliche Felder des `TradeCalculationResult`; jeder
+Fehlerfall prüft den exakten Fehlercode und alle Rechenfelder auf `null`.
+Absolute und relative Vergleiche verwenden zentral jeweils eine Toleranz von
+`1e-12`, und jede Assertion führt den Szenarionamen als Kontext.
+
+Der gezielte Lauf bestätigte 25/25 Szenarien. Die vollständige JVM-Suite
+umfasst nun 888/888 erfolgreiche Tests ohne Fehler oder übersprungene Tests.
+`assembleDebug` und `assembleDebugAndroidTest` waren erfolgreich. Produktivcode,
+Formeln, Gradle-Konfiguration, Manifeste und Android-Testcode blieben
+unverändert. Ein Gerätetest ist für diesen ausschließlich JVM-Testcode und
+Dokumentation betreffenden Schritt nicht erforderlich.

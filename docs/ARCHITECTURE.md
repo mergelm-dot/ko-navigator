@@ -997,6 +997,26 @@ Die Teststrategie umfasst:
 - Compose-UI-Tests für Anzeige und Interaktion sowie
 - Regressionstests für bereits bestätigte Formeln und Grenzfälle.
 
+Das test-only Package `de.konavigator.app.scenarios` ergänzt die fokussierten
+Unit- und Referenztests durch ein strukturiertes Mock-Daten-Szenario-Kit für
+den vollständigen Vertrag der realen `TradeCalculationEngine`:
+
+```text
+Mock scenario kit
+→ fixed input fixtures
+→ real TradeCalculationEngine
+→ fixed expected outputs
+→ full result-contract verification
+```
+
+Die Fixtures enthalten feste, vorab unabhängig geprüfte Sollwerte und keine
+nachgebauten Fachformeln. Weder Produktionscalculator noch ein vorgelagerter
+Engine-Lauf erzeugen die Erwartungen. Das Kit verwendet keine externe
+Datenquelle und keine zweite Testumgebung. Es darf ausdrücklich bestehende
+Ist-Verträge charakterisieren, sofern der Szenarioname dies klar kennzeichnet;
+eine solche Charakterisierung ändert oder legitimiert den Produktionsvertrag
+nicht.
+
 Vor der produktiven Nutzung externer Zertifikatsdaten kommt eine realistische
 Integrationstest-Suite hinzu. Sie führt Repository-Adapter, Validierung,
 Currency-, Freshness- und Bid-/Ask-Policies, Orchestrierung und strukturierte
