@@ -367,6 +367,63 @@ D_pct = 20,00 / 100,00 × 100 = 20,00 %
 
 Ein Long mit `S = 79,00 EUR` und `KO = 80,00 EUR` hat folglich `D_abs = -1,00 EUR`; dieser negative Wert darf nicht als positiver Abstand angezeigt werden.
 
+### Aktuell charakterisiertes Engine-Verhalten
+
+Dieser Abschnitt beschreibt ausschließlich den durch Referenztests gesicherten
+Ist-Zustand von `TradeCalculationEngine` und der bestehenden
+`KoCalculator.calculateCertificatePrice`-Übergangsfunktion. Er erweitert oder
+ändert weder das fachliche Zielmodell noch eine akzeptierte
+Architekturentscheidung. Die nachfolgend genannten Abweichungen bleiben offen
+und sind nicht fachlich freigegeben.
+
+Im normalen endlichen Wertebereich mit `S_entry > 0` und `L_target > 1`
+verwendet die Engine die in Abschnitt 5 dokumentierten KO-Formeln. Daraus
+folgen für Long und Short algebraisch:
+
+```text
+D_abs = S_entry / L_target
+D_pct = 100 / L_target
+```
+
+Der aktuelle Übergangswert vor Rundung lautet für beide Richtungen:
+
+```text
+TransitionalValue_raw = D_abs × R
+```
+
+`KoCalculator.calculateCertificatePrice` rundet diesen Wert bereits innerhalb
+der Berechnung auf zwei Dezimalstellen:
+
+```text
+TransitionalValue_current = round(TransitionalValue_raw × 100) / 100
+```
+
+Dadurch können kleine positive Rohwerte als `0.00` zurückgegeben werden. Der
+Wert ist weiterhin weder ein vollständiger theoretischer Modellpreis noch ein
+realer Emittenten-, Bid-, Ask- oder handelbarer Produktpreis.
+
+Für den aktuellen Engine-Vertrag gelten außerdem folgende bekannte, durch
+Charakterisierungstests belegte Abweichungen:
+
+- `exchangeRate` wird derzeit weder validiert noch in der Berechnung
+  angewendet. Die verbindliche FX-Konvention aus Abschnitt 8 bleibt das
+  fachliche Ziel.
+- `ratio` wird derzeit nicht validiert. Insbesondere wird `R = 0` aktuell als
+  gültiger Input verarbeitet und erzeugt einen Übergangswert von `0.00`.
+- `underlyingPrice` beeinflusst die Engine-Berechnung derzeit nicht. Der
+  aktuelle Basiswertkurs wird vorgelagert für die brokerneutrale
+  Einstiegskursrelation verwendet; KO, Übergangswert und Abstände beziehen
+  sich innerhalb der Engine ausschließlich auf `plannedEntryPrice`.
+- Bei sehr großen, aber endlichen Zielhebeln kann `1 / L_target` im
+  `Double`-Verhalten so klein sein, dass `1 − 1 / L_target` beziehungsweise
+  `1 + 1 / L_target` auf `1.0` rundet. Dann kann die berechnete KO-Barriere
+  exakt dem Einstieg entsprechen, während das aktuelle Resultat weiterhin als
+  gültig markiert wird.
+
+FX-Anwendung, Ratio-Validierung, Obergrenze des Zielhebels, Rundungsgrenze und
+die Berechnung eines tatsächlichen Hebels sind weiterhin getrennt fachlich zu
+entscheiden. Die Referenztests legitimieren keine dieser Ist-Abweichungen.
+
 ## 7. Vereinfachter innerer Wert
 
 Long:

@@ -640,3 +640,28 @@ vorhandene Auswahl von Purchase=Ask, Sale=Bid und Mid im
 Marktdatenorchestrator werden als Teilbasis dokumentiert, nicht fälschlich als
 neue oder vollständige Implementierung. Es erfolgte keine Änderung an Formeln,
 Laufzeitverhalten, Abhängigkeiten oder Projektstruktur.
+
+---
+
+## Entwicklungsschritt 23B – Engine-Referenz- und Grenzwerttests ergänzt
+
+Die neue JVM-Suite `TradeCalculationEngineReferenceTest` sichert mit exakt 14
+Tests den aktuellen Vertrag der realen `TradeCalculationEngine` und des realen
+`TradeCalculationInput` ohne Mocks oder neue Produktionshelper ab. Acht feste
+Long-/Short-Referenzvektoren prüfen Standardwerte, Zielhebel `3` und `5`, ein
+Bezugsverhältnis von `0.1`, einen Wechselkurs von `1.1` sowie sehr kleine
+positive Übergangswerte.
+
+Die übrigen Tests charakterisieren bekannte offene Abweichungen ausdrücklich
+als Ist-Zustand: `exchangeRate` wird aktuell ignoriert, Ratio `0` wird aktuell
+akzeptiert, die bestehende Cent-Rundung kann kleine positive Rohwerte auf
+`0.00` reduzieren, und ein sehr hoher endlicher Zielhebel kann für Long und
+Short die KO-Barriere auf den Einstieg runden. Zusätzlich werden das
+JVM-Double-Verhalten für `Math.nextUp(1.0)`, Determinismus und die derzeitige
+Unabhängigkeit der Engine-Mathematik vom aktuellen `underlyingPrice` geprüft.
+
+Keine Produktivformel, Validierung, Rundung, UI, Architektur oder Abhängigkeit
+wurde geändert. Die Charakterisierung ist keine fachliche Freigabe der
+Abweichungen. Der nächste fachliche Schritt muss den FX-, Ratio- und
+tatsächlichen Hebelvertrag gezielt und getrennt entscheiden, bevor diese
+Bereiche produktiv erweitert werden.
