@@ -608,3 +608,35 @@ funktioniert, und die aktuelle UI blieb im Portrait- und Landscape-Modus
 nutzbar. Nach Wiederherstellung der ursprünglichen Portrait-Sperre startete die
 App dreimal hintereinander kalt und absturzfrei wieder in der aktuellen
 Trade-Planner-Oberfläche.
+
+---
+
+## 2026-07-22 – Langfristige Datenqualitäts- und Explainability-Architektur dokumentiert
+
+Die langfristige Architekturrichtung wurde ausschließlich in der
+Projektdokumentation ergänzt; Produktiv- und Testcode blieben unverändert.
+Sieben Entscheidungen sind erstmals als `ADR-0001` bis `ADR-0007` im neuen
+Register `docs/DECISIONS.md` erfasst: CurrencyPolicy, Quote-Freshness mit
+Warn- und Blockierstufen, kontextabhängige Bid-/Ask-Policy, realistische
+Robustheits-Integrationstests, Zertifikats-Qualitätsscore, Explainable Engine
+und Confidence Score.
+
+Die akzeptierten ADRs legen die jeweilige Architekturrichtung fest, nehmen aber
+keine noch offenen Produktionsdetails vorweg. Insbesondere bleiben FX-Provider,
+Freshness- und Spread-Schwellen, technische Ordertyp-Zuordnungen, Score-Skalen,
+Normalisierung, Gewichte, Mindestdaten, Emittenten- und Liquiditätsmetriken
+sowie Finanzierungskosten vor einer Implementierung fachlich abzustimmen.
+
+`ROADMAP.md` führt die neuen Bausteine in drei priorisierten Langfristphasen.
+`docs/ARCHITECTURE.md` beschreibt Verantwortungsgrenzen, Zielreihenfolge und
+die Trennung von Produktqualität, Berechnungszuverlässigkeit und Erklärung.
+`docs/FORMULAS.md` ergänzt verbindliche Zielkonventionen für Currency-
+Freigabe, Quote-Auswahl, Freshness sowie die noch unparametrisierten Score-
+Strukturen. `AGENTS.md` hält die ADR-Abstimmung und die Pflege aller
+verbindlichen Dokumente als Projektregel fest.
+
+Die bereits implementierte isolierte `MarketDataFreshnessPolicy` und die
+vorhandene Auswahl von Purchase=Ask, Sale=Bid und Mid im
+Marktdatenorchestrator werden als Teilbasis dokumentiert, nicht fälschlich als
+neue oder vollständige Implementierung. Es erfolgte keine Änderung an Formeln,
+Laufzeitverhalten, Abhängigkeiten oder Projektstruktur.

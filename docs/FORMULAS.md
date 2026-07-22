@@ -417,6 +417,14 @@ Beispiel: Der Basiswert lautet auf USD, das Produkt auf EUR. Bei `EUR/USD = 1,10
 
 `FX` muss größer als `0` und endlich sein. Bei gleicher Basiswert- und Produktwährung gilt `FX = 1`. Währungspaar und Zeitstempel des verwendeten Wechselkurses müssen mit der späteren Datenquellenintegration mitgeführt werden; eine Richtung darf nie allein aus einer unbeschrifteten Zahl abgeleitet werden.
 
+Vor jeder währungsübergreifenden Berechnung muss die zukünftige
+`CurrencyPolicy` zusätzlich bestätigen, dass Ausgangs- und Zielwährung zum
+beschrifteten FX-Paar passen und der Wechselkurs nach Quelle und Zeitstempel
+für den Bewertungszeitpunkt verwendbar ist. Der reine `CurrencyConverter`
+berechnet nur die freigegebene Umrechnung; ein `FXRateProvider` beschafft
+Kurse, verändert aber keine Formel. Ein fehlender, inkompatibler oder
+veralteter FX-Kurs darf nicht durch `FX = 1` ersetzt werden.
+
 ## 9. Theoretischer Modellpreis
 
 Das vorläufige Zielmodell lautet:
@@ -620,6 +628,11 @@ Jeder folgende Punkt ist vor seiner Implementierung fachlich zu spezifizieren un
 - **OFFEN – vor Implementierung verbindlich entscheiden:** Verwendung von `Double` oder dezimalgenauen Typen je Berechnungs- und Geldwert.
 - **OFFEN – vor Implementierung verbindlich entscheiden:** Risikoklassifizierung und zugehörige Schwellenwerte beziehungsweise Warntexte.
 - **OFFEN – vor Implementierung verbindlich entscheiden:** Verbindliche Datenquellen, Aktualitätsgrenzen, Währungspaare und Zeitstempel.
+- **OFFEN – vor Implementierung verbindlich entscheiden:** Warnstufen und produktive Schwellen für Quote- und FX-Freshness.
+- **OFFEN – vor Implementierung verbindlich entscheiden:** Zuordnung technischer Ordertypen zu Bid, Ask, Mid, Limit und Trigger.
+- **OFFEN – vor Implementierung verbindlich entscheiden:** Normalisierung, Skala, Gewichte und Mindestdaten des Zertifikats-Qualitätsscores.
+- **OFFEN – vor Implementierung verbindlich entscheiden:** Skala, Aggregation und Mindestdaten des Confidence Scores.
+- **OFFEN – vor Implementierung verbindlich entscheiden:** Emittenten- und Liquiditätsmetriken sowie belastbare Finanzierungskosten für das Scoring.
 
 Keine dieser offenen Entscheidungen darf durch eine unmarkierte Annahme in der Implementierung vorweggenommen werden.
 
@@ -673,3 +686,122 @@ Jeder Schritt ist mit Long- und Short-Tests sowie Grenz- und Fehlerfällen abzus
 Alle Berechnungen sind Planungs- und Informationshilfen. Sie sind keine Anlageberatung und keine Kauf- oder Verkaufsempfehlung.
 
 Reale Produktbedingungen, Emittentenpreise, Handelszeiten, Finanzierungskosten, Spreads, Wechselkurse und KO-Regeln können von den vereinfachten Modellen abweichen. Vor einer Order müssen die offiziellen und aktuellen Produktunterlagen des Emittenten geprüft werden.
+
+## 21. Langfristige Policies und Scores
+
+Dieser Abschnitt definiert ausschließlich Zielkonventionen. Er legt keine
+Produktionsschwellen, Gewichtungen oder Handlungsempfehlungen fest. Die
+zugehörigen Architekturentscheidungen stehen in `docs/DECISIONS.md`.
+
+### 21.1 Quote-Auswahl
+
+Nach erfolgreicher Validierung, Kompatibilitäts-, Availability-, Freshness-
+und Quellenprüfung gilt:
+
+```text
+P_purchase_reference = P_ask
+P_sale_reference = P_bid
+P_analytic_reference = P_mid
+P_mid = P_bid + (P_ask − P_bid) / 2
+```
+
+`P_mid` ist nicht handelbar und kein Fallback. Fehlt die für den jeweiligen
+Kontext notwendige Quote-Seite, ist der Preis nicht verfügbar. Für Limit-,
+Stop- und kombinierte Ordertypen ist vor Implementierung eine eigene
+Zuordnung zwischen Nutzerpreis, Trigger und beobachteter Quote-Seite
+festzulegen; diese darf nicht aus den obigen drei Gleichungen erraten werden.
+
+### 21.2 Quote-Alter und Freshness-Stufe
+
+Für jede Quote-Seite `q` wird das Alter relativ zum expliziten
+Bewertungszeitpunkt `T_eval` beurteilt:
+
+```text
+Age_q = T_eval − T_q
+```
+
+Die Implementierung muss die bereits dokumentierten overflow-sicheren
+Vergleiche verwenden und darf die Subtraktion an numerischen Grenzen nicht
+ungeprüft ausführen. Fachlich gilt konzeptionell:
+
+```text
+Age_q innerhalb Freigabegrenze       → verwendbar
+Age_q innerhalb eines Warnbereichs   → verwendbar mit strukturierter Warnung
+Age_q oberhalb der Blockiergrenze    → keine Berechnung
+```
+
+Die konkreten Grenzen und die Anzahl der Warnstufen sind offen. Bei Bid-/Ask-
+abhängigen Werten ist zusätzlich die maximale Zeitdifferenz der beiden Seiten
+zu prüfen. Eine unzulässig zukünftige Quote bleibt ein blockierender
+Datenfehler und wird nicht als besonders frisch behandelt.
+
+### 21.3 Zertifikats-Qualitätsscore
+
+Der spätere Qualitätsscore ist eine nachvollziehbare Aggregation einzelner
+normierter Teilwerte. Als Zielstruktur, nicht als bereits festgelegte Formel,
+gilt:
+
+```text
+QualityScore = Aggregate(
+    SpreadQuality,
+    IssuerQuality,
+    DataQuality,
+    FreshnessQuality,
+    KnockoutDistanceQuality,
+    LiquidityQuality,
+    FinancingCostQuality_later
+)
+```
+
+Jeder Teilwert benötigt eine veröffentlichte Normalisierungsregel und einen
+eindeutig bezeichneten Datenstand. Falls später eine gewichtete Summe gewählt
+wird, muss vorab fachlich gelten:
+
+```text
+w_i >= 0
+sum(w_i) = 1
+QualityScore = sum(w_i × q_i)
+```
+
+Diese Darstellung entscheidet weder die Skala noch die Gewichte. Fehlende
+Pflichtdaten werden nicht als neutraler Teilwert eingesetzt. Blockierende
+Validierungs-, KO-, Currency-, Handelsstatus- oder Freshness-Fehler verhindern
+reguläres Scoring. Ein hoher Score ist keine Kaufempfehlung.
+
+### 21.4 Confidence Score
+
+Der Confidence Score bewertet die Zuverlässigkeit der Datenbasis einer
+konkreten Berechnung, nicht die Produktqualität:
+
+```text
+ConfidenceScore = ConfidenceAggregate(
+    Completeness,
+    Freshness,
+    CurrencyAndFxCompatibility,
+    SourceQuality,
+    InternalConsistency
+)
+```
+
+Aggregation, Skala, Gewichte und Mindestdaten sind offen. Ohne gesonderte
+statistische Kalibrierung darf der Wert nicht als Wahrscheinlichkeit
+interpretiert werden. Ein blockierender Datenfehler wird nicht in einen
+niedrigen Confidence Score umgewandelt, sondern verhindert das reguläre
+Berechnungsergebnis.
+
+### 21.5 Trennung der Ergebnisdimensionen
+
+Für jedes spätere Produktergebnis bleiben mindestens folgende Dimensionen
+getrennt:
+
+```text
+CalculationResult  = mathematisches Ergebnis
+QualityScore       = dokumentierte Produktqualitätsfaktoren
+ConfidenceScore    = Zuverlässigkeit der verwendeten Daten
+Explanation        = Herleitung, Beiträge, Warnungen und Ausschlussgründe
+```
+
+Keine Dimension darf aus einer anderen abgeleitet oder durch sie ersetzt
+werden. Die Explanation nennt mindestens Hebel, Spread, KO-Abstand, Emittent,
+Datenalter und Qualitätsbewertung, soweit verfügbar, und weist fehlende oder
+nicht berücksichtigte Faktoren ausdrücklich aus.

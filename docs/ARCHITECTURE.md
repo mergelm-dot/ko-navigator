@@ -2,7 +2,7 @@
 
 ## 1. Zweck des Dokuments
 
-Dieses Dokument definiert die verbindliche Zielarchitektur des KO Navigators. Es ergänzt `ROADMAP.md`, `DEVLOG.md`, `AGENTS.md` und `docs/FORMULAS.md`. Künftige Architekturänderungen müssen auch hier nachvollziehbar dokumentiert werden, damit Ist-Zustand, Zielbild und Migrationsweg nicht auseinanderlaufen.
+Dieses Dokument definiert die verbindliche Zielarchitektur des KO Navigators. Es ergänzt `ROADMAP.md`, `DEVLOG.md`, `AGENTS.md`, `docs/FORMULAS.md` und das ADR-Register `docs/DECISIONS.md`. Künftige Architekturänderungen müssen auch hier und als Architecture Decision Record nachvollziehbar dokumentiert werden, damit Ist-Zustand, Zielbild und Migrationsweg nicht auseinanderlaufen.
 
 Der KO Navigator ist ein professionelles Planungs- und Analysewerkzeug für Knock-out-Zertifikate. Er unterstützt Nutzer bei transparenten Berechnungen und Szenarien, gibt aber keine Kauf- oder Verkaufsempfehlungen und ist keine Anlageberatung.
 
@@ -997,6 +997,16 @@ Die Teststrategie umfasst:
 - Compose-UI-Tests für Anzeige und Interaktion sowie
 - Regressionstests für bereits bestätigte Formeln und Grenzfälle.
 
+Vor der produktiven Nutzung externer Zertifikatsdaten kommt eine realistische
+Integrationstest-Suite hinzu. Sie führt Repository-Adapter, Validierung,
+Currency-, Freshness- und Bid-/Ask-Policies, Orchestrierung und strukturierte
+Ergebnisse gemeinsam durch. Verbindliche Fehlerfälle sind fehlender Bid,
+fehlender Ask, inkompatible Währung, großer Spread, veraltete Daten,
+Handelsaussetzung, ungültige Produktdaten und ein bereits ausgelöster
+Knock-out. Die Tests müssen nachweisen, dass Warnungen und Blockierungen bis zur
+Presentation erhalten bleiben und keine Ersatzwerte als belastbare Ergebnisse
+erscheinen.
+
 Verbindliche Regeln:
 
 - Jede mathematische Änderung benötigt passende Tests.
@@ -1086,6 +1096,11 @@ Es gibt keine Big-Bang-Migration. Jeder Schritt soll klein, nachvollziehbar und 
 - Reale Preise, Modellpreise, Bid und Ask werden nicht vermischt.
 - Fachliche Fehler und technische Fehler bleiben unterscheidbar.
 - Architekturänderungen werden in diesem Dokument nachvollziehbar aktualisiert.
+- Währungsumrechnung wird ausschließlich mit explizitem Paar, Richtung, Quelle und Zeitbezug freigegeben.
+- Mid ist ein analytischer Referenzwert und kein handelbarer Ersatz für fehlenden Bid oder Ask.
+- Produktqualität und Berechnungszuverlässigkeit sind getrennte Konzepte.
+- Jede Produktauswahl bleibt durch strukturierte Faktoren, Warnungen und Ausschlussgründe erklärbar.
+- Wichtige Architekturentscheidungen werden vor Implementierung in `docs/DECISIONS.md` abgestimmt und erfasst.
 
 ## 21. Offene Architekturentscheidungen
 
@@ -1104,5 +1119,139 @@ Die folgenden Punkte sind nicht entschieden. Für jeden Punkt gilt: **OFFEN – 
 | Caching-Strategie | **OFFEN – erst entscheiden, wenn die konkrete Entwicklungsphase erreicht ist.** |
 | Synchronisation | **OFFEN – erst entscheiden, wenn die konkrete Entwicklungsphase erreicht ist.** |
 | Multi-Plattform-Strategie | **OFFEN – erst entscheiden, wenn die konkrete Entwicklungsphase erreicht ist.** |
+| Currency-Typ, FX-Provider, FX-Freshness und Quanto-Behandlung | **RICHTUNG AKZEPTIERT in ADR-0001; Details vor Implementierung offen.** |
+| Freshness-Warnstufen und produktive Schwellen | **RICHTUNG AKZEPTIERT in ADR-0002; Details vor Implementierung offen.** |
+| Zuordnung technischer Ordertypen zu Bid, Ask, Mid, Limit und Trigger | **RICHTUNG AKZEPTIERT in ADR-0003; Details vor Implementierung offen.** |
+| Spread-Grenzen und Abbildung einer Handelsaussetzung | **RICHTUNG AKZEPTIERT in ADR-0004; Details vor Implementierung offen.** |
+| Qualitätsscore-Skala, Faktorenormalisierung und Gewichtung | **RICHTUNG AKZEPTIERT in ADR-0005; Details vor Implementierung offen.** |
+| Confidence-Skala, Aggregation und Mindestdaten | **RICHTUNG AKZEPTIERT in ADR-0007; Details vor Implementierung offen.** |
 
-Entscheidungen werden erst getroffen, wenn konkrete Anforderungen, fachliche Grundlagen und überprüfbare Auswahlkriterien vorliegen. Eine Entscheidung wird anschließend mit Begründung, Auswirkungen, Alternativen und Migrationsbedarf in diesem Dokument festgehalten.
+Entscheidungen werden erst getroffen, wenn konkrete Anforderungen, fachliche Grundlagen und überprüfbare Auswahlkriterien vorliegen. Eine Entscheidung wird anschließend mit Begründung, Auswirkungen, Alternativen und Migrationsbedarf in diesem Dokument sowie mit Status und Datum in `docs/DECISIONS.md` festgehalten.
+
+## 22. Langfristige Datenqualitäts- und Explainability-Architektur
+
+Die folgenden Bausteine sind als Architekturrichtung akzeptiert, aber noch
+nicht vollständig implementiert. Sie werden nur in kleinen, separat
+freigegebenen Schritten eingeführt. Die ADRs in `docs/DECISIONS.md` sind für
+Status, Entscheidungsgrenze und offene Details verbindlich.
+
+### 22.1 CurrencyPolicy
+
+`CurrencyPolicy` bildet künftig die fachliche Grenze vor jeder
+währungsübergreifenden Berechnung. Sie erhält eindeutig typisierte
+Ausgangs- und Zielwährung sowie einen beschrifteten FX-Kurs und entscheidet,
+ob die Konvertierung für den konkreten Bewertungszeitpunkt freigegeben ist.
+Die Referenzwährung des Basiswerts und die Produktwährung bleiben getrennt.
+
+```text
+FXRateProvider → FX-Quote mit Paar, Richtung, Quelle und Zeitstempel
+                                      ↓
+Berechnungskontext → CurrencyPolicy → freigegebene Conversion-Anweisung
+                                      ↓
+                               CurrencyConverter
+```
+
+Der `FXRateProvider` ist ein Port für die Beschaffung. Der
+`CurrencyConverter` ist eine reine, deterministische Rechenkomponente. Die
+Policy orchestriert beide nicht zwingend selbst, definiert aber die
+Voraussetzungen einer zulässigen Umrechnung. Providerfallbacks dürfen
+fehlende, inkompatible oder stale FX-Daten nicht verschleiern. Siehe ADR-0001.
+
+### 22.2 Quote-Freshness und Datenqualitätsstufen
+
+Die vorhandene `MarketDataFreshnessPolicy` bleibt die isolierte Basis der
+Zeitprüfung. Langfristig wird ihr strukturiertes Ergebnis so erweitert oder
+von einer getrennten Datenqualitätspolicy eingeordnet, dass mindestens
+unbeanstandete Daten, nicht blockierende Warnungen und eine blockierende Stufe
+unterscheidbar sind. Jeder Zustand führt relevante Quote-Zeitstempel,
+Bewertungszeitpunkt und angewandte Grenze mit.
+
+Blockierende Freshness beendet den fachlichen Ablauf vor Quote-Auswahl,
+Berechnung und Scoring. Eine Warnung darf nur dann ein Ergebnis begleiten,
+wenn der fachlich freigegebene Grenzbereich dies ausdrücklich zulässt.
+Konkrete Stufennamen und Schwellenwerte sind offen. Siehe ADR-0002.
+
+### 22.3 Bid-/Ask-Policy
+
+Die Bid-/Ask-Policy erhält einen typisierten Verwendungskontext und bereits
+validierte, kompatible und frische Quotes. Sie liefert entweder eine
+ausdrücklich bezeichnete Preisart mit Preis und Zeitstempel oder einen
+strukturierten Blockiergrund.
+
+```text
+Kaufpreisbetrachtung    → Ask
+Verkaufspreisbetrachtung → Bid
+Analytischer Referenzwert → Mid aus Bid und Ask
+```
+
+Mid bleibt nicht handelbar. Die Policy verwendet weder Last noch `0` als
+Fallback. Die bestehende Quote-Auswahl des
+`MarketDataCalculationOrchestrator` ist die aktuelle Teilbasis; ein
+vollständiges Mapping technischer Broker-Ordertypen bleibt offen. Siehe
+ADR-0003.
+
+### 22.4 Zertifikats-Qualitätsscore
+
+Der Qualitätsscore wird erst nach erfolgreicher harter Validierung und
+Datenfreigabe berechnet. Seine Zielstruktur besteht aus getrennten
+Teilbeiträgen für:
+
+- Spread,
+- Emittent,
+- Datenqualität,
+- Aktualität,
+- KO-Abstand,
+- Liquidität und
+- Finanzierungskosten nach späterer fachlicher Definition.
+
+Jeder Beitrag enthält Rohwert, Normalisierungsregel, angewandtes Gewicht,
+Datenstand und Wirkung auf den Gesamtscore. Blockierende Zustände werden nicht
+durch einen niedrigen Score ersetzt. Skala, Gewichtung und Mindestdaten sind
+offen. Siehe ADR-0005.
+
+### 22.5 Explainable Engine
+
+Application- und Domainresultate werden langfristig um ein strukturiertes
+Erklärungsmodell ergänzt. Es wird aus denselben validierten Zwischenergebnissen
+wie die Berechnung aufgebaut und enthält mindestens Hebel, Spread,
+KO-Abstand, Emittent, Datenalter und Qualitätsbewertung. Zusätzlich werden
+Preisart, Currency-/FX-Kontext, Warnungen, Ausschlussgründe und fehlende
+Faktoren mitgeführt.
+
+Die UI lokalisiert und formatiert diese Struktur, erzeugt aber keine eigene
+fachliche Begründung. Eine Erklärung beschreibt den Rechen- und Auswahlweg und
+ist keine Kauf- oder Verkaufsempfehlung. Siehe ADR-0006.
+
+### 22.6 Confidence Score
+
+Der Confidence Score beschreibt ausschließlich, wie belastbar eine konkrete
+Berechnung anhand ihrer Eingangsdaten ist. Mögliche Beiträge sind
+Vollständigkeit, Freshness, Währungs- und FX-Kompatibilität, Quellenqualität
+und interne Konsistenz. Er bleibt als eigener Typ vom Zertifikats-
+Qualitätsscore getrennt.
+
+Eine blockierende Policyverletzung erzeugt kein reguläres Ergebnis mit
+lediglich niedriger Confidence. Ohne ausdrückliche spätere Kalibrierung ist der
+Score keine Wahrscheinlichkeit und trifft keine Aussage über Rendite,
+Kursentwicklung oder Produkterfolg. Siehe ADR-0007.
+
+### 22.7 Zielreihenfolge der fachlichen Freigabe
+
+Der langfristige Ablauf folgt dieser Reihenfolge:
+
+```text
+Stammdatenvalidierung
+→ Quote- und Currency-Kompatibilität
+→ strukturelle Quote-Verfügbarkeit
+→ Quote- und FX-Freshness
+→ Quellen- und Handelsstatusfreigabe
+→ Bid-/Ask-Auswahl
+→ mathematische Berechnung
+→ Confidence-Bewertung
+→ Qualitätsscore
+→ strukturierte Erklärung
+```
+
+Die genaue Aufteilung in Policies und Orchestratoren bleibt implementierungsnah
+zu entscheiden. Die Reihenfolge drückt die verbindliche Fachregel aus, dass
+blockierende Datenfehler vor Berechnung und weichem Scoring behandelt werden.
