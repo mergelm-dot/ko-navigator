@@ -220,10 +220,42 @@ nicht in den Presentation-Vertrag übernommen.
 
 Das ViewModel kennt keine Repositories, Marktdaten, Systemzeit, Android-
 Ressourcen, Compose-Komponenten oder Broker-Ordertypen. Es ist noch nicht an
-`TradePlannerScreen`, `MainActivity`, eine Factory oder eine produktive
-Composition angebunden. Underlying-Suche, Assetauswahl, Broker und Emittenten
-bleiben während dieser schrittweisen Migration lokal im bestehenden
-Composable.
+`TradePlannerScreen`, `MainActivity` oder eine Route angebunden.
+Underlying-Suche, Assetauswahl, Broker und Emittenten bleiben während dieser
+schrittweisen Migration lokal im bestehenden Composable.
+
+#### 5.1.4 Trade-Planner-Factory und produktive Composition
+
+Die `TradePlannerViewModelFactory` liegt gemeinsam mit dem ViewModel im Package
+`de.konavigator.app.presentation.tradeplanner`. Sie besitzt ausschließlich den
+`TradePlanningApplicationService` als Konstruktorabhängigkeit und erzeugt nur
+bei einem exakten Klassenvergleich ein neues `TradePlannerViewModel`.
+Unbekannte ViewModel-Typen werden mit einer `IllegalArgumentException`
+abgelehnt. Die Factory kennt weder Android Context oder Ressourcen noch
+Repositories, MarketData, Debug-Code oder Compose.
+
+Das Package `de.konavigator.app.composition` enthält mit
+`TradePlannerComposition` den produktiven Composition-Einstieg im
+Main-Source-Set. Der vollständige Objektgraph lautet:
+
+```text
+TradeCalculationEngine
+→ TradePlanningApplicationService
+→ TradePlannerViewModelFactory
+→ TradePlannerViewModel
+```
+
+`TradePlannerComposition` ist ein zustandsloses Object mit genau der
+parameterlosen Funktion `createViewModelFactory()`. Jeder Aufruf verwendet das
+bestehende `TradeCalculationEngine`-Object, erzeugt aber einen neuen
+`TradePlanningApplicationService` und eine neue Factory. Es werden weder
+Service noch ViewModel-State global gespeichert. Der Composition-Pfad besitzt
+keine Android-Context-, Repository-, MarketData- oder Debug-Abhängigkeit.
+
+Die Anbindung an `MainActivity`, eine spätere `TradePlannerRoute` und den
+`TradePlannerScreen` bleibt einem eigenen Entwicklungsschritt vorbehalten. Die
+Factory-Lebensdauer muss dabei Activity-seitig außerhalb der Recomposition
+liegen, damit Recomposition keinen neuen Objektgraphen erzeugt.
 
 ### 5.2 Application Layer
 

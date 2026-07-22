@@ -499,3 +499,31 @@ Marktdatenkomponenten. Eine Anbindung an `TradePlannerScreen`, `MainActivity`,
 Factory oder Composition wurde nicht vorgenommen. 30 fokussierte JVM-Tests
 sichern State, Parsing, Validierung, Relation, Inputkonstruktion, Mapping und
 die Verantwortungsgrenzen ab.
+
+---
+
+## Entwicklungsschritt 22D.1 – Trade-Planner-Factory und produktive Composition eingeführt
+
+Die neue `TradePlannerViewModelFactory` im Package
+`de.konavigator.app.presentation.tradeplanner` erzeugt ausschließlich das
+`TradePlannerViewModel` und erhält als einzige Konstruktorabhängigkeit den
+`TradePlanningApplicationService`. Sie akzeptiert den ViewModel-Typ nur über
+einen exakten Klassenvergleich, lehnt unbekannte Typen strukturiert mit einer
+`IllegalArgumentException` ab und besitzt keine Context-, Ressourcen-,
+SavedState-, Repository-, MarketData- oder Compose-Abhängigkeit.
+
+Mit `TradePlannerComposition` im Main-Package
+`de.konavigator.app.composition` existiert erstmals ein produktiver,
+zustandsloser Composition-Einstieg für die theoretische Trade-Planung. Jeder
+Aufruf von `createViewModelFactory()` erzeugt einen neuen Objektgraphen aus dem
+bestehenden `TradeCalculationEngine`-Object, einem neuen
+`TradePlanningApplicationService` und einer neuen
+`TradePlannerViewModelFactory`. Es werden weder Service noch ViewModel-State
+global gespeichert.
+
+Der Aufbau ist Android-Context-frei und enthält keine Repositories,
+MarketData-Komponenten oder Debug-Abhängigkeiten. `MainActivity`, Route und
+`TradePlannerScreen` bleiben weiterhin unverändert und noch nicht angebunden.
+15 neue fokussierte JVM-Tests sichern Factory-Vertrag, exakte
+Abhängigkeitsidentitäten, Objektgraph, Instanztrennung, deterministisches
+Verhalten und die ausgeschlossenen Verantwortungsbereiche ab.
