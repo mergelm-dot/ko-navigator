@@ -493,6 +493,10 @@ private fun TradePlannerResultCard(result: TradePlannerUiResult.Success) {
         minimumFractionDigits = 2,
         maximumFractionDigits = 4
     )
+    val leverageFormatter = rememberNumberFormatter(
+        minimumFractionDigits = 0,
+        maximumFractionDigits = 4
+    )
 
     Card(
         modifier = Modifier
@@ -519,6 +523,18 @@ private fun TradePlannerResultCard(result: TradePlannerUiResult.Success) {
             ResultValueRow(
                 label = stringResource(R.string.trade_planner_result_model_value),
                 value = modelValueFormatter.format(result.theoreticalProductValue)
+            )
+            ResultValueRow(
+                label = stringResource(R.string.trade_planner_result_target_leverage),
+                value = leverageFormatter.format(result.targetLeverage)
+            )
+            ResultValueRow(
+                label = stringResource(
+                    R.string.trade_planner_result_calculated_theoretical_leverage
+                ),
+                value = leverageFormatter.format(
+                    result.calculatedTheoreticalLeverageAtEntry
+                )
             )
             ResultValueRow(
                 label = stringResource(R.string.trade_planner_result_knockout_price),
@@ -631,6 +647,9 @@ private fun calculationErrorResource(error: TradePlannerUiCalculationError): Int
 
     TradePlannerUiCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE ->
         R.string.trade_planner_error_invalid_theoretical_product_value
+
+    TradePlannerUiCalculationError.INVALID_CALCULATED_LEVERAGE ->
+        R.string.trade_planner_error_invalid_calculated_leverage
 
     TradePlannerUiCalculationError.INCONSISTENT_CALCULATION_RESULT ->
         R.string.trade_planner_error_inconsistent_calculation_result

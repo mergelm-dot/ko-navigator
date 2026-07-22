@@ -20,11 +20,14 @@
     <string name="trade_planner_error_invalid_derived_knockout_price">Die theoretische KO-Barriere konnte nicht berechnet werden.</string>
     <string name="trade_planner_error_invalid_exchange_rate">Der Währungskontext konnte nicht verarbeitet werden.</string>
     <string name="trade_planner_error_invalid_theoretical_product_value">Der theoretische Produktwert konnte nicht berechnet werden.</string>
+    <string name="trade_planner_error_invalid_calculated_leverage">Der theoretische Hebel konnte nicht berechnet werden.</string>
     <string name="trade_planner_error_inconsistent_calculation_result">Das Berechnungsergebnis ist unvollständig und kann nicht angezeigt werden.</string>
 
     <string name="trade_planner_result_title">Theoretisches Berechnungsergebnis</string>
     <string name="trade_planner_result_relation">Einstiegskursrelation</string>
     <string name="trade_planner_result_model_value">Vereinfachter theoretischer Produktwert</string>
+    <string name="trade_planner_result_target_leverage">Zielhebel</string>
+    <string name="trade_planner_result_calculated_theoretical_leverage">Berechneter theoretischer Hebel am geplanten Einstieg</string>
     <string name="trade_planner_result_knockout_price">Theoretische KO-Barriere</string>
     <string name="trade_planner_result_distance_absolute">KO-Abstand absolut</string>
     <string name="trade_planner_result_distance_percent">KO-Abstand prozentual</string>

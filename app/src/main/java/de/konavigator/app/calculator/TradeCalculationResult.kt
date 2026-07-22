@@ -8,11 +8,17 @@ data class TradeCalculationResult(
 
     val underlyingPrice: Double?,
 
+    val targetLeverage: Double?,
+
     val knockoutPrice: Double?,
 
     val theoreticalValueInUnderlyingCurrency: Double?,
 
     val theoreticalProductValue: Double?,
+
+    val underlyingExposureInProductCurrency: Double?,
+
+    val calculatedTheoreticalLeverageAtEntry: Double?,
 
     val underlyingCurrency: CurrencyCode?,
 

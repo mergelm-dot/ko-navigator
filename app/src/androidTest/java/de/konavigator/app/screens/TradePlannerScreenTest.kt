@@ -176,15 +176,21 @@ class TradePlannerScreenTest {
     }
 
     @Test
-    fun scenario09SuccessBoxShowsRelationAndFourCalculationValues() {
+    fun scenario09SuccessBoxShowsRelationAndSixCalculationValues() {
         setScreen(successState(EntryPriceRelation.BELOW_CURRENT))
 
         val matcher = listOf(
             "Der geplante Einstieg liegt unter dem aktuellen Basiswertkurs.",
             "1,2500",
+            "Zielhebel",
+            "4,25",
+            "Berechneter theoretischer Hebel am geplanten Einstieg",
+            "4,2499",
             "75,00",
             "20,00",
-            "21,0526 %"
+            "21,0526 %",
+            "Vereinfachte Modellrechnung – kein handelbarer Produktpreis und " +
+                "keine Anlageberatung."
         ).fold(hasTestTag(RESULT_TAG)) { resultMatcher, text ->
             resultMatcher and hasAnyDescendant(hasText(text))
         }
@@ -193,7 +199,7 @@ class TradePlannerScreenTest {
     }
 
     @Test
-    fun scenario10AllSevenCalculationErrorsAreMapped() {
+    fun scenario10AllEightCalculationErrorsAreMapped() {
         lateinit var showError: (TradePlannerUiCalculationError) -> Unit
         composeRule.setContent {
             var state by remember {
@@ -217,6 +223,8 @@ class TradePlannerScreenTest {
                 "Der Währungskontext konnte nicht verarbeitet werden.",
             TradePlannerUiCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE to
                 "Der theoretische Produktwert konnte nicht berechnet werden.",
+            TradePlannerUiCalculationError.INVALID_CALCULATED_LEVERAGE to
+                "Der theoretische Hebel konnte nicht berechnet werden.",
             TradePlannerUiCalculationError.INCONSISTENT_CALCULATION_RESULT to
                 "Das Berechnungsergebnis ist unvollständig und kann nicht angezeigt werden."
         )
@@ -286,6 +294,19 @@ class TradePlannerScreenTest {
         composeRule.onNodeWithTag(CALCULATE_TAG).performScrollTo().assertIsDisplayed()
     }
 
+    @Test
+    fun scenario18TheoreticalLeverageUsesOnlyApprovedNeutralTerms() {
+        setScreen(successState(EntryPriceRelation.AT_CURRENT))
+
+        composeRule.onAllNodesWithText("Zielhebel").assertCountEquals(1)
+        composeRule.onAllNodesWithText(
+            "Berechneter theoretischer Hebel am geplanten Einstieg"
+        ).assertCountEquals(1)
+        listOf("realer Hebel", "tatsÃ¤chlicher Hebel", "Produkthebel").forEach {
+            composeRule.onAllNodesWithText(it, substring = true).assertCountEquals(0)
+        }
+    }
+
     private fun setScreen(
         state: TradePlannerUiState = TradePlannerUiState(),
         onCurrentPriceChanged: (String) -> Unit = {},
@@ -331,6 +352,8 @@ class TradePlannerScreenTest {
             TradePlannerUiResult.Success(
                 relation = relation,
                 theoreticalProductValue = 1.25,
+                targetLeverage = 4.25,
+                calculatedTheoreticalLeverageAtEntry = 4.2499,
                 knockoutPrice = 75.0,
                 distanceToKnockoutAbsolute = 20.0,
                 distanceToKnockoutPercent = 21.0526

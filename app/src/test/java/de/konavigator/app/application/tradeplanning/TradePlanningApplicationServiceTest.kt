@@ -81,6 +81,9 @@ class TradePlanningApplicationServiceTest {
 
         assertTrue(actual.isValid)
         assertNull(actual.error)
+        assertEquals(5.0, actual.targetLeverage!!, 0.0)
+        assertEquals(1.0, actual.underlyingExposureInProductCurrency!!, 1e-12)
+        assertEquals(5.0, actual.calculatedTheoreticalLeverageAtEntry!!, 1e-12)
         assertEquals(expected, actual)
     }
 

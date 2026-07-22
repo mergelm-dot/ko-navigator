@@ -385,8 +385,11 @@ class TradeCalculationEngineReferenceTest {
         assertNull(result.error)
         assertEquals(expectedPlannedEntryPrice, result.underlyingPrice!!, 0.0)
         assertNotNull(result.knockoutPrice)
+        assertNotNull(result.targetLeverage)
         assertNotNull(result.theoreticalValueInUnderlyingCurrency)
         assertNotNull(result.theoreticalProductValue)
+        assertNotNull(result.underlyingExposureInProductCurrency)
+        assertNotNull(result.calculatedTheoreticalLeverageAtEntry)
         assertNotNull(result.distanceToKnockoutAbsolute)
         assertNotNull(result.distanceToKnockoutPercent)
         assertHybridEquals(expectedKnockoutPrice, result.knockoutPrice!!)
@@ -395,6 +398,18 @@ class TradeCalculationEngineReferenceTest {
             result.theoreticalValueInUnderlyingCurrency!!
         )
         assertHybridEquals(expectedTheoreticalProductValue, result.theoreticalProductValue!!)
+        val expectedTargetLeverage =
+            expectedPlannedEntryPrice / expectedDistanceAbsolute
+        assertHybridEquals(expectedTargetLeverage, result.targetLeverage!!)
+        assertHybridEquals(
+            expectedTargetLeverage,
+            result.calculatedTheoreticalLeverageAtEntry!!
+        )
+        assertHybridEquals(
+            result.theoreticalProductValue!! *
+                result.calculatedTheoreticalLeverageAtEntry!!,
+            result.underlyingExposureInProductCurrency!!
+        )
         assertEquals(currencyCode(expectedUnderlyingCurrency), result.underlyingCurrency)
         assertEquals(currencyCode(expectedProductCurrency), result.productCurrency)
         assertHybridEquals(expectedDistanceAbsolute, result.distanceToKnockoutAbsolute!!)
@@ -414,8 +429,11 @@ class TradeCalculationEngineReferenceTest {
 
     private fun allCalculatedValuesAreFinite(result: TradeCalculationResult) =
         result.knockoutPrice!!.isFinite() &&
+            result.targetLeverage!!.isFinite() &&
             result.theoreticalValueInUnderlyingCurrency!!.isFinite() &&
             result.theoreticalProductValue!!.isFinite() &&
+            result.underlyingExposureInProductCurrency!!.isFinite() &&
+            result.calculatedTheoreticalLeverageAtEntry!!.isFinite() &&
             result.distanceToKnockoutAbsolute!!.isFinite() &&
             result.distanceToKnockoutPercent!!.isFinite()
 
@@ -426,9 +444,12 @@ class TradeCalculationEngineReferenceTest {
         assertTrue(!result.isValid)
         assertEquals(expectedError, result.error)
         assertNull(result.underlyingPrice)
+        assertNull(result.targetLeverage)
         assertNull(result.knockoutPrice)
         assertNull(result.theoreticalValueInUnderlyingCurrency)
         assertNull(result.theoreticalProductValue)
+        assertNull(result.underlyingExposureInProductCurrency)
+        assertNull(result.calculatedTheoreticalLeverageAtEntry)
         assertNull(result.underlyingCurrency)
         assertNull(result.productCurrency)
         assertNull(result.distanceToKnockoutAbsolute)

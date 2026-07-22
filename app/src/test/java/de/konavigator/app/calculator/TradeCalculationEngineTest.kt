@@ -8,6 +8,7 @@ import java.lang.reflect.Modifier
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -110,11 +111,16 @@ class TradeCalculationEngineTest {
         assertNull(result.error)
         assertNotNull(result.theoreticalValueInUnderlyingCurrency)
         assertNotNull(result.theoreticalProductValue)
+        assertNotNull(result.underlyingExposureInProductCurrency)
+        assertNotNull(result.calculatedTheoreticalLeverageAtEntry)
         assertNotNull(result.knockoutPrice)
         assertNotNull(result.distanceToKnockoutAbsolute)
         assertNotNull(result.distanceToKnockoutPercent)
         assertEquals(0.2, result.theoreticalValueInUnderlyingCurrency!!, TOLERANCE)
         assertEquals(0.2, result.theoreticalProductValue!!, TOLERANCE)
+        assertEquals(5.0, result.targetLeverage!!, 0.0)
+        assertEquals(1.0, result.underlyingExposureInProductCurrency!!, TOLERANCE)
+        assertEquals(5.0, result.calculatedTheoreticalLeverageAtEntry!!, TOLERANCE)
         assertEquals(currencyCode("EUR"), result.underlyingCurrency)
         assertEquals(currencyCode("EUR"), result.productCurrency)
         assertEquals(80.0, result.knockoutPrice!!, TOLERANCE)
@@ -134,11 +140,16 @@ class TradeCalculationEngineTest {
         assertNull(result.error)
         assertNotNull(result.theoreticalValueInUnderlyingCurrency)
         assertNotNull(result.theoreticalProductValue)
+        assertNotNull(result.underlyingExposureInProductCurrency)
+        assertNotNull(result.calculatedTheoreticalLeverageAtEntry)
         assertNotNull(result.knockoutPrice)
         assertNotNull(result.distanceToKnockoutAbsolute)
         assertNotNull(result.distanceToKnockoutPercent)
         assertEquals(0.2, result.theoreticalValueInUnderlyingCurrency!!, TOLERANCE)
         assertEquals(0.2, result.theoreticalProductValue!!, TOLERANCE)
+        assertEquals(5.0, result.targetLeverage!!, 0.0)
+        assertEquals(1.0, result.underlyingExposureInProductCurrency!!, TOLERANCE)
+        assertEquals(5.0, result.calculatedTheoreticalLeverageAtEntry!!, TOLERANCE)
         assertEquals(120.0, result.knockoutPrice!!, TOLERANCE)
         assertEquals(20.0, result.distanceToKnockoutAbsolute!!, TOLERANCE)
         assertEquals(20.0, result.distanceToKnockoutPercent!!, TOLERANCE)
@@ -201,6 +212,42 @@ class TradeCalculationEngineTest {
     }
 
     @Test
+    fun calculatedLeverageIsReconstructedFromExposureAndProductValue() {
+        val result = calculateTrade(
+            plannedEntryPrice = 0.01,
+            targetLeverage = 3.0,
+            ratio = 0.01
+        )
+
+        assertTrue(result.isValid)
+        assertEquals(3.0, result.targetLeverage!!, 0.0)
+        assertEquals(0.0001, result.underlyingExposureInProductCurrency!!, 0.0)
+        assertEquals(
+            result.underlyingExposureInProductCurrency!! / result.theoreticalProductValue!!,
+            result.calculatedTheoreticalLeverageAtEntry!!,
+            0.0
+        )
+        assertNotEquals(
+            result.targetLeverage!!,
+            result.calculatedTheoreticalLeverageAtEntry!!,
+            0.0
+        )
+    }
+
+    @Test
+    fun nonFiniteExposureMapsToInvalidCalculatedLeverage() {
+        assertInvalid(
+            calculateTrade(
+                plannedEntryPrice = Double.MAX_VALUE,
+                targetLeverage = 2.0,
+                ratio = 2.0,
+                isLong = true
+            ),
+            TradeCalculationError.INVALID_CALCULATED_LEVERAGE
+        )
+    }
+
+    @Test
     fun inputAndResultContractsHaveNoLegacyExchangeRateCertificatePriceOrDefaults() {
         assertEquals(
             setOf(
@@ -217,9 +264,12 @@ class TradeCalculationEngineTest {
             setOf(
                 "isValid",
                 "underlyingPrice",
+                "targetLeverage",
                 "knockoutPrice",
                 "theoreticalValueInUnderlyingCurrency",
                 "theoreticalProductValue",
+                "underlyingExposureInProductCurrency",
+                "calculatedTheoreticalLeverageAtEntry",
                 "underlyingCurrency",
                 "productCurrency",
                 "distanceToKnockoutAbsolute",
@@ -258,9 +308,12 @@ class TradeCalculationEngineTest {
         assertFalse(result.isValid)
         assertEquals(expectedError, result.error)
         assertNull(result.underlyingPrice)
+        assertNull(result.targetLeverage)
         assertNull(result.knockoutPrice)
         assertNull(result.theoreticalValueInUnderlyingCurrency)
         assertNull(result.theoreticalProductValue)
+        assertNull(result.underlyingExposureInProductCurrency)
+        assertNull(result.calculatedTheoreticalLeverageAtEntry)
         assertNull(result.underlyingCurrency)
         assertNull(result.productCurrency)
         assertNull(result.distanceToKnockoutAbsolute)

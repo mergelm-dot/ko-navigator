@@ -15,7 +15,7 @@ Dieses Dokument ist das verbindliche Register wichtiger Architekturentscheidunge
 | ADR-0005 | Mehrdimensionaler Zertifikats-Qualitätsscore | Accepted | Nicht begonnen |
 | ADR-0006 | Explainable Engine für Produktauswahl und Berechnung | Accepted | Nicht begonnen |
 | ADR-0007 | Confidence Score für die Berechnungszuverlässigkeit | Accepted | Nicht begonnen |
-| ADR-0008 | Typisierter FX-/Ratio-Produktwertvertrag | Accepted | Aktiver Engine-Pfad migriert |
+| ADR-0008 | Typisierter FX-/Ratio-Produktwertvertrag | Accepted | Aktiver Engine-Pfad mit theoretischem Hebel |
 
 ## ADR-0001 – CurrencyPolicy als verbindliche Währungsgrenze
 
@@ -333,4 +333,7 @@ Produktwert bleibt ungerundet und beide Ergebniswährungen werden mitgeführt.
 
 Der aktuelle ViewModel-Pfad verwendet weiterhin ausdrücklich gekennzeichnete
 Übergangsannahmen. FX-Provider, Quelle, Zeitstempel, Freshness, MarketData und
-der berechnete theoretische Ist-Hebel bleiben außerhalb dieser Aktivierung.
+reale Produkthebel bleiben außerhalb dieser Aktivierung. Seit Schritt 23D.3
+wird der berechnete theoretische Hebel am geplanten Einstieg aus dem
+ungerundeten Produktwert und dem konsistent umgerechneten Basiswert-Exposure
+rückgerechnet. Diese Statusaktualisierung ändert die Entscheidung nicht.

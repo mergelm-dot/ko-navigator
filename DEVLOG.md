@@ -736,3 +736,35 @@ mehr verwendet.
 Ein berechneter theoretischer Hebel, Zielhebelabweichung, reale Produktdaten,
 Bid/Ask, Spread, MarketData-Integration und BigDecimal bleiben ausdrücklich
 außerhalb dieses Schritts.
+
+---
+
+## Entwicklungsschritt 23D.3 – Berechneten theoretischen Hebel am geplanten Einstieg implementiert
+
+Der neue reine `TheoreticalLeverageCalculator` berechnet zunächst das
+Basiswert-Exposure in Produktwährung aus geplantem Einstieg, Ratio und dem
+typisierten `CurrencyConversion`-Kontext. Anschließend teilt er dieses Exposure
+durch den vollständig ungerundeten theoretischen Produktwert. Der so
+rückgerechnete Wert heißt ausschließlich „Berechneter theoretischer Hebel am
+geplanten Einstieg“ und wird nicht aus dem Zielhebel kopiert.
+
+`TradeCalculationResult` führt nun den validierten Zielhebel, das Exposure in
+Produktwährung und den berechneten theoretischen Hebel. Ungültige oder nicht
+endliche Exposure- und Hebelwerte sowie Hebel kleiner oder gleich `1` werden
+strukturiert als `INVALID_CALCULATED_LEVERAGE` abgelehnt. Fehlerresultate
+enthalten weiterhin genau einen Fehler und keine Rechenwerte. KO-, Distanz-,
+FX-, Ratio- und Produktwertformeln sowie deren Rundungsfreiheit bleiben
+unverändert.
+
+Der `TradePlanningApplicationService` bleibt ein dünner synchroner
+Durchreicher. Das Domainresult wird ohne Hebelberechnung im ViewModel auf
+`TradePlannerUiResult` abgebildet. Die bestehende theoretische Ergebnisbox
+zeigt genau zwei neue neutrale Zeilen für Zielhebel und berechneten
+theoretischen Hebel; Exposure, Ratio, FX und Währungen werden nicht ergänzt.
+Der Wert behauptet keinen tatsächlichen oder handelbaren Produkthebel.
+
+15 neue Calculator-Tests sowie zwei neue Engine-Tests erhöhen den JVM-Bestand
+auf 863 erfolgreiche Tests. Die Android-Testquellen umfassen nun 43
+kompilierte Instrumentationstests. `assembleDebug` und
+`assembleDebugAndroidTest` sind erfolgreich. Ein Gerätetest der sichtbaren
+Hebelzeilen ist in diesem Umsetzungsschritt noch nicht erfolgt.

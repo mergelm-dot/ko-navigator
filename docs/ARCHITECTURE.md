@@ -1308,5 +1308,36 @@ vorhandenen Ergebniszeilen; FX, Ratio und Währungen werden noch nicht ergänzt.
 
 `KoCalculator.calculateCertificatePrice` und `PriceConverter` bleiben als
 getrennt zu bereinigender Legacy-Code erhalten, gehören aber nicht mehr zum
-aktiven Engine-Datenfluss. Der berechnete theoretische Hebel am geplanten
-Einstieg folgt erst in Schritt 23D.3. Siehe ADR-0008.
+aktiven Engine-Datenfluss. Siehe ADR-0008.
+
+### 23.1 Berechneter theoretischer Hebel am geplanten Einstieg
+
+Seit Schritt 23D.3 ergänzt der reine `TheoreticalLeverageCalculator` den
+aktiven theoretischen Planungspfad. Der Ablauf lautet:
+
+```text
+plannedEntryPrice + ratio + CurrencyConversion
+→ underlyingExposureInProductCurrency
+
+underlyingExposureInProductCurrency ÷ theoreticalProductValue
+→ calculatedTheoreticalLeverageAtEntry
+```
+
+Der Calculator liegt im Engine-/Calculator-Bereich und erhält den ungerundeten
+Produktwert aus `TheoreticalProductValueCalculator`. Weder ViewModel noch UI
+berechnen einen Hebel. Ratio und FX werden für das Exposure mit derselben
+Konvention wie für den Produktwert angewendet und heben sich im idealen Modell
+algebraisch auf. Es findet vor der Hebelberechnung keine Rundung statt.
+
+`TradeCalculationResult` führt `targetLeverage`,
+`underlyingExposureInProductCurrency` und
+`calculatedTheoreticalLeverageAtEntry` getrennt. Der Zielhebel bleibt der
+validierte Eingabewert; der berechnete theoretische Hebel wird aus Exposure und
+Produktwert rückgerechnet. Ein unvollständiges Erfolgsresult wird von der
+Presentation als inkonsistent abgelehnt.
+
+Die bestehende Ergebnisbox zeigt ausschließlich Zielhebel und berechneten
+theoretischen Hebel als zwei neue neutrale Zeilen. Exposure, Ratio, FX und
+Währungen bleiben interne Transparenzwerte. Ein tatsächlicher Hebel eines
+realen Produkts auf Basis von Bid, Ask oder anderen Marktdaten bleibt dem
+späteren Produktpfad vorbehalten.

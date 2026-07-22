@@ -88,21 +88,39 @@ object TradeCalculationEngine {
             )
 
         return when (productValueResult) {
-            is TheoreticalProductValueCalculationResult.Success ->
-                TradeCalculationResult(
-                    isValid = true,
-                    underlyingPrice = input.plannedEntryPrice,
-                    knockoutPrice = knockoutPrice,
-                    theoreticalValueInUnderlyingCurrency =
-                        productValueResult.theoreticalValueInUnderlyingCurrency,
-                    theoreticalProductValue =
-                        productValueResult.theoreticalProductValue,
-                    underlyingCurrency = productValueResult.underlyingCurrency,
-                    productCurrency = productValueResult.productCurrency,
-                    distanceToKnockoutAbsolute = distanceToKnockoutAbsolute,
-                    distanceToKnockoutPercent = distanceToKnockoutPercent,
-                    error = null
+            is TheoreticalProductValueCalculationResult.Success -> {
+                val leverageResult = TheoreticalLeverageCalculator.calculate(
+                    plannedEntryPrice = input.plannedEntryPrice,
+                    ratio = input.ratio,
+                    currencyConversion = input.currencyConversion,
+                    theoreticalProductValue = productValueResult.theoreticalProductValue
                 )
+
+                when (leverageResult) {
+                    is TheoreticalLeverageCalculationResult.Success -> TradeCalculationResult(
+                        isValid = true,
+                        underlyingPrice = input.plannedEntryPrice,
+                        targetLeverage = input.targetLeverage,
+                        knockoutPrice = knockoutPrice,
+                        theoreticalValueInUnderlyingCurrency =
+                            productValueResult.theoreticalValueInUnderlyingCurrency,
+                        theoreticalProductValue =
+                            productValueResult.theoreticalProductValue,
+                        underlyingExposureInProductCurrency =
+                            leverageResult.underlyingExposureInProductCurrency,
+                        calculatedTheoreticalLeverageAtEntry =
+                            leverageResult.calculatedTheoreticalLeverageAtEntry,
+                        underlyingCurrency = productValueResult.underlyingCurrency,
+                        productCurrency = leverageResult.productCurrency,
+                        distanceToKnockoutAbsolute = distanceToKnockoutAbsolute,
+                        distanceToKnockoutPercent = distanceToKnockoutPercent,
+                        error = null
+                    )
+
+                    is TheoreticalLeverageCalculationResult.Failure ->
+                        invalidResult(leverageResult.error.toTradeCalculationError())
+                }
+            }
 
             is TheoreticalProductValueCalculationResult.Failure ->
                 invalidResult(productValueResult.error.toTradeCalculationError())
@@ -115,9 +133,12 @@ object TradeCalculationEngine {
         return TradeCalculationResult(
             isValid = false,
             underlyingPrice = null,
+            targetLeverage = null,
             knockoutPrice = null,
             theoreticalValueInUnderlyingCurrency = null,
             theoreticalProductValue = null,
+            underlyingExposureInProductCurrency = null,
+            calculatedTheoreticalLeverageAtEntry = null,
             underlyingCurrency = null,
             productCurrency = null,
             distanceToKnockoutAbsolute = null,
@@ -137,6 +158,24 @@ object TradeCalculationEngine {
 
         TheoreticalProductValueCalculationError.INVALID_EXCHANGE_RATE ->
             TradeCalculationError.INVALID_EXCHANGE_RATE
+    }
+
+    private fun TheoreticalLeverageCalculationError.toTradeCalculationError():
+        TradeCalculationError = when (this) {
+        TheoreticalLeverageCalculationError.INVALID_PLANNED_ENTRY_PRICE ->
+            TradeCalculationError.INVALID_PLANNED_ENTRY_PRICE
+
+        TheoreticalLeverageCalculationError.INVALID_RATIO ->
+            TradeCalculationError.INVALID_RATIO
+
+        TheoreticalLeverageCalculationError.INVALID_EXCHANGE_RATE ->
+            TradeCalculationError.INVALID_EXCHANGE_RATE
+
+        TheoreticalLeverageCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE ->
+            TradeCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE
+
+        TheoreticalLeverageCalculationError.INVALID_CALCULATED_LEVERAGE ->
+            TradeCalculationError.INVALID_CALCULATED_LEVERAGE
     }
 }
 

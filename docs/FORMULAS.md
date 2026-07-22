@@ -940,5 +940,60 @@ Das aktive Resultat führt den ungerundeten Wert in Basiswertwährung, den
 ungerundeten theoretischen Produktwert sowie beide Währungen. Es enthält kein
 Feld `certificatePrice`. `KoCalculator.calculateCertificatePrice` und
 `PriceConverter` bleiben als Legacy-Komponenten vorhanden, werden vom aktiven
-Engine-Pfad aber nicht mehr aufgerufen. Ein theoretischer Ist-Hebel ist noch
-nicht Bestandteil des Resultats.
+Engine-Pfad aber nicht mehr aufgerufen.
+
+### 22.2 Berechneter theoretischer Hebel am geplanten Einstieg
+
+Für identische Basiswert- und Produktwährung gilt:
+
+```text
+underlyingExposureInProductCurrency = plannedEntryPrice × ratio
+```
+
+Für Cross-Currency gilt mit der unveränderten FX-Richtung
+Basiswertwährung je Produktwährung:
+
+```text
+underlyingExposureInProductCurrency =
+    plannedEntryPrice × ratio
+    / underlyingCurrencyPerProductCurrencyRate
+```
+
+Der berechnete theoretische Hebel am geplanten Einstieg wird ausschließlich aus
+diesem Exposure und dem ungerundeten theoretischen Produktwert rückgerechnet:
+
+```text
+calculatedTheoreticalLeverageAtEntry =
+    underlyingExposureInProductCurrency
+    / theoreticalProductValue
+```
+
+Im idealen Modell gilt für Long und Short:
+
+```text
+knockoutDistanceAbsolute = plannedEntryPrice / targetLeverage
+
+theoreticalProductValue =
+    knockoutDistanceAbsolute × ratio / FX
+
+calculatedTheoreticalLeverageAtEntry =
+    (plannedEntryPrice × ratio / FX)
+    / (plannedEntryPrice / targetLeverage × ratio / FX)
+    = targetLeverage
+```
+
+Ratio und FX heben sich damit bei konsistenter Anwendung algebraisch auf. Die
+Implementierung setzt den berechneten Wert dennoch nicht dem Zielhebel gleich,
+sondern führt die Division mit den ungerundeten Rechenwerten tatsächlich aus.
+
+Einstieg, Ratio, Cross-Currency-Rate, theoretischer Produktwert, Exposure und
+berechneter Hebel müssen positiv und endlich sein. Für diesen theoretischen
+KO-Planungsvertrag muss der berechnete Hebel zusätzlich größer als `1` sein;
+eine künstliche Obergrenze wird nicht eingeführt. Es findet keine
+Domainrundung statt.
+
+Kleine numerische Abweichungen zwischen Zielhebel und berechnetem
+theoretischem Hebel können durch `Double`-Arithmetik entstehen. Reale Bid- und
+Ask-Preise, Spread, Finanzierung, Premium und konkrete Produktstrukturen
+können einen tatsächlichen Produkthebel fachlich verändern; keine dieser
+Komponenten wird in diesem theoretischen Vertrag implementiert.

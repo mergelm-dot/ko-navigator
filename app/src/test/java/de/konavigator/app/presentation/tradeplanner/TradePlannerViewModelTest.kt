@@ -274,6 +274,8 @@ class TradePlannerViewModelTest {
     fun scenario21ValidDomainResultMapsCompletelyAndWithoutRounding() {
         val result = validDomainResult(
             theoreticalProductValue = 1.234567891,
+            targetLeverage = 4.25,
+            calculatedTheoreticalLeverageAtEntry = 4.249999991,
             knockoutPrice = 76.543219876,
             distanceAbsolute = 18.706780124,
             distancePercent = 19.6407136488189
@@ -283,6 +285,8 @@ class TradePlannerViewModelTest {
             TradePlannerUiResult.Success(
                 relation = EntryPriceRelation.BELOW_CURRENT,
                 theoreticalProductValue = 1.234567891,
+                targetLeverage = 4.25,
+                calculatedTheoreticalLeverageAtEntry = 4.249999991,
                 knockoutPrice = 76.543219876,
                 distanceToKnockoutAbsolute = 18.706780124,
                 distanceToKnockoutPercent = 19.6407136488189
@@ -305,7 +309,9 @@ class TradePlannerViewModelTest {
             TradeCalculationError.INVALID_EXCHANGE_RATE to
                 TradePlannerUiCalculationError.INVALID_EXCHANGE_RATE,
             TradeCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE to
-                TradePlannerUiCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE
+                TradePlannerUiCalculationError.INVALID_THEORETICAL_PRODUCT_VALUE,
+            TradeCalculationError.INVALID_CALCULATED_LEVERAGE to
+                TradePlannerUiCalculationError.INVALID_CALCULATED_LEVERAGE
         )
 
         mappings.forEach { (domainError, uiError) ->
@@ -316,6 +322,9 @@ class TradePlannerViewModelTest {
 
         val inconsistentResults = listOf(
             validDomainResult().copy(error = TradeCalculationError.INVALID_TARGET_LEVERAGE),
+            validDomainResult().copy(targetLeverage = null),
+            validDomainResult().copy(underlyingExposureInProductCurrency = null),
+            validDomainResult().copy(calculatedTheoreticalLeverageAtEntry = null),
             invalidDomainResult(error = null),
             invalidDomainResult(
                 error = TradeCalculationError.INVALID_TARGET_LEVERAGE
@@ -350,7 +359,8 @@ class TradePlannerViewModelTest {
         assertTrue(
             presentationFields().none {
                 it.name.contains("currency", ignoreCase = true) ||
-                    it.name.contains("ratio", ignoreCase = true)
+                    it.name.contains("ratio", ignoreCase = true) ||
+                    it.name.contains("exposure", ignoreCase = true)
             }
         )
     }
@@ -369,6 +379,8 @@ class TradePlannerViewModelTest {
 
         val mapped = validDomainResult(
             theoreticalProductValue = 1.000000009,
+            targetLeverage = 4.123456789,
+            calculatedTheoreticalLeverageAtEntry = 4.123456781,
             knockoutPrice = 2.000000008,
             distanceAbsolute = 3.000000007,
             distancePercent = 4.000000006
@@ -376,6 +388,12 @@ class TradePlannerViewModelTest {
         assertEquals(
             1.000000009,
             (mapped as TradePlannerUiResult.Success).theoreticalProductValue,
+            0.0
+        )
+        assertEquals(4.123456789, mapped.targetLeverage, 0.0)
+        assertEquals(
+            4.123456781,
+            mapped.calculatedTheoreticalLeverageAtEntry,
             0.0
         )
     }
@@ -478,7 +496,7 @@ class TradePlannerViewModelTest {
             setOf("Success", "Failure"),
             TradePlannerUiResult::class.java.declaredClasses.map { it.simpleName }.toSet()
         )
-        assertEquals(7, TradePlannerUiCalculationError.entries.size)
+        assertEquals(8, TradePlannerUiCalculationError.entries.size)
 
         val forbidden = listOf(
             "android.content.Context",
@@ -525,6 +543,9 @@ class TradePlannerViewModelTest {
     private fun validDomainResult(
         theoreticalUnderlyingValue: Double = 1.25,
         theoreticalProductValue: Double = 1.25,
+        targetLeverage: Double = 5.0,
+        underlyingExposureInProductCurrency: Double = 6.25,
+        calculatedTheoreticalLeverageAtEntry: Double = 5.0,
         underlyingCurrency: CurrencyCode = currencyCode("EUR"),
         productCurrency: CurrencyCode = currencyCode("EUR"),
         knockoutPrice: Double = 75.0,
@@ -533,9 +554,12 @@ class TradePlannerViewModelTest {
     ) = TradeCalculationResult(
         isValid = true,
         underlyingPrice = 95.0,
+        targetLeverage = targetLeverage,
         knockoutPrice = knockoutPrice,
         theoreticalValueInUnderlyingCurrency = theoreticalUnderlyingValue,
         theoreticalProductValue = theoreticalProductValue,
+        underlyingExposureInProductCurrency = underlyingExposureInProductCurrency,
+        calculatedTheoreticalLeverageAtEntry = calculatedTheoreticalLeverageAtEntry,
         underlyingCurrency = underlyingCurrency,
         productCurrency = productCurrency,
         distanceToKnockoutAbsolute = distanceAbsolute,
@@ -548,9 +572,12 @@ class TradePlannerViewModelTest {
     ) = TradeCalculationResult(
         isValid = false,
         underlyingPrice = null,
+        targetLeverage = null,
         knockoutPrice = null,
         theoreticalValueInUnderlyingCurrency = null,
         theoreticalProductValue = null,
+        underlyingExposureInProductCurrency = null,
+        calculatedTheoreticalLeverageAtEntry = null,
         underlyingCurrency = null,
         productCurrency = null,
         distanceToKnockoutAbsolute = null,
