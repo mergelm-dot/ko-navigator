@@ -16,9 +16,9 @@ import org.junit.Test
 class KnockoutProductRepositoryContractsTest {
 
     @Test
-    fun repositoryResultContainsExactlyThreeSubtypes() {
+    fun repositoryResultContainsExactlyFourSubtypes() {
         assertEquals(
-            setOf("Success", "NotFound", "DataAccessFailure"),
+            setOf("Success", "NotFound", "DataAccessFailure", "InvalidData"),
             RepositoryResult::class.java.declaredClasses.map { it.simpleName }.toSet()
         )
     }
@@ -39,6 +39,22 @@ class KnockoutProductRepositoryContractsTest {
     @Test
     fun dataAccessFailureContainsNoFields() {
         assertTrue(instanceFields(RepositoryResult.DataAccessFailure::class.java).isEmpty())
+    }
+
+    @Test
+    fun invalidDataContainsNoFields() {
+        assertTrue(instanceFields(RepositoryResult.InvalidData::class.java).isEmpty())
+    }
+
+    @Test
+    fun invalidDataIsGenericForBothRepositoryResultTypes() {
+        val specificationResult: RepositoryResult<KnockoutProductSpecification> =
+            RepositoryResult.InvalidData
+        val marketDataResult: RepositoryResult<KnockoutProductMarketData> =
+            RepositoryResult.InvalidData
+
+        assertSame(RepositoryResult.InvalidData, specificationResult)
+        assertSame(RepositoryResult.InvalidData, marketDataResult)
     }
 
     @Test

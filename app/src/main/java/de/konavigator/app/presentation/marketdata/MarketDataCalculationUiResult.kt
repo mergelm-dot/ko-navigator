@@ -71,6 +71,12 @@ internal fun MarketDataCalculationApplicationResult.toUiResult():
             MarketDataCalculationUiResult.Failure(
                 MarketDataCalculationUiError.DATA_ACCESS_FAILURE
             )
+
+        MarketDataCalculationApplicationError.INVALID_PRODUCT_SPECIFICATION,
+        MarketDataCalculationApplicationError.INVALID_PRODUCT_MARKET_DATA ->
+            MarketDataCalculationUiResult.Failure(
+                MarketDataCalculationUiError.INVALID_MARKET_DATA
+            )
     }
 
     is MarketDataCalculationApplicationResult.DomainEvaluated ->

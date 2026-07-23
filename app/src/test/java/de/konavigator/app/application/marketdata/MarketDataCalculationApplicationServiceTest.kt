@@ -53,9 +53,15 @@ class MarketDataCalculationApplicationServiceTest {
     }
 
     @Test
-    fun applicationErrorContainsExactlyThreeCodes() {
+    fun applicationErrorContainsExactlyFiveCodes() {
         assertEquals(
-            listOf("PRODUCT_NOT_FOUND", "MARKET_DATA_NOT_FOUND", "DATA_ACCESS_FAILURE"),
+            listOf(
+                "PRODUCT_NOT_FOUND",
+                "MARKET_DATA_NOT_FOUND",
+                "DATA_ACCESS_FAILURE",
+                "INVALID_PRODUCT_SPECIFICATION",
+                "INVALID_PRODUCT_MARKET_DATA"
+            ),
             MarketDataCalculationApplicationError.entries.map { it.name }
         )
     }
@@ -223,6 +229,20 @@ class MarketDataCalculationApplicationServiceTest {
     }
 
     @Test
+    fun invalidSpecificationReturnsTypedErrorAndStopsBeforeMarketData() {
+        val fixture = fixture(specificationResult = RepositoryResult.InvalidData)
+
+        val result = execute(fixture)
+
+        assertEquals(
+            MarketDataCalculationApplicationError.INVALID_PRODUCT_SPECIFICATION,
+            dataUnavailable(result).error
+        )
+        assertEquals(0, fixture.marketDataRepository.callCount)
+        assertFalse(result is MarketDataCalculationApplicationResult.DomainEvaluated)
+    }
+
+    @Test
     fun marketDataRepositoryIsNotCalledAfterSpecificationNotFound() {
         val fixture = fixture(specificationResult = RepositoryResult.NotFound)
 
@@ -306,6 +326,21 @@ class MarketDataCalculationApplicationServiceTest {
             MarketDataCalculationApplicationError.DATA_ACCESS_FAILURE,
             dataUnavailable(result).error
         )
+    }
+
+    @Test
+    fun invalidMarketDataReturnsTypedErrorAndStopsBeforeDomainEvaluation() {
+        val fixture = fixture(marketDataResult = RepositoryResult.InvalidData)
+
+        val result = execute(fixture)
+
+        assertEquals(
+            MarketDataCalculationApplicationError.INVALID_PRODUCT_MARKET_DATA,
+            dataUnavailable(result).error
+        )
+        assertEquals(1, fixture.specificationRepository.callCount)
+        assertEquals(1, fixture.marketDataRepository.callCount)
+        assertFalse(result is MarketDataCalculationApplicationResult.DomainEvaluated)
     }
 
     @Test

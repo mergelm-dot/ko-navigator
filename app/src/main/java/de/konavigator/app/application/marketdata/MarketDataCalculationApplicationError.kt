@@ -3,5 +3,7 @@ package de.konavigator.app.application.marketdata
 enum class MarketDataCalculationApplicationError {
     PRODUCT_NOT_FOUND,
     MARKET_DATA_NOT_FOUND,
-    DATA_ACCESS_FAILURE
+    DATA_ACCESS_FAILURE,
+    INVALID_PRODUCT_SPECIFICATION,
+    INVALID_PRODUCT_MARKET_DATA
 }

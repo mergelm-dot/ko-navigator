@@ -40,6 +40,11 @@ class MarketDataCalculationApplicationService(
                     MarketDataCalculationApplicationError.DATA_ACCESS_FAILURE
                 )
             }
+            RepositoryResult.InvalidData -> {
+                return MarketDataCalculationApplicationResult.DataUnavailable(
+                    MarketDataCalculationApplicationError.INVALID_PRODUCT_SPECIFICATION
+                )
+            }
         }
 
         val marketData = when (
@@ -54,6 +59,11 @@ class MarketDataCalculationApplicationService(
             RepositoryResult.DataAccessFailure -> {
                 return MarketDataCalculationApplicationResult.DataUnavailable(
                     MarketDataCalculationApplicationError.DATA_ACCESS_FAILURE
+                )
+            }
+            RepositoryResult.InvalidData -> {
+                return MarketDataCalculationApplicationResult.DataUnavailable(
+                    MarketDataCalculationApplicationError.INVALID_PRODUCT_MARKET_DATA
                 )
             }
         }

@@ -325,14 +325,18 @@ class MarketDataCalculationViewModelTest {
     }
 
     @Test
-    fun scenario16AllThreeApplicationErrorsMapToUiErrors() {
+    fun scenario16AllFiveApplicationErrorsMapToUiErrors() {
         val mappings = listOf(
             MarketDataCalculationApplicationError.PRODUCT_NOT_FOUND to
                 MarketDataCalculationUiError.PRODUCT_NOT_FOUND,
             MarketDataCalculationApplicationError.MARKET_DATA_NOT_FOUND to
                 MarketDataCalculationUiError.MARKET_DATA_NOT_FOUND,
             MarketDataCalculationApplicationError.DATA_ACCESS_FAILURE to
-                MarketDataCalculationUiError.DATA_ACCESS_FAILURE
+                MarketDataCalculationUiError.DATA_ACCESS_FAILURE,
+            MarketDataCalculationApplicationError.INVALID_PRODUCT_SPECIFICATION to
+                MarketDataCalculationUiError.INVALID_MARKET_DATA,
+            MarketDataCalculationApplicationError.INVALID_PRODUCT_MARKET_DATA to
+                MarketDataCalculationUiError.INVALID_MARKET_DATA
         )
 
         mappings.forEach { (applicationError, uiError) ->
