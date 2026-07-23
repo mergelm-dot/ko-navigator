@@ -881,3 +881,50 @@ von Label, neutralem Wert und Modellhinweis sowie das Ausbleiben positiver oder
 negativer Qualitätsbehauptungen. Schritt 25A bleibt der nächste fachliche
 Data-Quality-Schritt. Vor einem Commit ist ein Gerätetest des Platzhalters
 erforderlich.
+
+---
+
+## Entwicklungsschritt 25A – Strukturellen Data-Quality-Vertrag eingeführt
+
+**Datum:** 2026-07-23
+
+Das neue Domain-Package `de.konavigator.app.domain.dataquality` enthält den
+ersten einheitlichen, strukturellen Data-Quality-Vertrag. Der Gesamtstatus
+unterscheidet `PASSED`, `WARNING` und `BLOCKED`; der delegierende Validator
+erzeugt in Version 1 ausschließlich `PASSED` ohne Findings oder `BLOCKED` mit
+mindestens einem blockierenden Finding. `WARNING` ist nur als Vertragstyp
+vorbereitet. Es wurden keine Warnschwellen oder neuen Fachregeln eingeführt.
+
+Jedes Finding führt eine typisierte Severity, Komponente, Kategorie und einen
+stabilen Data-Quality-Code. Alle neun bestehenden
+Produktspezifikationsfehler, zehn Marktdatenfehler und zwei
+Kompatibilitätsfehler werden vollständig und deterministisch jeweils auf einen
+eigenen Finding-Code abgebildet. Die Data-Quality-Codes bewahren damit die
+ursprüngliche Fehleridentität maschinenlesbar, ohne UI- oder Exception-Texte zu
+übernehmen.
+
+Der zustandslose `KnockoutProductDataQualityValidator` delegiert unverändert an
+`KnockoutProductSpecificationValidator`,
+`KnockoutProductMarketDataValidator` und – nur bei zwei intern gültigen
+Einzelmodellen – an
+`KnockoutProductMarketDataCompatibilityValidator`. Spezifikationsfindings
+stehen vor Marktdatenfindings; Kompatibilitätsfindings folgen zuletzt. Die
+vorhandenen Validatoren und ihre Fehlerreihenfolgen bleiben Single Source of
+Truth. Es werden weder Eingaben normalisiert oder mutiert noch Daten
+korrigiert oder berechnet.
+
+27 neue fokussierte JVM-Tests prüfen Status- und Assessment-Invarianten,
+defensive Findings-Snapshots, Determinismus, vollständige Einzel- und
+Mehrfachfehlermappings, Komponenten, Severity, stabile Reihenfolge,
+Cross-Model-Bedingung sowie Mutations- und Normalisierungsfreiheit. Der
+gezielte Data-Quality-Testlauf war mit 27/27 Tests erfolgreich. Die vollständige
+JVM-Suite umfasst nun 915/915 erfolgreiche Tests ohne Fehler oder übersprungene
+Tests; `assembleDebug` und `assembleDebugAndroidTest` waren ebenfalls
+erfolgreich.
+
+Availability, Freshness, Source Policy und der
+`MarketDataCalculationOrchestrator` wurden nicht angebunden oder verändert.
+Ebenso bestehen keine Repository-, API-, DTO-, Mapper-, Coroutine-, Systemzeit-,
+Application-, ViewModel- oder UI-Abhängigkeiten. Der sichtbare neutrale
+Datenqualitäts-Platzhalter bleibt unverändert. Ein Gerätetest ist für diesen
+reinen Domain-, JVM-Test- und Dokumentationsschritt nicht erforderlich.

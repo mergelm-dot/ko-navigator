@@ -98,8 +98,8 @@ Architekturgrundlage: [ADR-0001](docs/DECISIONS.md#adr-0001--currencypolicy-als-
 
 ## Phase 6 – Datenqualität und Robustheit
 
-Status: Einzelkomponenten und bestehende Orchestrierung vorhanden; einheitlicher
-Data-Quality-Vertrag offen
+Status: Struktureller V1-Vertrag und bestehende Einzelkomponenten vorhanden;
+Orchestrator-Integration offen
 
 Priorität: **P0 – nächster fachlich-technischer Schwerpunkt**
 
@@ -116,12 +116,12 @@ Vorhandene Teilbasis:
 
 Nächste Schritte:
 
-- [ ] Einheitlichen, strukturellen Data-Quality-Vertrag mit Status, Findings und
+- [x] Einheitlichen, strukturellen Data-Quality-Vertrag mit Status, Findings und
   prüfbaren Evidenzen einführen
-- [ ] Bestehende Regeln über einen delegierenden Validator koordinieren, ohne sie
+- [x] Bestehende Regeln über einen delegierenden Validator koordinieren, ohne sie
   zu verschieben oder zu duplizieren
-- [ ] Blocking Findings für die bereits vorhandenen strukturellen Regeln abbilden
-- [ ] `WARNING` nur als Vertragsoption vorbereiten; Schwellen und Regeln separat
+- [x] Blocking Findings für die bereits vorhandenen strukturellen Regeln abbilden
+- [x] `WARNING` nur als Vertragsoption vorbereiten; Schwellen und Regeln separat
   fachlich freigeben
 - [ ] Bestehenden Orchestrator erst in einem späteren, gesondert freigegebenen
   Schritt migrieren
@@ -131,8 +131,8 @@ Nächste Schritte:
 
 Der nächste technische Schritt ist:
 
-**Strukturellen Data-Quality-Vertrag und delegierenden Validator für
-`KnockoutProductSpecification` und `KnockoutProductMarketData` einführen.**
+**Strukturelles `DataQualityAssessment` kontrolliert in den bestehenden
+`MarketDataCalculationOrchestrator` integrieren.**
 
 Architekturgrundlage: [ADR-0004](docs/DECISIONS.md#adr-0004--realistische-robustheits-integrationstests) und [ADR-0009](docs/DECISIONS.md#adr-0009--einheitlicher-data-quality-vertrag-über-bestehenden-validatoren-und-policies).
 
@@ -158,8 +158,8 @@ Architekturgrundlage: [ADR-0005](docs/DECISIONS.md#adr-0005--mehrdimensionaler-z
 
 1. **Theoretische Engine stabilisieren – weit fortgeschritten.**
 2. **Mock-Daten-Szenario-Kit – mit 25 Szenarien abgeschlossen.**
-3. **Einheitliche Data-Quality-Schicht – nächster aktiver Entwicklungsblock;**
-   Schritt 25A führt den strukturellen Vertrag und delegierenden Validator ein.
+3. **Einheitliche Data-Quality-Schicht – struktureller V1-Vertrag aktiv;**
+   die kontrollierte Orchestrator-Integration folgt separat.
 4. **Externe DTOs, Mapper und API-Verträge – offen;** erst auf den stabilisierten
    Domain- und Data-Quality-Grenzen entwerfen.
 5. **Live-Datenprovider – offen;** erst nach gesonderter fachlicher und

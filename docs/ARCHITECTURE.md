@@ -1483,22 +1483,49 @@ auswählen, UI-Texte erzeugen, Produkte bewerten oder ranken sowie Confidence
 Score und Produktqualität vermischen. Formatierung, Scoring und stille
 Defaults gehören ebenfalls nicht zu ihrer Verantwortung.
 
-### 24.3 Begrenzung von Schritt 25A
+### 24.3 Aktiver struktureller Vertrag seit Schritt 25A
 
-Schritt 25A führt ausschließlich den strukturellen Vertrag und einen
-delegierenden Validator für `KnockoutProductSpecification` und
-`KnockoutProductMarketData` ein. Er delegiert an:
+Das Package `de.konavigator.app.domain.dataquality` enthält den aktiven
+strukturellen V1-Vertrag und den zustandslosen
+`KnockoutProductDataQualityValidator`. Der Datenfluss lautet:
+
+```text
+KnockoutProductSpecification
++ KnockoutProductMarketData
+→ existing structural validators
+→ existing compatibility validator
+→ KnockoutProductDataQualityValidator
+→ DataQualityAssessment
+```
+
+Der Validator delegiert an:
 
 1. `KnockoutProductSpecificationValidator`,
 2. `KnockoutProductMarketDataValidator`,
 3. `KnockoutProductMarketDataCompatibilityValidator`.
 
-Sind alle drei Prüfbereiche fehlerfrei, entsteht `PASSED`. Vorhandene Fehler
-werden ohne neue Fachregel als blockierende Findings abgebildet und führen zu
-`BLOCKED`. `WARNING` ist im Typvertrag erlaubt, wird in diesem Schritt aber
-nicht produziert.
+Alle neun Spezifikations-, zehn Marktdaten- und zwei Kompatibilitätsfehler
+werden exhaustiv jeweils auf einen eigenen stabilen `DataQualityFindingCode`
+abgebildet. Jedes Finding führt zusätzlich `DataQualitySeverity`,
+`DataQualityComponent` und `DataQualityCategory`; Version 1 erzeugt
+ausschließlich `BLOCKING`. Der eigene Code bewahrt die ursprüngliche
+Fehleridentität ohne Freitext oder zusätzliche untypisierte `sourceCode`-
+Duplikation.
 
-Nicht Bestandteil von Schritt 25A sind:
+Spezifikationsfindings stehen stabil vor Marktdatenfindings. Die Cross-Model-
+Prüfung wird nur ausgeführt, wenn beide Einzelmodelle intern gültig sind, und
+ihre Findings folgen zuletzt. Sind alle ausgeführten Prüfbereiche fehlerfrei,
+entsteht `PASSED` mit leerer Findings-Liste. Mindestens ein strukturelles
+Finding erzeugt `BLOCKED`. `WARNING` ist im Typvertrag erlaubt, wird in
+Version 1 aber nicht produziert.
+
+`DataQualityAssessment` sichert seine Statusinvarianten konstruktiv ab und
+übernimmt einen unveränderlichen defensiven Snapshot der Findings. Gleiche
+Eingaben erzeugen dasselbe Assessment. Der Validator liest keine Systemzeit,
+mutiert oder normalisiert keine Eingaben, führt keine Berechnung aus und
+korrigiert keine Daten.
+
+Weiterhin nicht Bestandteil dieses strukturellen V1-Vertrags sind:
 
 - neue Spread- oder Freshness-Schwellen,
 - FX-, Broker-, Handelsstatus- oder Providerregeln,
@@ -1509,7 +1536,4 @@ Nicht Bestandteil von Schritt 25A sind:
 - Änderungen an Engine-Mathematik oder `docs/FORMULAS.md`.
 
 Der vorhandene Orchestrator bleibt bis zu einem eigenen, freigegebenen
-Migrationsschritt unverändert. Der unmittelbar nächste technische Schritt ist:
-
-**Schritt 25A – Strukturellen Data-Quality-Vertrag und delegierenden Validator
-einführen.**
+Migrationsschritt unverändert.

@@ -16,7 +16,7 @@ Dieses Dokument ist das verbindliche Register wichtiger Architekturentscheidunge
 | ADR-0006 | Explainable Engine für Produktauswahl und Berechnung | Accepted | Nicht begonnen |
 | ADR-0007 | Confidence Score für die Berechnungszuverlässigkeit | Accepted | Nicht begonnen |
 | ADR-0008 | Typisierter FX-/Ratio-Produktwertvertrag | Accepted | Aktiver Engine-Pfad mit theoretischem Hebel |
-| ADR-0009 | Einheitlicher Data-Quality-Vertrag über bestehenden Validatoren und Policies | Accepted | Nicht begonnen; Schritt 25A ist der nächste Baustein |
+| ADR-0009 | Einheitlicher Data-Quality-Vertrag über bestehenden Validatoren und Policies | Accepted | Struktureller V1-Vertrag aktiv; Orchestrator-Integration offen |
 
 ## ADR-0001 – CurrencyPolicy als verbindliche Währungsgrenze
 
@@ -443,8 +443,16 @@ freigegebene Schwellenwerte als Fachregel festzuschreiben.
 
 ### Implementierungsstatus
 
-Die Architekturrichtung ist akzeptiert. Die Implementierung beginnt mit
-Schritt 25A: struktureller Vertrag und delegierender Validator für
-`KnockoutProductSpecification` und `KnockoutProductMarketData`. Eine
-Orchestrator-, Application-, Provider- oder UI-Migration ist nicht Bestandteil
-dieses ersten Schritts.
+Der strukturelle V1-Vertrag ist seit Schritt 25A aktiv. Das Package
+`domain.dataquality` enthält den typisierten Status, blockierende Findings,
+ein konstruktiv abgesichertes Assessment und den delegierenden Validator für
+`KnockoutProductSpecification` und `KnockoutProductMarketData`. Die
+bestehenden strukturellen Validatoren und der CompatibilityValidator bleiben
+Single Source of Truth; ihre 21 Fehlercodes werden vollständig und
+deterministisch auf eigene Data-Quality-Finding-Codes abgebildet.
+
+`WARNING` ist im Vertrag vorbereitet, wird aber noch nicht erzeugt. Der
+vorhandene `MarketDataCalculationOrchestrator` verwendet den neuen Vertrag
+noch nicht. Seine kontrollierte Integration folgt in einem separaten
+Migrationsschritt. Application, Repositorys, Provider und UI bleiben
+unverändert.
