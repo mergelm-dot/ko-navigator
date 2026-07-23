@@ -803,3 +803,56 @@ umfasst nun 888/888 erfolgreiche Tests ohne Fehler oder übersprungene Tests.
 Formeln, Gradle-Konfiguration, Manifeste und Android-Testcode blieben
 unverändert. Ein Gerätetest ist für diesen ausschließlich JVM-Testcode und
 Dokumentation betreffenden Schritt nicht erforderlich.
+
+---
+
+## Entwicklungsschritt 24C – Projektdokumentation auf den Ist-Stand synchronisiert
+
+**Datum:** 2026-07-23
+
+Dieser reine Dokumentationsschritt gleicht `ROADMAP.md`,
+`docs/ARCHITECTURE.md`, `docs/DECISIONS.md` und `DEVLOG.md` mit dem
+implementierten Stand ab. Produktivcode, Tests, Gradle-Dateien, Manifeste und
+`docs/FORMULAS.md` bleiben unverändert.
+
+Die Roadmap trennt nun ausdrücklich den weit fortgeschrittenen theoretischen
+Trade-Planning-Pfad von den weiterhin offenen Anforderungen realer
+KO-Produkte. Dokumentiert sind insbesondere der aktive
+`TradePlannerScreen`-Pfad, der typisierte FX-/Ratio-Vertrag, der theoretische
+Produktwert und Hebel, die 25 vollständig geprüften Engine-Szenarien sowie der
+lokale KO-Produktpfad über Repository-Ports und In-Memory-Adapter. Reale
+Produkt-, Marktpreis- und FX-Provider, externe DTOs und Mapper bestehen
+weiterhin nicht.
+
+Die Architektur beschreibt die bereits vorhandenen, getrennten Komponenten
+für Produktspezifikations- und Marktdatenvalidierung, Kompatibilität,
+Verfügbarkeit, Freshness, Quellenfreigabe und die siebenstufige
+Fail-Fast-Orchestrierung jetzt als Ist-Zustand. Historische Aussagen zu
+`exchangeRate`, `certificatePrice`, der Trade-Planner-Anbindung und erst
+späterer Orchestrierung wurden dort auf den aktuellen Stand gebracht. Die
+bestehenden Einzelkomponenten und ihre Regeln bleiben unverändert.
+
+Mit ADR-0009 ist die nächste Zielgrenze akzeptiert: Das zukünftige Package
+`de.konavigator.app.domain.dataquality` erhält einen strukturellen
+Data-Quality-Vertrag und einen delegierenden Validator. Schritt 25A verwendet
+die bestehenden strukturellen Validatoren als Single Source of Truth und
+bildet zunächst nur `PASSED` sowie blockierende Findings ab. `WARNING` wird
+lediglich als Vertragsoption vorbereitet; Spread-, Freshness-, FX-, Broker-
+oder andere Produktionsschwellen werden nicht erfunden. Availability,
+Freshness, Source Policy und der bestehende Orchestrator werden in diesem
+ersten Schritt nicht migriert.
+
+Data-Quality-Status, Confidence Score und Produktqualität bleiben getrennte
+Konzepte. Der neue Vertrag führt weder Scoring, Ranking, konkrete
+Providerannahmen noch Kauf- oder Verkaufsempfehlungen ein.
+
+Der unveränderte Teststand vor und nach diesem Dokumentationsschritt umfasst
+888/888 erfolgreiche JVM-Tests. Der zuletzt unveränderte
+Instrumentationstestbestand umfasst 43/43 erfolgreiche Tests. Ein Gerätetest
+ist für die ausschließlich dokumentarische Änderung nicht erforderlich.
+
+Der nächste freigegebene technische Schritt lautet:
+
+**Schritt 25A – Strukturellen Data-Quality-Vertrag und delegierenden Validator
+für `KnockoutProductSpecification` und `KnockoutProductMarketData`
+einführen.**

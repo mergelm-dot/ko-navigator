@@ -16,6 +16,7 @@ Dieses Dokument ist das verbindliche Register wichtiger Architekturentscheidunge
 | ADR-0006 | Explainable Engine für Produktauswahl und Berechnung | Accepted | Nicht begonnen |
 | ADR-0007 | Confidence Score für die Berechnungszuverlässigkeit | Accepted | Nicht begonnen |
 | ADR-0008 | Typisierter FX-/Ratio-Produktwertvertrag | Accepted | Aktiver Engine-Pfad mit theoretischem Hebel |
+| ADR-0009 | Einheitlicher Data-Quality-Vertrag über bestehenden Validatoren und Policies | Accepted | Nicht begonnen; Schritt 25A ist der nächste Baustein |
 
 ## ADR-0001 – CurrencyPolicy als verbindliche Währungsgrenze
 
@@ -337,3 +338,113 @@ reale Produkthebel bleiben außerhalb dieser Aktivierung. Seit Schritt 23D.3
 wird der berechnete theoretische Hebel am geplanten Einstieg aus dem
 ungerundeten Produktwert und dem konsistent umgerechneten Basiswert-Exposure
 rückgerechnet. Diese Statusaktualisierung ändert die Entscheidung nicht.
+
+## ADR-0009 – Einheitlicher Data-Quality-Vertrag über bestehenden Validatoren und Policies
+
+- **Status:** Accepted
+- **Datum:** 2026-07-23
+
+### Problemstellung
+
+Für `KnockoutProductSpecification` und `KnockoutProductMarketData` existieren
+bereits getrennte Validatoren sowie Komponenten für Cross-Model-Kompatibilität,
+anwendungsbezogene Verfügbarkeit, Freshness und Quellenfreigabe. Der
+`MarketDataCalculationOrchestrator` koordiniert diese Komponenten für genau
+einen Berechnungsauftrag fail closed. Es fehlt jedoch ein einheitlicher,
+anwendungsneutraler Data-Quality-Vertrag, der Status, Findings und die jeweils
+geprüfte Evidenz strukturiert beschreibt.
+
+Ohne diese Grenze müssten spätere Mapper, Application Services oder
+Orchestratoren einzelne Fehlerlisten selbst interpretieren. Das würde
+Validierungsregeln duplizieren, Schichtgrenzen verwischen und eine spätere
+Erweiterung um fachlich freigegebene Warnungen unnötig erschweren. API- und
+Live-Datenintegration benötigen deshalb zuerst einen stabilen,
+maschinenlesbaren Qualitätsvertrag.
+
+### Entscheidung
+
+Das neue Domain-Package `de.konavigator.app.domain.dataquality` wird als
+koordinierende Grenze eingeführt. Es enthält einen strukturellen
+Data-Quality-Vertrag sowie einen delegierenden Validator für
+`KnockoutProductSpecification` und `KnockoutProductMarketData`.
+
+Der Validator ruft die bestehenden Validatoren für Produktspezifikation,
+Marktdaten und Cross-Model-Kompatibilität auf. Diese Komponenten bleiben die
+Single Source of Truth ihrer Regeln, Fehlercodes und stabilen Reihenfolgen.
+Regeln werden weder in das neue Package verschoben noch dort erneut
+implementiert. Das Ergebnis beschreibt mindestens:
+
+- einen geschlossenen Status mit `PASSED`, `WARNING` und `BLOCKED`,
+- maschinenlesbare Findings mit Severity und Herkunft sowie
+- die strukturierte Evidenz, welche Modelle und Prüfbereiche bewertet wurden.
+
+Schritt 25A bildet ausschließlich `PASSED` und blockierende Findings aus den
+bereits vorhandenen strukturellen Regeln ab. `WARNING` ist Teil des
+erweiterbaren Vertrags, erhält aber noch keine erfundenen Schwellen oder
+Produktionsregeln. Insbesondere werden keine Spread-, Freshness-, FX-,
+Broker-, Handelsstatus- oder Providerwarnungen vorweggenommen.
+
+Availability, Freshness und Source Policy bleiben bestehende, getrennte
+Komponenten. Der neue strukturelle Validator orchestriert sie in Schritt 25A
+nicht. Ebenso wird der vorhandene `MarketDataCalculationOrchestrator` in
+diesem Schritt weder ersetzt noch migriert. Seine spätere Nutzung des
+Data-Quality-Vertrags benötigt einen eigenen, freigegebenen Migrationsschritt.
+
+### Begründung
+
+Ein kleiner aggregierender Vertrag schafft eine stabile Grenze für spätere
+DTO-Mapper, Application-Abläufe und Explainability, ohne die bereits getesteten
+Regeln zu verändern. Die Trennung zwischen struktureller Gültigkeit,
+anwendungsbezogener Verfügbarkeit und konfigurierten Policies bleibt sichtbar.
+Die vorbereitete Warning-Stufe ermöglicht Erweiterung, ohne derzeit nicht
+freigegebene Schwellenwerte als Fachregel festzuschreiben.
+
+### Auswirkungen auf Architektur
+
+- `domain.dataquality` hängt nur von den betroffenen Domainmodellen und
+  bestehenden Validatorverträgen ab.
+- Data Quality bleibt deterministisch, Android-, Compose-, Repository-,
+  Netzwerk-, Provider- und Systemzeit-frei.
+- Externe DTOs werden später zuerst gemappt; erst Domainmodelle werden durch
+  die Data-Quality-Grenze bewertet.
+- Berechnungen werden nur nach der jeweils erforderlichen strukturellen und
+  policybezogenen Freigabe aufgerufen.
+- Data-Quality-Status ist weder Confidence Score noch Produktqualität,
+  Attraktivität, Ranking oder Kauf-/Verkaufsempfehlung.
+- Das Resultat enthält keine UI-Texte, Formatierung, Scoringformel oder
+  stillen Defaultwerte.
+- Bestehende Validation-, Availability-, Freshness-, Source- und
+  Orchestrator-Packages bleiben erhalten.
+
+### Konsequenzen
+
+#### Positiv
+
+- Eine einheitliche maschinenlesbare Qualitätsentscheidung kann von späteren
+  Application-Abläufen verwendet werden.
+- Findings und geprüfte Evidenz bleiben typisiert und nachvollziehbar.
+- Mapper und Provider erhalten eine stabile fachliche Zielgrenze.
+- Bestehende Regeln, Codes und ihre Tests werden nicht dupliziert.
+
+#### Grenzen
+
+- Es entsteht noch kein Confidence Score und kein Produktqualitätsscore.
+- Spread-Qualität und produktive Freshness-Warnstufen bleiben offen.
+- Broker-Handelbarkeit und Handelsstatus werden nicht bewertet.
+- Eine produktive FX-Policy und reale FX-Daten bleiben offen.
+- Live-Daten, DTOs, Mapper und Provider werden nicht eingeführt.
+
+### Betroffene Dokumente
+
+- `ROADMAP.md`
+- `docs/ARCHITECTURE.md`
+- `DEVLOG.md`
+- `docs/DECISIONS.md`
+
+### Implementierungsstatus
+
+Die Architekturrichtung ist akzeptiert. Die Implementierung beginnt mit
+Schritt 25A: struktureller Vertrag und delegierender Validator für
+`KnockoutProductSpecification` und `KnockoutProductMarketData`. Eine
+Orchestrator-, Application-, Provider- oder UI-Migration ist nicht Bestandteil
+dieses ersten Schritts.

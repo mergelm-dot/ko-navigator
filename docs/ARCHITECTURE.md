@@ -30,13 +30,21 @@ Für Berechnungen existieren derzeit `TradeCalculationEngine`, `KoCalculator` un
 
 Der aktuelle Stand umfasst außerdem:
 
-- ein isoliertes, noch nicht an Compose angebundenes ViewModel für den neuen
-  Marktdatenberechnungspfad,
+- einen ausschließlich im Debug-Source-Set sichtbaren Marktdatenberechnungspfad
+  mit eigener Activity, Composition, Route und stateless Screen,
+- getrennte Domainkomponenten für Produktspezifikations- und
+  Marktdatenvalidierung, Kompatibilität, Verfügbarkeit, Freshness und
+  Quellenfreigabe,
+- eine siebenstufige Fail-Fast-Marktdatenorchestrierung sowie einen lokalen
+  Application-Integrationspfad über read-only In-Memory-Repositories,
+- 25 feste Erfolgs- und Fehlerszenarien für die reale
+  `TradeCalculationEngine`,
 - keine Dependency Injection,
 - keine Navigation,
 - keine Netzwerk- oder Persistenzschicht,
 - lokale, fest hinterlegte Basiswert- und Emittentendaten,
-- UI-Zustand überwiegend direkt in Composables und
+- weiterhin lokalen UI-Zustand für Suche, Broker und Emittent im
+  `TradePlannerScreen` und
 - erste Berechnungsmodelle, die noch nicht vollständig dem langfristigen Zielmodell entsprechen.
 
 Diese Ausgangslage ist bewusst klein. Die folgenden Abschnitte beschreiben das Zielbild und keine bereits abgeschlossene Umsetzung.
@@ -125,7 +133,7 @@ abgeschlossene Resultate. `MarketDataCalculationUiResult` unterscheidet die
 vier fachlichen Erfolgswerttypen und verdichtete, UI-nahe Fehlerkategorien.
 Application- und Domain-Fehlerdetails werden dabei nicht als freie Texte oder
 Fehlerlisten in den UI-State übernommen. Erfolgswerte bleiben roh und
-ungerundet und werden erst in einer späteren Compose-Schicht formatiert.
+ungerundet; ausschließlich der Debug-Screen formatiert sie für die Anzeige.
 
 Das ViewModel hängt ausschließlich vom
 `MarketDataCalculationApplicationService` sowie dessen Application- und
@@ -134,12 +142,12 @@ Orchestrator-Komponenten und führt keine Domainberechnung aus. Laufende Jobs
 werden bei Eingabeänderungen abgebrochen; ein typisierter Loading-Zustand
 verhindert parallele Requests und veraltete Resultate.
 
-Der neue Pfad ist noch nicht an einen Screen, eine ViewModelFactory,
-`MainActivity`, Navigation oder Demo-Daten angebunden. Er bleibt ausdrücklich
-vom bestehenden UI-nahen Altpfad aus `TradePlannerScreen`,
-`UnderlyingRepository`, `UnderlyingSearchEngine` und `UnderlyingTestData`
-getrennt. Eine Demo-Composition und die konkrete Factory bleiben **OFFEN** und
-werden erst in einem eigenen kleinen Schritt analysiert.
+Der Pfad besitzt inzwischen eine allgemeine ViewModelFactory und eine
+debug-exklusive Compose-Demo mit lokalen Daten. Er ist weiterhin nicht an die
+produktive `MainActivity`, Navigation oder den aktiven `TradePlannerScreen`
+angebunden und bleibt vom lokalen `UnderlyingRepository`-,
+`UnderlyingSearchEngine`- und `UnderlyingTestData`-Pfad getrennt. Diese
+Trennung ist der aktuelle Zustand; eine Release-Migration ist **OFFEN**.
 
 #### 5.1.2 Debug-exklusive Engine-Demo
 
@@ -154,8 +162,8 @@ Dependency Injection durch.
 Alle demospezifischen Typen liegen unter
 `src/debug/java/de/konavigator/app/debug/marketdata`. Ein Debug-Manifest
 registriert `MarketDataCalculationDemoActivity` als zweiten Launcher-Einstieg.
-Die bestehende `MainActivity` und ihr `TradePlannerScreen` werden nicht
-verändert und referenzieren keine Debug-Typen. Da Activity, Screen,
+Die produktive `MainActivity` und ihr aktiver `TradePlannerScreen`
+referenzieren keine Debug-Typen. Da Activity, Screen,
 Composition, Ressourcen und Manifest-Erweiterung ausschließlich im
 Debug-Source-Set liegen, enthält der Release-Build weder Demo-UI noch Demo-Daten.
 
@@ -211,12 +219,14 @@ der explizite Berechnungsaufruf parst lokale Kopien und sammelt UI-nahe Fehler
 in stabiler Feldreihenfolge.
 
 Nach erfolgreicher Eingabeprüfung wird die brokerneutrale Preisrelation vor
-dem Serviceaufruf bestimmt. Der Übergangsadapter erzeugt den bestehenden
-`TradeCalculationInput` mit `exchangeRate = 1.0`, `ratio = 0.01` und einem
-expliziten Mapping von `TradeDirection` auf den vorläufigen Boolean-Vertrag.
-Das Presentation-Result übernimmt nur vollständige, ungerundete Rechenwerte.
-Engine-Fehler werden typisiert abgebildet; der vorhandene Domain-Freitext wird
-nicht in den Presentation-Vertrag übernommen.
+dem Serviceaufruf bestimmt. Der zentrale Adapter erzeugt den
+`TradeCalculationInput` mit der ausdrücklich dokumentierten Übergangsratio
+`0.01`, `CurrencyConversion.SameCurrency(CurrencyCode("XXX"))` und einem
+expliziten Mapping von `TradeDirection` auf den weiterhin internen
+Engine-Boolean. `XXX` behauptet keine reale Währung. Das Presentation-Result
+übernimmt nur vollständige, ungerundete Rechenwerte. Engine-Fehler werden
+typisiert abgebildet; Freitext ist kein Bestandteil des Domain- oder
+Presentation-Resultats.
 
 Das ViewModel kennt keine Repositories, Marktdaten, Systemzeit, Android-
 Ressourcen, Compose-Komponenten oder Broker-Ordertypen. Es ist über
@@ -305,14 +315,15 @@ wird über beide Preis-Callbacks als leerer String weitergegeben und niemals als
 künstlicher Nullpreis dargestellt.
 
 `Idle` zeigt keine Submission-Box. `InvalidInput` mappt die sechs strukturierten
-Fehler ausschließlich feldnah. Ein abgeschlossenes Erfolgsresultat zeigt die
-neutrale Einstiegskursrelation sowie vier rohe Rechenwerte locale-basiert und
-nur zur Anzeige formatiert. Die Box ist ausdrücklich eine theoretische
-Modellrechnung und bildet weder Produktidentität noch WKN, ISIN, Emittent,
-Bid/Ask, Spread, Zeitstempel oder andere Marktdaten ab. Der
-`certificatePrice` wird als vereinfachter theoretischer Produktwert und nicht
-als Kaufpreis bezeichnet. Ein abgeschlossenes Fehlerresultat mappt einen der
-vier CalculationError-Codes in eine neutrale Fehlerbox.
+Eingabefehler ausschließlich feldnah. Ein abgeschlossenes Erfolgsresultat zeigt
+die neutrale Einstiegskursrelation, den theoretischen Produktwert, Zielhebel,
+berechneten theoretischen Hebel, KO-Barriere sowie absoluten und prozentualen
+KO-Abstand locale-basiert und nur zur Anzeige formatiert. Die Box ist
+ausdrücklich eine theoretische Modellrechnung und bildet weder
+Produktidentität noch WKN, ISIN, Emittent, Bid/Ask, Spread, Zeitstempel oder
+andere Marktdaten ab. Der theoretische Produktwert wird nicht als Kaufpreis
+bezeichnet. Ein abgeschlossenes Fehlerresultat mappt einen der acht
+`TradePlannerUiCalculationError`-Codes in eine neutrale Fehlerbox.
 
 Der aktive Datenfluss lautet:
 
@@ -395,19 +406,21 @@ TradePlanningApplicationService
 Der Service besitzt exakt die bestehende `TradeCalculationEngine` als
 Konstruktorabhängigkeit. Seine einzige öffentliche Fachmethode `execute` ist
 synchron, übergibt den vollständigen `TradeCalculationInput` unverändert und
-gibt das Engine-Resultat unverändert zurück. Der bestehende Engine-Vertrag mit
-seinen gegenwärtigen Status-, Fehler- und Freitextfeldern bleibt in diesem
-Schritt bewusst unverändert.
+gibt das Engine-Resultat unverändert zurück. Der Engine-Vertrag trennt Status,
+strukturierte Fehler und nullable Rechenfelder; Freitext ist nicht Bestandteil
+des Resultats.
 
 Der Service enthält keine eigene Validierung, Formel, Rundung oder
 Fehlerabbildung. Für diesen vollständig durch Eingaben beschriebenen
 Planungsablauf benötigt er weder Repository-Ports noch Marktdaten. Er kennt
-keine UI-, Android- oder Compose-Komponenten. Eine spätere Anbindung über ein
-`TradePlannerViewModel` bleibt offen.
+keine UI-, Android- oder Compose-Komponenten. Er ist über
+`TradePlannerViewModel`, Route und Screen an den aktiven Produktiveinstieg
+angebunden.
 
 Trade Planning und Market Data Calculation sind getrennte Use Cases: Der
 Trade-Planning-Service berechnet theoretische Planungswerte aus Basiswertkurs,
-Einstiegskurs, Zielhebel, Richtung, Wechselkurs und Bezugsverhältnis. Der
+Einstiegskurs, Zielhebel, Richtung, typisierter Currency-Conversion und
+Bezugsverhältnis. Der
 `MarketDataCalculationApplicationService` lädt dagegen ein konkretes Produkt
 und dessen Quotes über die Produkt-ISIN. Beide Abläufe werden erst verbunden,
 wenn dafür ein eigener, fachlich definierter Anwendungsfall vorliegt.
@@ -460,8 +473,9 @@ Preisrelation, Handelsrichtung, technischer Broker-Ordertyp und UI-Erklärung
 sind getrennte Verantwortungen. Aus der Relation wird insbesondere keine Kauf-
 oder Verkaufsorder und keine Strategie abgeleitet. Der Domainbaustein besitzt
 keine Engine-, Application-, Repository-, Marktdaten-, UI-, Android- oder
-Compose-Abhängigkeit. Eine spätere Anbindung über Presentation-Verträge und ein
-`TradePlannerViewModel` bleibt offen.
+Compose-Abhängigkeit. Der aktive `TradePlannerViewModel` ruft ihn vor dem
+`TradePlanningApplicationService` auf und übernimmt nur sein typisiertes
+Ergebnis.
 
 ### 5.4 Data Layer
 
@@ -478,7 +492,8 @@ Der Data Layer enthält:
 Verbindliche Regeln:
 
 - Die Domain kennt keine konkrete API.
-- Externe Daten werden vor der Übergabe an die Domain validiert.
+- Externe DTOs werden explizit in Domainmodelle gemappt; technische
+  Mappingfehler und fachliche Data-Quality-Findings bleiben unterscheidbar.
 - Quelle und Zeitstempel bleiben nachvollziehbar.
 - Broker und Emittenten sind Datenmerkmale und kein festes UI-Hardcoding.
 - Externe DTOs gelangen nicht ungeprüft in Domain oder UI.
@@ -502,8 +517,13 @@ de.konavigator.app
 │   ├── model
 │   ├── calculator
 │   ├── availability
+│   ├── compatibility
+│   ├── currency
+│   ├── dataquality
 │   ├── freshness
+│   ├── orchestration
 │   ├── source
+│   ├── tradeplanning
 │   ├── validation
 │   └── result
 ├── data
@@ -576,11 +596,13 @@ sondern enthält ausschließlich die statische Produktspezifikation mit getrennt
 Basispreis und getrennter KO-Barriere. Marktdaten und Produktbewertung werden in
 späteren, getrennten Entwicklungsschritten modelliert und angebunden.
 
-`TradeDirection` wird zunächst ausschließlich von diesem neuen Produktmodell
-verwendet. Der bestehende Planungspfad behält vorläufig seine Boolean-Richtung,
-damit dieser kleine Modellierungsschritt keine bestehende Engine oder UI
-verändert. Währungen werden in Version 1 als dokumentierte ISO-4217-Strings
-geführt. Ein späterer gemeinsamer `CurrencyCode`-Typ bleibt **OFFEN**.
+`TradeDirection` wird sowohl vom Produktmodell als auch durchgängig im
+Presentation- und UI-Vertrag des aktiven Trade Planners verwendet. Erst der
+zentrale Adapter bildet sie auf den weiterhin internen Boolean-Vertrag der
+Engine ab. Die KO-Produktmodelle führen Währungen in Version 1 noch als
+dokumentierte ISO-4217-Strings; der theoretische Engine-Pfad verwendet bereits
+`CurrencyCode` und `CurrencyConversion`. Eine kontrollierte Migration der
+Produktmodelle auf den typisierten Currency-Vertrag bleibt **OFFEN**.
 
 Die allgemeinen Version-1-Regeln von `KnockoutProductSpecification` werden
 außerhalb des Modells durch den zustandslosen
@@ -591,10 +613,12 @@ UI-Texte vollständig und in stabiler Feldreihenfolge zurückgegeben; Exceptions
 sind dafür kein Standardfluss.
 
 Der Validator verändert und normalisiert seine Eingaben nicht. Spätere Mapper
-oder Normalizer bleiben getrennte Komponenten. Eine Anbindung an Engine, UI und
-Repository besteht noch nicht. Formale ISIN- und WKN-Prüfungen, die Prüfung
-gegen eine echte ISO-Währungsliste sowie emittentenspezifische Regeln bleiben
-Gegenstand späterer, gesondert freizugebender Schritte.
+oder Normalizer bleiben getrennte Komponenten. Er wird bereits vom
+`MarketDataCalculationOrchestrator` aufgerufen; Engine-Mathematik, UI und
+Repository-Zugriff bleiben außerhalb seiner Verantwortung. Formale ISIN- und
+WKN-Prüfungen, die Prüfung gegen eine echte ISO-Währungsliste sowie
+emittentenspezifische Regeln bleiben Gegenstand späterer, gesondert
+freizugebender Schritte.
 
 `KnockoutProductMarketData` ist ein separates passives Domainmodell für
 veränderliche Marktdaten eines konkreten KO-Produkts. Marktdaten werden nicht
@@ -622,10 +646,10 @@ Ask-only-Quotes und vollständig leere Quotes können intern konsistent sein.
 Eine leere Fehlerliste ist deshalb keine Berechnungsfreigabe.
 
 Der Validator normalisiert keine Eingaben und prüft weder Aktualität noch die
-Kompatibilität mit `KnockoutProductSpecification`. Eine Calculator-, Engine-,
-UI- oder Repository-Anbindung besteht weiterhin nicht. Ein späterer separater
-CompatibilityValidator sowie die Aktualitäts- und weiterführende
-Datenqualitätspolitik bleiben **OFFEN**.
+Kompatibilität mit `KnockoutProductSpecification`. Diese Verantwortungen
+liegen in bereits getrennten Compatibility-, Freshness- und
+Orchestrator-Komponenten. Der Validator selbst enthält weiterhin keine
+Calculator-, Engine-, UI- oder Repository-Logik.
 
 Reine, aus Bid und Ask abgeleitete Kennzahlen liegen im Package
 `de.konavigator.app.domain.calculator`. Der `MarketDataCalculator` erhält nur
@@ -636,11 +660,11 @@ und ein eigenes Fehler-Enum entweder einen Wert oder genau einen blockierenden
 Fehler. Das vollständige Marktdatenvalidator-Enum wird nicht wiederverwendet.
 
 Der Calculator verwendet keine Exceptions als Standardfluss, rundet nicht und
-besitzt keine Android- oder Compose-Abhängigkeit. Eine Engine-, UI- oder
-Repository-Anbindung besteht nicht. Eine spätere Orchestrierung validiert das
-Gesamtmodell, prüft Verfügbarkeit, Kompatibilität und Aktualität und extrahiert
-erst danach geeignete Bid-/Ask-Werte. Weitere Marktdatenkennzahlen und
-Qualitätsregeln bleiben getrennte Folgeschritte.
+besitzt keine Android- oder Compose-Abhängigkeit. Der
+`MarketDataCalculationOrchestrator` ruft ihn erst nach Validation,
+Kompatibilität, Verfügbarkeit, Freshness und Source-Freigabe auf. Calculator,
+UI und Repository bleiben getrennt; weitere Marktdatenkennzahlen und
+Qualitätsregeln sind eigene Folgeschritte.
 
 Der `KnockoutProductMarketDataCompatibilityValidator` liegt im Domain-Package
 `validation` und prüft ausschließlich zwei Beziehungen zwischen den weiterhin
@@ -650,11 +674,10 @@ vorausgesetzt; ihre Validatoren werden weder aufgerufen noch dupliziert.
 
 Das eigene Fehler-Enum enthält keine UI-Texte. Beide unabhängigen Fehler werden
 vollständig in stabiler Reihenfolge gesammelt. Der Validator normalisiert nicht
-und prüft weder Aktualität und Quellenqualität noch FX oder Quanto. Eine
-Calculator-, Engine-, UI- oder Repository-Anbindung besteht nicht. Erst eine
-spätere Orchestrierung führt interne Validierung, Kompatibilität,
-Vollständigkeit und Aktualität zusammen. Provider-Mapping und eine interne
-Produkt-ID bleiben **OFFEN**.
+und prüft weder Aktualität und Quellenqualität noch FX oder Quanto. Der
+vorhandene `MarketDataCalculationOrchestrator` führt ihn nach den beiden
+internen Validatoren aus. Calculator-, Engine-, UI- und Repository-Logik sowie
+Provider-Mapping bleiben außerhalb; eine interne Produkt-ID ist **OFFEN**.
 
 Das Domain-Package `de.konavigator.app.domain.availability` enthält den
 zustandslosen `MarketDataCalculationAvailabilityEvaluator`. Er bewertet über
@@ -675,9 +698,10 @@ strukturell gültige Wert zulässig.
 
 Die Availability-Komponente führt keine Berechnung aus, liest keine Systemzeit
 und bewertet weder Aktualität noch Quellenqualität. Sie besitzt keine Android-,
-Compose-, Engine-, UI- oder Repository-Anbindung. Eine spätere Orchestrierung
-führt interne Validierung, Cross-Model-Kompatibilität, Availability, Freshness,
-Quellenpolicy und den getrennten Calculator-Aufruf zusammen.
+Compose-, Engine-, UI- oder Repository-Anbindung. Der vorhandene
+`MarketDataCalculationOrchestrator` führt sie nach interner Validation und
+Cross-Model-Kompatibilität sowie vor Freshness, Quellenpolicy und getrenntem
+Calculator-Aufruf aus.
 
 Das Domain-Package `de.konavigator.app.domain.freshness` enthält die reine
 zeitliche `MarketDataFreshnessPolicy`. Ihre unveränderlichen Schwellen werden
@@ -705,10 +729,10 @@ Die Policy setzt interne Validierung, Cross-Model-Kompatibilität und
 strukturelle Availability voraus und ruft deren Komponenten nicht selbst auf.
 Sie berechnet keine Preise und bewertet weder Quellenqualität noch
 Handelszeiten. Es besteht keine Android-, Compose-, Engine-, UI- oder
-Repository-Anbindung. Eine spätere Orchestrierung verbindet Validation,
-Compatibility, Availability, Freshness, SourcePolicy und Calculator. `Fresh`
-allein ist weder eine vollständige Berechnungsfreigabe noch eine Aussage über
-Handelbarkeit.
+Repository-Anbindung. Der vorhandene `MarketDataCalculationOrchestrator`
+verbindet Validation, Compatibility, Availability, Freshness, SourcePolicy und
+Calculator. `Fresh` allein ist weder eine vollständige Berechnungsfreigabe noch
+eine Aussage über Handelbarkeit.
 
 Das Domain-Package `de.konavigator.app.domain.source` enthält die
 konfigurationsbasierte `MarketDataSourcePolicy`. Ein `MarketDataSourceRule`
@@ -795,7 +819,13 @@ Die `TradeCalculationEngine`:
 
 Sie ist der zentrale fachliche Einstiegspunkt für zusammengesetzte Trade-Berechnungen. Sie enthält langfristig keine eigenen mathematischen Fachformeln und dupliziert keine Formeln ihrer Calculator-Komponenten. UI-State, Benutzertexte, Kauf- oder Verkaufsempfehlungen, Repository- und Netzwerkzugriffe sowie Android- oder Compose-Abhängigkeiten gehören nicht zu ihrer Verantwortung.
 
-**Ist-Abweichung:** Die aktuelle `TradeCalculationEngine` berechnet die theoretische KO-Barriere und den prozentualen KO-Abstand noch direkt. Außerdem liefert sie derzeit Freitextmeldungen statt vollständig strukturierter Fehler und Warnungen. Diese Abweichungen werden schrittweise konsolidiert und sind nicht Teil der hier festgelegten Zielverantwortung.
+**Ist-Abweichung:** Die aktuelle `TradeCalculationEngine` berechnet die
+theoretische KO-Barriere noch direkt. Absolute und prozentuale KO-Abstände
+delegiert sie an `KoCalculator`; theoretischen Produktwert und theoretischen
+Hebel delegiert sie an eigene reine Calculator-Komponenten. Das Resultat
+verwendet strukturierte Fehler und nullable Rechenfelder, enthält aber noch
+keinen eigenständigen Warnungsvertrag. Die verbleibende direkte KO-Formel und
+der interne Richtungs-Boolean werden schrittweise konsolidiert.
 
 ### `KoCalculator`
 
@@ -999,7 +1029,8 @@ Die Teststrategie umfasst:
 
 Das test-only Package `de.konavigator.app.scenarios` ergänzt die fokussierten
 Unit- und Referenztests durch ein strukturiertes Mock-Daten-Szenario-Kit für
-den vollständigen Vertrag der realen `TradeCalculationEngine`:
+den vollständigen Vertrag der realen `TradeCalculationEngine`. Der aktuelle
+Katalog umfasst 25 feste Szenarien, davon 15 Erfolgs- und 10 Fehlerfälle:
 
 ```text
 Mock scenario kit
@@ -1084,18 +1115,27 @@ Sollten später Authentifizierung, Kontodaten oder Orderfunktionen erwogen werde
 
 ## 19. Migrationsstrategie
 
-Die Migration erfolgt in kleinen, überprüfbaren Schritten:
+Die Migration erfolgt in kleinen, überprüfbaren Schritten. Der aktuelle Stand
+ist:
 
-1. Formeln und Tests stabilisieren.
-2. Typsichere Domain-Modelle einführen.
-3. Zentrale Validierung aufbauen.
-4. Berechnungsengine konsolidieren.
-5. ViewModel einführen.
-6. Trade Planner an das ViewModel und die Use Cases anbinden.
-7. Alte parallele Rechenpfade erst nach fachlicher und technischer Prüfung entfernen.
-8. Repository-Interfaces einführen.
-9. Lokale Zertifikatstestdaten über die Interfaces bereitstellen.
-10. Später externe Datenquellen anbinden.
+1. Formeln und Referenztests sind für den theoretischen Planungspfad
+   stabilisiert.
+2. Typsichere Domainmodelle und getrennte KO-Produkt-/Marktdatenmodelle sind
+   vorhanden.
+3. Einzelne Validation-, Compatibility-, Availability-, Freshness- und
+   Source-Komponenten sowie die aktuelle Fail-Fast-Orchestrierung sind
+   vorhanden.
+4. Die theoretische Berechnungsengine verwendet den typisierten FX-/Ratio-
+   Vertrag und reine Calculator-Komponenten; verbleibender Legacy-Code wird
+   erst nach gesonderter Prüfung entfernt.
+5. Der aktive Trade Planner ist über Composition, ViewModel, Route und
+   Application Service angebunden.
+6. Repository-Ports und lokale In-Memory-Adapter für KO-Produktdaten sind
+   vorhanden.
+7. Als nächstes entsteht der einheitliche strukturelle Data-Quality-Vertrag
+   gemäß ADR-0009.
+8. Externe DTOs, Mapper und reale Datenquellen werden erst auf dieser stabilen
+   Grenze aufgebaut.
 
 Es gibt keine Big-Bang-Migration. Jeder Schritt soll klein, nachvollziehbar und möglichst unabhängig prüfbar sein. Nach jedem Schritt werden Build und relevante Tests ausgeführt. Bestehende Funktionalität darf nicht verschlechtert werden. Alte Implementierungen werden erst entfernt, wenn der neue Pfad dieselbe oder eine ausdrücklich verbesserte, getestete Funktion vollständig übernimmt.
 
@@ -1361,3 +1401,115 @@ theoretischen Hebel als zwei neue neutrale Zeilen. Exposure, Ratio, FX und
 Währungen bleiben interne Transparenzwerte. Ein tatsächlicher Hebel eines
 realen Produkts auf Basis von Bid, Ask oder anderen Marktdaten bleibt dem
 späteren Produktpfad vorbehalten.
+
+## 24. Einheitliche Data-Quality-Zielgrenze
+
+ADR-0009 legt für die schrittweise Konsolidierung das zukünftige Domain-Package
+`de.konavigator.app.domain.dataquality` fest. Es ersetzt keine vorhandene
+Fachkomponente, sondern schafft einen anwendungsneutralen Vertrag für
+strukturierte Bewertungen. Der langfristige Datenfluss lautet:
+
+```text
+External DTO
+→ Mapper
+→ Domain models
+→ existing validators and policies
+→ DataQualityAssessment
+→ Application orchestration
+→ calculators only after approval
+```
+
+Remote-Provider, externe DTOs und Mapper sind noch nicht implementiert. Die
+beiden Domainmodelle, ihre strukturellen Validatoren, der
+CompatibilityValidator, AvailabilityEvaluator, FreshnessPolicy, SourcePolicy,
+die aktuelle Marktdatenorchestrierung und lokale In-Memory-Adapter sind dagegen
+bereits vorhanden.
+
+### 24.1 Vertrag und Zuständigkeiten
+
+Der Data-Quality-Vertrag beschreibt:
+
+- einen geschlossenen Gesamtstatus `PASSED`, `WARNING` oder `BLOCKED`,
+- maschinenlesbare Findings mit Severity, Ursprung und bestehendem Fehlercode,
+- strukturierte Evidenz über bewertete Modelle und Prüfbereiche sowie
+- eine deterministische, stabile Reihenfolge.
+
+`PASSED` bedeutet nur, dass alle im konkreten Assessment enthaltenen Prüfungen
+bestanden wurden. Es ist keine Aussage über Handelbarkeit, Rendite,
+Produktattraktivität oder die Vollständigkeit künftig möglicher Prüfungen.
+`BLOCKED` verhindert den nachgelagerten Ablauf, soweit die jeweilige
+Application-Freigabe diese Prüfung verlangt. `WARNING` bereitet eine spätere
+Erweiterung vor, ist aber ohne ausdrücklich akzeptierte Fachregel niemals
+implizit zu erzeugen.
+
+Data-Quality-Status, Confidence Score und Zertifikats-Qualitätsscore sind
+getrennte Konzepte:
+
+- Data Quality bewertet konkrete Daten gegen explizite Regeln.
+- Confidence bewertet später die Belastbarkeit einer freigegebenen Berechnung.
+- Produktqualität bewertet später Produkte anhand gesondert freigegebener
+  Faktoren.
+
+Keines dieser Konzepte ist eine Kauf- oder Verkaufsempfehlung.
+
+### 24.2 Bestehende Komponenten bleiben Single Source of Truth
+
+Die bestehenden Komponenten behalten ihre Grenzen:
+
+- `KnockoutProductSpecificationValidator` prüft ausschließlich die interne
+  Struktur der Produktspezifikation.
+- `KnockoutProductMarketDataValidator` prüft ausschließlich die interne
+  Struktur der Marktdaten.
+- `KnockoutProductMarketDataCompatibilityValidator` prüft ausschließlich die
+  Beziehungen zwischen beiden Modellen.
+- `MarketDataCalculationAvailabilityEvaluator` prüft die für einen
+  CalculationType erforderliche Quote-Verfügbarkeit.
+- `MarketDataFreshnessPolicy` bewertet Zeitstempel gegen explizite Schwellen und
+  einen expliziten Bewertungszeitpunkt.
+- `MarketDataSourcePolicy` bewertet Quelle und unterstützten CalculationType
+  gegen explizite Konfiguration.
+
+Das neue Package verschiebt und dupliziert keine dieser Regeln. Ein
+delegierender Validator darf bestehende Resultate nur in den gemeinsamen
+Vertrag abbilden. Die Data-Quality-Schicht darf vorhandene Validatoren und
+Policies koordinieren, Findings typisieren und kategorisieren, Warnungen und
+Blockierungen strukturiert ausgeben, relevante Evidenz mitführen und
+deterministisch fail closed entscheiden.
+
+Sie darf keine Produktwerte berechnen, KO-, Hebel- oder Spreadformeln
+enthalten beziehungsweise duplizieren, DTOs mappen, Werte normalisieren oder
+ersetzen, Repositories oder APIs aufrufen, Systemzeit direkt lesen, Provider
+auswählen, UI-Texte erzeugen, Produkte bewerten oder ranken sowie Confidence
+Score und Produktqualität vermischen. Formatierung, Scoring und stille
+Defaults gehören ebenfalls nicht zu ihrer Verantwortung.
+
+### 24.3 Begrenzung von Schritt 25A
+
+Schritt 25A führt ausschließlich den strukturellen Vertrag und einen
+delegierenden Validator für `KnockoutProductSpecification` und
+`KnockoutProductMarketData` ein. Er delegiert an:
+
+1. `KnockoutProductSpecificationValidator`,
+2. `KnockoutProductMarketDataValidator`,
+3. `KnockoutProductMarketDataCompatibilityValidator`.
+
+Sind alle drei Prüfbereiche fehlerfrei, entsteht `PASSED`. Vorhandene Fehler
+werden ohne neue Fachregel als blockierende Findings abgebildet und führen zu
+`BLOCKED`. `WARNING` ist im Typvertrag erlaubt, wird in diesem Schritt aber
+nicht produziert.
+
+Nicht Bestandteil von Schritt 25A sind:
+
+- neue Spread- oder Freshness-Schwellen,
+- FX-, Broker-, Handelsstatus- oder Providerregeln,
+- Availability-, Freshness- oder Source-Orchestrierung,
+- Änderungen am `MarketDataCalculationOrchestrator`,
+- Application-, Repository-, DTO-, Mapper-, UI- oder Navigation-Migration,
+- Confidence, Produktqualität, Scoring oder Ranking und
+- Änderungen an Engine-Mathematik oder `docs/FORMULAS.md`.
+
+Der vorhandene Orchestrator bleibt bis zu einem eigenen, freigegebenen
+Migrationsschritt unverändert. Der unmittelbar nächste technische Schritt ist:
+
+**Schritt 25A – Strukturellen Data-Quality-Vertrag und delegierenden Validator
+einführen.**
