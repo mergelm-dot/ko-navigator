@@ -6,6 +6,8 @@ import de.konavigator.app.application.repository.RepositoryResult
 import de.konavigator.app.domain.availability.MarketDataCalculationAvailabilityError
 import de.konavigator.app.domain.availability.MarketDataCalculationType
 import de.konavigator.app.domain.calculator.MarketDataCalculationError
+import de.konavigator.app.domain.dataquality.DataQualityAssessment
+import de.konavigator.app.domain.dataquality.DataQualityFindingCode
 import de.konavigator.app.domain.freshness.MarketDataFreshnessError
 import de.konavigator.app.domain.freshness.MarketDataFreshnessPolicy
 import de.konavigator.app.domain.freshness.MarketDataFreshnessThresholds
@@ -20,9 +22,6 @@ import de.konavigator.app.domain.source.MarketDataSourceError
 import de.konavigator.app.domain.source.MarketDataSourcePolicy
 import de.konavigator.app.domain.source.MarketDataSourcePolicyConfig
 import de.konavigator.app.domain.source.MarketDataSourceRule
-import de.konavigator.app.domain.validation.KnockoutProductCompatibilityError
-import de.konavigator.app.domain.validation.KnockoutProductMarketDataValidationError
-import de.konavigator.app.domain.validation.KnockoutProductValidationError
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import kotlin.coroutines.Continuation
@@ -444,7 +443,8 @@ class MarketDataCalculationApplicationServiceTest {
     @Test
     fun domainResultCanBeEmbeddedByIdentity() {
         val domainResult = MarketDataCalculationOrchestrationResult.CalculationFailure(
-            MarketDataCalculationError.INVALID_BID
+            error = MarketDataCalculationError.INVALID_BID,
+            dataQualityAssessment = DataQualityAssessment.passed()
         )
         val result = MarketDataCalculationApplicationResult.DomainEvaluated(domainResult)
 
@@ -457,54 +457,52 @@ class MarketDataCalculationApplicationServiceTest {
 
         assertEquals(
             MarketDataCalculationOrchestrationResult.Success(
-                MarketDataCalculationValue.PurchasePrice(2.0, "EUR")
+                value = MarketDataCalculationValue.PurchasePrice(2.0, "EUR"),
+                dataQualityAssessment = DataQualityAssessment.passed()
             ),
             result
         )
     }
 
     @Test
-    fun invalidSpecificationRemainsUnchanged() {
+    fun structuralSpecificationBlockRemainsUnchanged() {
         val invalid = specification(productIsin = "")
         val result = domainResult(
             execute(fixture(specificationResult = RepositoryResult.Success(invalid)))
         )
 
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
         assertEquals(
-            MarketDataCalculationOrchestrationResult.InvalidSpecification(
-                listOf(KnockoutProductValidationError.MISSING_PRODUCT_ISIN)
-            ),
-            result
+            DataQualityFindingCode.SPECIFICATION_MISSING_PRODUCT_ISIN,
+            result.dataQualityAssessment.findings.single().code
         )
     }
 
     @Test
-    fun invalidMarketDataRemainsUnchanged() {
+    fun structuralMarketDataBlockRemainsUnchanged() {
         val invalid = marketData(currency = "eur")
         val result = domainResult(
             execute(fixture(marketDataResult = RepositoryResult.Success(invalid)))
         )
 
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
         assertEquals(
-            MarketDataCalculationOrchestrationResult.InvalidMarketData(
-                listOf(KnockoutProductMarketDataValidationError.INVALID_CURRENCY)
-            ),
-            result
+            DataQualityFindingCode.MARKET_DATA_INVALID_CURRENCY,
+            result.dataQualityAssessment.findings.single().code
         )
     }
 
     @Test
-    fun incompatibleRemainsUnchanged() {
+    fun structuralCompatibilityBlockRemainsUnchanged() {
         val incompatible = marketData(productIsin = "OTHER")
         val result = domainResult(
             execute(fixture(marketDataResult = RepositoryResult.Success(incompatible)))
         )
 
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
         assertEquals(
-            MarketDataCalculationOrchestrationResult.Incompatible(
-                listOf(KnockoutProductCompatibilityError.PRODUCT_ISIN_MISMATCH)
-            ),
-            result
+            DataQualityFindingCode.COMPATIBILITY_PRODUCT_ISIN_MISMATCH,
+            result.dataQualityAssessment.findings.single().code
         )
     }
 
@@ -517,7 +515,8 @@ class MarketDataCalculationApplicationServiceTest {
 
         assertEquals(
             MarketDataCalculationOrchestrationResult.StructurallyUnavailable(
-                listOf(MarketDataCalculationAvailabilityError.MISSING_ASK)
+                errors = listOf(MarketDataCalculationAvailabilityError.MISSING_ASK),
+                dataQualityAssessment = DataQualityAssessment.passed()
             ),
             result
         )
@@ -538,7 +537,8 @@ class MarketDataCalculationApplicationServiceTest {
 
         assertEquals(
             MarketDataCalculationOrchestrationResult.NotFresh(
-                listOf(MarketDataFreshnessError.STALE_ASK)
+                errors = listOf(MarketDataFreshnessError.STALE_ASK),
+                dataQualityAssessment = DataQualityAssessment.passed()
             ),
             result
         )
@@ -550,7 +550,8 @@ class MarketDataCalculationApplicationServiceTest {
 
         assertEquals(
             MarketDataCalculationOrchestrationResult.SourceBlocked(
-                MarketDataSourceError.SOURCE_NOT_CONFIGURED
+                error = MarketDataSourceError.SOURCE_NOT_CONFIGURED,
+                dataQualityAssessment = DataQualityAssessment.passed()
             ),
             result
         )
@@ -559,7 +560,8 @@ class MarketDataCalculationApplicationServiceTest {
     @Test
     fun calculationFailureRemainsUnchanged() {
         val domainResult = MarketDataCalculationOrchestrationResult.CalculationFailure(
-            MarketDataCalculationError.BID_ABOVE_ASK
+            error = MarketDataCalculationError.BID_ABOVE_ASK,
+            dataQualityAssessment = DataQualityAssessment.passed()
         )
         val result = MarketDataCalculationApplicationResult.DomainEvaluated(domainResult)
 

@@ -79,19 +79,9 @@ internal fun MarketDataCalculationApplicationResult.toUiResult():
 
 private fun MarketDataCalculationOrchestrationResult.toUiResult():
     MarketDataCalculationUiResult = when (this) {
-    is MarketDataCalculationOrchestrationResult.InvalidSpecification ->
-        MarketDataCalculationUiResult.Failure(
-            MarketDataCalculationUiError.INVALID_SPECIFICATION
-        )
-
-    is MarketDataCalculationOrchestrationResult.InvalidMarketData ->
+    is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked ->
         MarketDataCalculationUiResult.Failure(
             MarketDataCalculationUiError.INVALID_MARKET_DATA
-        )
-
-    is MarketDataCalculationOrchestrationResult.Incompatible ->
-        MarketDataCalculationUiResult.Failure(
-            MarketDataCalculationUiError.INCOMPATIBLE_PRODUCT_DATA
         )
 
     is MarketDataCalculationOrchestrationResult.StructurallyUnavailable ->

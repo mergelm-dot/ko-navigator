@@ -3,6 +3,7 @@ package de.konavigator.app.application.marketdata
 import de.konavigator.app.data.inmemory.InMemoryKnockoutProductMarketDataRepository
 import de.konavigator.app.data.inmemory.InMemoryKnockoutProductSpecificationRepository
 import de.konavigator.app.domain.availability.MarketDataCalculationType
+import de.konavigator.app.domain.dataquality.DataQualityAssessment
 import de.konavigator.app.domain.freshness.MarketDataFreshnessError
 import de.konavigator.app.domain.freshness.MarketDataFreshnessPolicy
 import de.konavigator.app.domain.freshness.MarketDataFreshnessThresholds
@@ -127,7 +128,8 @@ class MarketDataCalculationApplicationIntegrationTest {
 
         assertEquals(
             MarketDataCalculationOrchestrationResult.NotFresh(
-                listOf(MarketDataFreshnessError.STALE_ASK)
+                errors = listOf(MarketDataFreshnessError.STALE_ASK),
+                dataQualityAssessment = DataQualityAssessment.passed()
             ),
             result
         )

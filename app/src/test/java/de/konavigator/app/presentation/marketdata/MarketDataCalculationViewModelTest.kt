@@ -9,6 +9,12 @@ import de.konavigator.app.application.repository.RepositoryResult
 import de.konavigator.app.domain.availability.MarketDataCalculationAvailabilityError
 import de.konavigator.app.domain.availability.MarketDataCalculationType
 import de.konavigator.app.domain.calculator.MarketDataCalculationError
+import de.konavigator.app.domain.dataquality.DataQualityAssessment
+import de.konavigator.app.domain.dataquality.DataQualityCategory
+import de.konavigator.app.domain.dataquality.DataQualityComponent
+import de.konavigator.app.domain.dataquality.DataQualityFinding
+import de.konavigator.app.domain.dataquality.DataQualityFindingCode
+import de.konavigator.app.domain.dataquality.DataQualitySeverity
 import de.konavigator.app.domain.freshness.MarketDataFreshnessError
 import de.konavigator.app.domain.freshness.MarketDataFreshnessPolicy
 import de.konavigator.app.domain.freshness.MarketDataFreshnessThresholds
@@ -22,9 +28,6 @@ import de.konavigator.app.domain.source.MarketDataSourceError
 import de.konavigator.app.domain.source.MarketDataSourcePolicy
 import de.konavigator.app.domain.source.MarketDataSourcePolicyConfig
 import de.konavigator.app.domain.source.MarketDataSourceRule
-import de.konavigator.app.domain.validation.KnockoutProductCompatibilityError
-import de.konavigator.app.domain.validation.KnockoutProductMarketDataValidationError
-import de.konavigator.app.domain.validation.KnockoutProductValidationError
 import java.lang.reflect.Modifier
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -342,28 +345,35 @@ class MarketDataCalculationViewModelTest {
     }
 
     @Test
-    fun scenario17AllSevenDomainFailureTypesMapToUiErrors() {
+    fun scenario17AllFiveDomainFailureTypesMapToUiErrors() {
         val mappings = listOf(
-            MarketDataCalculationOrchestrationResult.InvalidSpecification(
-                listOf(KnockoutProductValidationError.MISSING_PRODUCT_ISIN)
-            ) to MarketDataCalculationUiError.INVALID_SPECIFICATION,
-            MarketDataCalculationOrchestrationResult.InvalidMarketData(
-                listOf(KnockoutProductMarketDataValidationError.INVALID_BID)
+            MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked(
+                DataQualityAssessment.blocked(
+                    listOf(
+                        DataQualityFinding(
+                            category = DataQualityCategory.INVALID_NUMERIC_VALUE,
+                            severity = DataQualitySeverity.BLOCKING,
+                            code = DataQualityFindingCode.MARKET_DATA_INVALID_BID,
+                            component = DataQualityComponent.PRODUCT_MARKET_DATA
+                        )
+                    )
+                )
             ) to MarketDataCalculationUiError.INVALID_MARKET_DATA,
-            MarketDataCalculationOrchestrationResult.Incompatible(
-                listOf(KnockoutProductCompatibilityError.PRODUCT_ISIN_MISMATCH)
-            ) to MarketDataCalculationUiError.INCOMPATIBLE_PRODUCT_DATA,
             MarketDataCalculationOrchestrationResult.StructurallyUnavailable(
-                listOf(MarketDataCalculationAvailabilityError.MISSING_ASK)
+                errors = listOf(MarketDataCalculationAvailabilityError.MISSING_ASK),
+                dataQualityAssessment = DataQualityAssessment.passed()
             ) to MarketDataCalculationUiError.REQUIRED_QUOTE_UNAVAILABLE,
             MarketDataCalculationOrchestrationResult.NotFresh(
-                listOf(MarketDataFreshnessError.STALE_ASK)
+                errors = listOf(MarketDataFreshnessError.STALE_ASK),
+                dataQualityAssessment = DataQualityAssessment.passed()
             ) to MarketDataCalculationUiError.MARKET_DATA_NOT_FRESH,
             MarketDataCalculationOrchestrationResult.SourceBlocked(
-                MarketDataSourceError.SOURCE_NOT_CONFIGURED
+                error = MarketDataSourceError.SOURCE_NOT_CONFIGURED,
+                dataQualityAssessment = DataQualityAssessment.passed()
             ) to MarketDataCalculationUiError.SOURCE_UNAVAILABLE,
             MarketDataCalculationOrchestrationResult.CalculationFailure(
-                MarketDataCalculationError.INVALID_ASK
+                error = MarketDataCalculationError.INVALID_ASK,
+                dataQualityAssessment = DataQualityAssessment.passed()
             ) to MarketDataCalculationUiError.CALCULATION_FAILED
         )
 
@@ -556,7 +566,10 @@ class MarketDataCalculationViewModelTest {
         value: MarketDataCalculationValue
     ): MarketDataCalculationUiResult =
         MarketDataCalculationApplicationResult.DomainEvaluated(
-            MarketDataCalculationOrchestrationResult.Success(value)
+            MarketDataCalculationOrchestrationResult.Success(
+                value = value,
+                dataQualityAssessment = DataQualityAssessment.passed()
+            )
         ).toUiResult()
 
     private fun viewModel(

@@ -98,8 +98,8 @@ Architekturgrundlage: [ADR-0001](docs/DECISIONS.md#adr-0001--currencypolicy-als-
 
 ## Phase 6 – Datenqualität und Robustheit
 
-Status: Struktureller V1-Vertrag und bestehende Einzelkomponenten vorhanden;
-Orchestrator-Integration offen
+Status: Struktureller V1-Vertrag im Marktdatenorchestrator aktiv;
+Application-/Presentation-Weitergabe offen
 
 Priorität: **P0 – nächster fachlich-technischer Schwerpunkt**
 
@@ -123,16 +123,16 @@ Nächste Schritte:
 - [x] Blocking Findings für die bereits vorhandenen strukturellen Regeln abbilden
 - [x] `WARNING` nur als Vertragsoption vorbereiten; Schwellen und Regeln separat
   fachlich freigeben
-- [ ] Bestehenden Orchestrator erst in einem späteren, gesondert freigegebenen
-  Schritt migrieren
+- [x] Strukturelles Assessment als erste, fail-closed Freigabestufe in den
+  bestehenden Orchestrator integrieren
 - [ ] Integrationstests für fehlende Quotes, inkompatible Währungen, alte Quotes,
   Quellenfehler, Handelsaussetzung und ausgelösten Knock-out erweitern
 - [ ] Warnungen, Blockierungen und Teilresultate später bis zur UI nachweisen
 
 Der nächste technische Schritt ist:
 
-**Strukturelles `DataQualityAssessment` kontrolliert in den bestehenden
-`MarketDataCalculationOrchestrator` integrieren.**
+**Orchestrator-`DataQualityAssessment` kontrolliert durch Application und
+Presentation bis zur neutralen UI-Anzeige weiterreichen.**
 
 Architekturgrundlage: [ADR-0004](docs/DECISIONS.md#adr-0004--realistische-robustheits-integrationstests) und [ADR-0009](docs/DECISIONS.md#adr-0009--einheitlicher-data-quality-vertrag-über-bestehenden-validatoren-und-policies).
 
@@ -158,12 +158,13 @@ Architekturgrundlage: [ADR-0005](docs/DECISIONS.md#adr-0005--mehrdimensionaler-z
 
 1. **Theoretische Engine stabilisieren – weit fortgeschritten.**
 2. **Mock-Daten-Szenario-Kit – mit 25 Szenarien abgeschlossen.**
-3. **Einheitliche Data-Quality-Schicht – struktureller V1-Vertrag aktiv;**
-   die kontrollierte Orchestrator-Integration folgt separat.
+3. **Einheitliche Data-Quality-Schicht – struktureller V1-Vertrag und
+   kontrollierte Orchestrator-Integration aktiv;** Application- und
+   Presentation-Weitergabe folgen separat.
 4. **Externe DTOs, Mapper und API-Verträge – offen;** erst auf den stabilisierten
    Domain- und Data-Quality-Grenzen entwerfen.
 5. **Live-Datenprovider – offen;** erst nach gesonderter fachlicher und
    architektonischer Freigabe anbinden.
 
-Orchestrator, Application und UI werden erst danach in kleinen, separat
-geprüften Migrationsschritten auf den neuen Vertrag umgestellt.
+Application und UI werden danach in kleinen, separat geprüften
+Migrationsschritten auf den neuen Vertrag umgestellt.

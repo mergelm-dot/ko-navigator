@@ -1529,11 +1529,42 @@ Weiterhin nicht Bestandteil dieses strukturellen V1-Vertrags sind:
 
 - neue Spread- oder Freshness-Schwellen,
 - FX-, Broker-, Handelsstatus- oder Providerregeln,
-- Availability-, Freshness- oder Source-Orchestrierung,
-- Änderungen am `MarketDataCalculationOrchestrator`,
 - Application-, Repository-, DTO-, Mapper-, UI- oder Navigation-Migration,
 - Confidence, Produktqualität, Scoring oder Ranking und
 - Änderungen an Engine-Mathematik oder `docs/FORMULAS.md`.
 
-Der vorhandene Orchestrator bleibt bis zu einem eigenen, freigegebenen
-Migrationsschritt unverändert.
+### 24.4 Aktive Orchestrator-Integration seit Schritt 25B
+
+Der `MarketDataCalculationOrchestrator` verwendet das strukturelle Assessment
+als erste fachliche Freigabestufe:
+
+```text
+KnockoutProductSpecification
++ KnockoutProductMarketData
+→ KnockoutProductDataQualityValidator
+→ DataQualityAssessment
+→ BLOCKED: stop
+→ PASSED/WARNING: existing availability
+→ existing freshness
+→ existing source policy
+→ orchestration result
+```
+
+`BLOCKED` beendet die Orchestrierung fail closed, bevor Availability,
+Freshness, Source Policy oder Berechnung ausgewertet werden. `PASSED` führt in
+den bisherigen Ablauf. `WARNING` wird vom aktuellen Validator nicht erzeugt;
+der Orchestrator behandelt es defensiv als nicht blockierend, überspringt aber
+keine der vorhandenen Folgeprüfungen.
+
+Jeder Orchestrator-Resultattyp führt das vollständige, nicht-nullbare
+`DataQualityAssessment`. Ein strukturelles Blockresultat bewahrt sämtliche
+Findings unverändert. Spätere Availability-, Freshness-, Source- oder
+Calculation-Blockierungen behalten das zuvor ermittelte `PASSED`- oder
+`WARNING`-Assessment und überschreiben es nicht. Die 21 Finding-Codes werden
+nicht als Orchestrator-Fehler dupliziert.
+
+Der Orchestrator bleibt reiner Koordinator und erzeugt, klassifiziert oder
+normalisiert keine Findings. Availability-, Freshness- und Source-Regeln
+bleiben in ihren bestehenden Komponenten. Repositorys, APIs und Domainmodelle
+sind unverändert; eine Weitergabe des Assessments an sichtbare UI ist noch
+nicht Bestandteil dieses Schritts.

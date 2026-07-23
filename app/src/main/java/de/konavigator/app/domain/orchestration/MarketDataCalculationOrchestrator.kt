@@ -5,22 +5,22 @@ import de.konavigator.app.domain.availability.MarketDataCalculationAvailabilityR
 import de.konavigator.app.domain.availability.MarketDataCalculationType
 import de.konavigator.app.domain.calculator.MarketDataCalculationResult
 import de.konavigator.app.domain.calculator.MarketDataCalculator
+import de.konavigator.app.domain.dataquality.DataQualityAssessment
+import de.konavigator.app.domain.dataquality.DataQualityStatus
+import de.konavigator.app.domain.dataquality.KnockoutProductDataQualityValidator
 import de.konavigator.app.domain.freshness.MarketDataFreshnessPolicy
 import de.konavigator.app.domain.freshness.MarketDataFreshnessResult
 import de.konavigator.app.domain.source.MarketDataSourcePolicy
 import de.konavigator.app.domain.source.MarketDataSourceResult
-import de.konavigator.app.domain.validation.KnockoutProductMarketDataCompatibilityValidator
-import de.konavigator.app.domain.validation.KnockoutProductMarketDataValidator
-import de.konavigator.app.domain.validation.KnockoutProductSpecificationValidator
 
 /**
  * Reine Domain-Orchestrierung für genau einen Marktdaten-CalculationType.
  *
- * Die feste Fail-Fast-Reihenfolge lautet Spezifikationsvalidierung,
- * Marktdatenvalidierung, Kompatibilität, strukturelle Availability, Freshness,
- * Quellenfreigabe und erst danach Berechnung beziehungsweise Quote-Auswahl.
- * Bestehende Komponenten bleiben dabei die alleinige Quelle ihrer Regeln und
- * ihre Fehlercodes werden unverändert weitergegeben.
+ * Die feste Fail-Fast-Reihenfolge lautet strukturelle Datenqualität,
+ * Availability, Freshness, Quellenfreigabe und erst danach Berechnung
+ * beziehungsweise Quote-Auswahl. Bestehende Komponenten bleiben dabei die
+ * alleinige Quelle ihrer Regeln und ihre Fehlercodes werden unverändert
+ * weitergegeben.
  *
  * Nur [freshnessPolicy] und [sourcePolicy] sind konfigurierbare Abhängigkeiten.
  * Die Orchestrierung liest keine Systemzeit, greift nicht auf Netzwerk oder
@@ -40,32 +40,19 @@ class MarketDataCalculationOrchestrator(
     fun calculate(
         request: MarketDataCalculationRequest
     ): MarketDataCalculationOrchestrationResult {
-        val specificationErrors = KnockoutProductSpecificationValidator.validate(
-            request.specification
-        )
-        if (specificationErrors.isNotEmpty()) {
-            return MarketDataCalculationOrchestrationResult.InvalidSpecification(
-                errors = specificationErrors
-            )
-        }
-
-        val marketDataErrors = KnockoutProductMarketDataValidator.validate(
-            request.marketData
-        )
-        if (marketDataErrors.isNotEmpty()) {
-            return MarketDataCalculationOrchestrationResult.InvalidMarketData(
-                errors = marketDataErrors
-            )
-        }
-
-        val compatibilityErrors = KnockoutProductMarketDataCompatibilityValidator.validate(
+        val dataQualityAssessment = KnockoutProductDataQualityValidator.assess(
             specification = request.specification,
             marketData = request.marketData
         )
-        if (compatibilityErrors.isNotEmpty()) {
-            return MarketDataCalculationOrchestrationResult.Incompatible(
-                errors = compatibilityErrors
-            )
+        when (dataQualityAssessment.status) {
+            DataQualityStatus.BLOCKED -> {
+                return MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked(
+                    dataQualityAssessment = dataQualityAssessment
+                )
+            }
+
+            DataQualityStatus.PASSED,
+            DataQualityStatus.WARNING -> Unit
         }
 
         when (
@@ -77,7 +64,8 @@ class MarketDataCalculationOrchestrator(
             MarketDataCalculationAvailabilityResult.StructurallyAvailable -> Unit
             is MarketDataCalculationAvailabilityResult.StructurallyUnavailable -> {
                 return MarketDataCalculationOrchestrationResult.StructurallyUnavailable(
-                    errors = availability.errors
+                    errors = availability.errors,
+                    dataQualityAssessment = dataQualityAssessment
                 )
             }
         }
@@ -92,7 +80,8 @@ class MarketDataCalculationOrchestrator(
             MarketDataFreshnessResult.Fresh -> Unit
             is MarketDataFreshnessResult.NotFresh -> {
                 return MarketDataCalculationOrchestrationResult.NotFresh(
-                    errors = freshness.errors
+                    errors = freshness.errors,
+                    dataQualityAssessment = dataQualityAssessment
                 )
             }
         }
@@ -106,16 +95,21 @@ class MarketDataCalculationOrchestrator(
             MarketDataSourceResult.Allowed -> Unit
             is MarketDataSourceResult.Blocked -> {
                 return MarketDataCalculationOrchestrationResult.SourceBlocked(
-                    error = source.error
+                    error = source.error,
+                    dataQualityAssessment = dataQualityAssessment
                 )
             }
         }
 
-        return calculateAvailableMarketData(request)
+        return calculateAvailableMarketData(
+            request = request,
+            dataQualityAssessment = dataQualityAssessment
+        )
     }
 
     private fun calculateAvailableMarketData(
-        request: MarketDataCalculationRequest
+        request: MarketDataCalculationRequest,
+        dataQualityAssessment: DataQualityAssessment
     ): MarketDataCalculationOrchestrationResult {
         val marketData = request.marketData
 
@@ -156,7 +150,8 @@ class MarketDataCalculationOrchestrator(
                     is MarketDataCalculationResult.Success -> result.value
                     is MarketDataCalculationResult.Failure -> {
                         return MarketDataCalculationOrchestrationResult.CalculationFailure(
-                            error = result.error
+                            error = result.error,
+                            dataQualityAssessment = dataQualityAssessment
                         )
                     }
                 }
@@ -169,7 +164,8 @@ class MarketDataCalculationOrchestrator(
                     is MarketDataCalculationResult.Success -> result.value
                     is MarketDataCalculationResult.Failure -> {
                         return MarketDataCalculationOrchestrationResult.CalculationFailure(
-                            error = result.error
+                            error = result.error,
+                            dataQualityAssessment = dataQualityAssessment
                         )
                     }
                 }
@@ -202,13 +198,17 @@ class MarketDataCalculationOrchestrator(
 
                     is MarketDataCalculationResult.Failure -> {
                         return MarketDataCalculationOrchestrationResult.CalculationFailure(
-                            error = result.error
+                            error = result.error,
+                            dataQualityAssessment = dataQualityAssessment
                         )
                     }
                 }
             }
         }
 
-        return MarketDataCalculationOrchestrationResult.Success(value = value)
+        return MarketDataCalculationOrchestrationResult.Success(
+            value = value,
+            dataQualityAssessment = dataQualityAssessment
+        )
     }
 }

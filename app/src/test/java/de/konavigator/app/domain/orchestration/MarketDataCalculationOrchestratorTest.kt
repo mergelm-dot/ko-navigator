@@ -3,6 +3,14 @@ package de.konavigator.app.domain.orchestration
 import de.konavigator.app.domain.availability.MarketDataCalculationAvailabilityError
 import de.konavigator.app.domain.availability.MarketDataCalculationType
 import de.konavigator.app.domain.calculator.MarketDataCalculationError
+import de.konavigator.app.domain.dataquality.DataQualityAssessment
+import de.konavigator.app.domain.dataquality.DataQualityCategory
+import de.konavigator.app.domain.dataquality.DataQualityComponent
+import de.konavigator.app.domain.dataquality.DataQualityFinding
+import de.konavigator.app.domain.dataquality.DataQualityFindingCode
+import de.konavigator.app.domain.dataquality.DataQualitySeverity
+import de.konavigator.app.domain.dataquality.DataQualityStatus
+import de.konavigator.app.domain.dataquality.KnockoutProductDataQualityValidator
 import de.konavigator.app.domain.freshness.MarketDataFreshnessError
 import de.konavigator.app.domain.freshness.MarketDataFreshnessPolicy
 import de.konavigator.app.domain.freshness.MarketDataFreshnessThresholds
@@ -13,9 +21,6 @@ import de.konavigator.app.domain.source.MarketDataSourceError
 import de.konavigator.app.domain.source.MarketDataSourcePolicy
 import de.konavigator.app.domain.source.MarketDataSourcePolicyConfig
 import de.konavigator.app.domain.source.MarketDataSourceRule
-import de.konavigator.app.domain.validation.KnockoutProductCompatibilityError
-import de.konavigator.app.domain.validation.KnockoutProductMarketDataValidationError
-import de.konavigator.app.domain.validation.KnockoutProductValidationError
 import java.lang.reflect.Modifier
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -53,12 +58,10 @@ class MarketDataCalculationOrchestratorTest {
     }
 
     @Test
-    fun orchestrationResultContainsExactlyEightSubtypes() {
+    fun orchestrationResultContainsExactlySixSubtypes() {
         assertEquals(
             setOf(
-                "InvalidSpecification",
-                "InvalidMarketData",
-                "Incompatible",
+                "StructuralDataQualityBlocked",
                 "StructurallyUnavailable",
                 "NotFresh",
                 "SourceBlocked",
@@ -68,6 +71,38 @@ class MarketDataCalculationOrchestratorTest {
             MarketDataCalculationOrchestrationResult::class.java.declaredClasses
                 .map { it.simpleName }
                 .toSet()
+        )
+    }
+
+    @Test
+    fun everyOrchestrationResultContainsDataQualityAssessment() {
+        assertTrue(
+            resultTypes().all { type ->
+                instanceFields(type).any {
+                    it.name == "dataQualityAssessment" &&
+                        it.type == DataQualityAssessment::class.java
+                }
+            }
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun structuralDataQualityBlockedRejectsPassedAssessment() {
+        MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked(
+            DataQualityAssessment.passed()
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun laterResultRejectsBlockedAssessment() {
+        val blocked = KnockoutProductDataQualityValidator.assess(
+            specification = specification(productIsin = ""),
+            marketData = marketData()
+        )
+
+        MarketDataCalculationOrchestrationResult.Success(
+            value = MarketDataCalculationValue.PurchasePrice(2.0, "EUR"),
+            dataQualityAssessment = blocked
         )
     }
 
@@ -269,14 +304,15 @@ class MarketDataCalculationOrchestratorTest {
     }
 
     @Test
-    fun invalidSpecificationReturnsInvalidSpecification() {
+    fun invalidSpecificationReturnsStructuralDataQualityBlocked() {
         val result = calculate(request(PURCHASE_PRICE, specification = specification(productIsin = "")))
 
-        assertTrue(result is MarketDataCalculationOrchestrationResult.InvalidSpecification)
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
+        assertEquals(DataQualityStatus.BLOCKED, result.dataQualityAssessment.status)
     }
 
     @Test
-    fun allSpecificationErrorsRemainUnchanged() {
+    fun allSpecificationFindingsRemainCompleteAndOrdered() {
         val invalid = specification(
             productIsin = "",
             productWkn = " ",
@@ -289,26 +325,46 @@ class MarketDataCalculationOrchestratorTest {
             productCurrency = "EU"
         )
         val result = calculate(request(PURCHASE_PRICE, specification = invalid))
-            as MarketDataCalculationOrchestrationResult.InvalidSpecification
+            as MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked
 
-        assertEquals(KnockoutProductValidationError.entries, result.errors)
+        assertEquals(
+            listOf(
+                DataQualityFindingCode.SPECIFICATION_MISSING_PRODUCT_ISIN,
+                DataQualityFindingCode.SPECIFICATION_INVALID_PRODUCT_WKN,
+                DataQualityFindingCode.SPECIFICATION_MISSING_ISSUER_ID,
+                DataQualityFindingCode.SPECIFICATION_MISSING_UNDERLYING_ID,
+                DataQualityFindingCode.SPECIFICATION_INVALID_BASE_PRICE,
+                DataQualityFindingCode.SPECIFICATION_INVALID_KNOCKOUT_BARRIER,
+                DataQualityFindingCode.SPECIFICATION_INVALID_RATIO,
+                DataQualityFindingCode.SPECIFICATION_INVALID_UNDERLYING_CURRENCY,
+                DataQualityFindingCode.SPECIFICATION_INVALID_PRODUCT_CURRENCY
+            ),
+            result.dataQualityAssessment.findings.map { it.code }
+        )
     }
 
     @Test
-    fun marketDataFailureCannotOverrideSpecificationFailure() {
+    fun specificationAndMarketDataFindingsRemainCompleteInStableOrder() {
         val result = calculate(
             request(
                 PURCHASE_PRICE,
                 specification = specification(productIsin = ""),
                 marketData = marketData(productIsin = "", sourceId = "")
             )
-        )
+        ) as MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked
 
-        assertTrue(result is MarketDataCalculationOrchestrationResult.InvalidSpecification)
+        assertEquals(
+            listOf(
+                DataQualityFindingCode.SPECIFICATION_MISSING_PRODUCT_ISIN,
+                DataQualityFindingCode.MARKET_DATA_MISSING_PRODUCT_ISIN,
+                DataQualityFindingCode.MARKET_DATA_MISSING_SOURCE_ID
+            ),
+            result.dataQualityAssessment.findings.map { it.code }
+        )
     }
 
     @Test
-    fun laterStagesCannotOverrideSpecificationFailure() {
+    fun laterStagesCannotOverrideStructuralDataQualityFailure() {
         val result = blockedOrchestrator().calculate(
             request(
                 PURCHASE_PRICE,
@@ -318,18 +374,67 @@ class MarketDataCalculationOrchestratorTest {
             )
         )
 
-        assertTrue(result is MarketDataCalculationOrchestrationResult.InvalidSpecification)
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
     }
 
     @Test
-    fun invalidMarketDataReturnsInvalidMarketData() {
+    fun blockedAssessmentIsCarriedWithoutFindingLoss() {
+        val request = request(
+            PURCHASE_PRICE,
+            specification = specification(productIsin = "", issuerId = ""),
+            marketData = marketData(sourceId = "")
+        )
+        val expected = KnockoutProductDataQualityValidator.assess(
+            specification = request.specification,
+            marketData = request.marketData
+        )
+
+        val result = calculate(request)
+
+        assertEquals(expected, result.dataQualityAssessment)
+    }
+
+    @Test
+    fun freshnessIsNotEvaluatedAfterStructuralDataQualityFailure() {
+        val result = calculate(
+            request(
+                PURCHASE_PRICE,
+                specification = specification(productIsin = ""),
+                marketData = marketData(askTimestampEpochMillis = null)
+            )
+        )
+
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
+    }
+
+    @Test
+    fun currentValidatorProducesNoWarningAssessment() {
+        val valid = KnockoutProductDataQualityValidator.assess(
+            specification = specification(),
+            marketData = marketData()
+        )
+        val invalid = KnockoutProductDataQualityValidator.assess(
+            specification = specification(productIsin = ""),
+            marketData = marketData()
+        )
+
+        assertEquals(setOf(DataQualityStatus.PASSED, DataQualityStatus.BLOCKED), setOf(valid.status, invalid.status))
+        assertFalse(listOf(valid, invalid).any { it.status == DataQualityStatus.WARNING })
+    }
+
+    @Test
+    fun invalidMarketDataReturnsStructuralDataQualityBlocked() {
         val result = calculate(request(PURCHASE_PRICE, marketData = marketData(currency = "eur")))
 
-        assertTrue(result is MarketDataCalculationOrchestrationResult.InvalidMarketData)
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
+        assertEquals(
+            DataQualityFindingCode.MARKET_DATA_INVALID_CURRENCY,
+            result.dataQualityAssessment.findings.single().code
+        )
     }
 
     @Test
-    fun allMarketDataErrorsRemainUnchanged() {
+    fun allMarketDataFindingsRemainCompleteAndOrdered() {
         val invalid = marketData(
             productIsin = "",
             sourceId = "",
@@ -340,24 +445,24 @@ class MarketDataCalculationOrchestratorTest {
             askTimestampEpochMillis = null
         )
         val result = calculate(request(PURCHASE_PRICE, marketData = invalid))
-            as MarketDataCalculationOrchestrationResult.InvalidMarketData
+            as MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked
 
         assertEquals(
             listOf(
-                KnockoutProductMarketDataValidationError.MISSING_PRODUCT_ISIN,
-                KnockoutProductMarketDataValidationError.MISSING_SOURCE_ID,
-                KnockoutProductMarketDataValidationError.INVALID_CURRENCY,
-                KnockoutProductMarketDataValidationError.INVALID_BID,
-                KnockoutProductMarketDataValidationError.MISSING_BID_TIMESTAMP,
-                KnockoutProductMarketDataValidationError.INVALID_ASK,
-                KnockoutProductMarketDataValidationError.MISSING_ASK_TIMESTAMP
+                DataQualityFindingCode.MARKET_DATA_MISSING_PRODUCT_ISIN,
+                DataQualityFindingCode.MARKET_DATA_MISSING_SOURCE_ID,
+                DataQualityFindingCode.MARKET_DATA_INVALID_CURRENCY,
+                DataQualityFindingCode.MARKET_DATA_INVALID_BID,
+                DataQualityFindingCode.MARKET_DATA_MISSING_BID_TIMESTAMP,
+                DataQualityFindingCode.MARKET_DATA_INVALID_ASK,
+                DataQualityFindingCode.MARKET_DATA_MISSING_ASK_TIMESTAMP
             ),
-            result.errors
+            result.dataQualityAssessment.findings.map { it.code }
         )
     }
 
     @Test
-    fun compatibilityCannotOverrideMarketDataFailure() {
+    fun invalidMarketDataPreventsCompatibilityFindings() {
         val result = calculate(
             request(
                 PURCHASE_PRICE,
@@ -365,49 +470,58 @@ class MarketDataCalculationOrchestratorTest {
             )
         )
 
-        assertTrue(result is MarketDataCalculationOrchestrationResult.InvalidMarketData)
+        assertEquals(
+            listOf(DataQualityFindingCode.MARKET_DATA_INVALID_CURRENCY),
+            result.dataQualityAssessment.findings.map { it.code }
+        )
     }
 
     @Test
-    fun sourcePolicyCannotOverrideMarketDataFailure() {
+    fun sourcePolicyCannotOverrideStructuralDataQualityFailure() {
         val result = blockedOrchestrator().calculate(
             request(PURCHASE_PRICE, marketData = marketData(currency = "eur"))
         )
 
-        assertTrue(result is MarketDataCalculationOrchestrationResult.InvalidMarketData)
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
     }
 
     @Test
-    fun isinMismatchReturnsIncompatible() {
+    fun isinMismatchReturnsStructuralDataQualityBlocked() {
         val result = calculate(request(PURCHASE_PRICE, marketData = marketData(productIsin = "OTHER")))
 
         assertEquals(
-            listOf(KnockoutProductCompatibilityError.PRODUCT_ISIN_MISMATCH),
-            (result as MarketDataCalculationOrchestrationResult.Incompatible).errors
+            listOf(DataQualityFindingCode.COMPATIBILITY_PRODUCT_ISIN_MISMATCH),
+            result.dataQualityAssessment.findings.map { it.code }
         )
     }
 
     @Test
-    fun currencyMismatchReturnsIncompatible() {
+    fun currencyMismatchReturnsStructuralDataQualityBlocked() {
         val result = calculate(request(PURCHASE_PRICE, marketData = marketData(currency = "USD")))
 
         assertEquals(
-            listOf(KnockoutProductCompatibilityError.PRODUCT_CURRENCY_MISMATCH),
-            (result as MarketDataCalculationOrchestrationResult.Incompatible).errors
+            listOf(DataQualityFindingCode.COMPATIBILITY_PRODUCT_CURRENCY_MISMATCH),
+            result.dataQualityAssessment.findings.map { it.code }
         )
     }
 
     @Test
-    fun compatibilityErrorsRemainCompleteAndOrdered() {
+    fun compatibilityFindingsRemainCompleteAndOrdered() {
         val result = calculate(
             request(PURCHASE_PRICE, marketData = marketData(productIsin = "OTHER", currency = "USD"))
-        ) as MarketDataCalculationOrchestrationResult.Incompatible
+        ) as MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked
 
-        assertEquals(KnockoutProductCompatibilityError.entries, result.errors)
+        assertEquals(
+            listOf(
+                DataQualityFindingCode.COMPATIBILITY_PRODUCT_ISIN_MISMATCH,
+                DataQualityFindingCode.COMPATIBILITY_PRODUCT_CURRENCY_MISMATCH
+            ),
+            result.dataQualityAssessment.findings.map { it.code }
+        )
     }
 
     @Test
-    fun availabilityCannotOverrideCompatibilityFailure() {
+    fun availabilityIsNotEvaluatedAfterStructuralDataQualityFailure() {
         val result = calculate(
             request(
                 PURCHASE_PRICE,
@@ -415,7 +529,7 @@ class MarketDataCalculationOrchestratorTest {
             )
         )
 
-        assertTrue(result is MarketDataCalculationOrchestrationResult.Incompatible)
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
     }
 
     @Test
@@ -611,7 +725,10 @@ class MarketDataCalculationOrchestratorTest {
         val result = blockedOrchestrator().calculate(request(PURCHASE_PRICE))
             as MarketDataCalculationOrchestrationResult.SourceBlocked
 
-        assertEquals(listOf("error"), instanceFields(result.javaClass).map { it.name })
+        assertEquals(
+            listOf("error", "dataQualityAssessment"),
+            instanceFields(result.javaClass).map { it.name }
+        )
         assertEquals(MarketDataSourceError.SOURCE_NOT_CONFIGURED, result.error)
     }
 
@@ -636,7 +753,7 @@ class MarketDataCalculationOrchestratorTest {
     }
 
     @Test
-    fun specificationFailureHasHighestPriority() {
+    fun structuralDataQualityFailureHasHighestPriority() {
         val result = blockedOrchestrator().calculate(
             request(
                 PURCHASE_PRICE,
@@ -645,20 +762,23 @@ class MarketDataCalculationOrchestratorTest {
             )
         )
 
-        assertTrue(result is MarketDataCalculationOrchestrationResult.InvalidSpecification)
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
     }
 
     @Test
-    fun marketDataFailurePrecedesCompatibility() {
+    fun structuralValidatorDoesNotCreateCompatibilityFindingsForInvalidMarketData() {
         val result = calculate(
             request(PURCHASE_PRICE, marketData = marketData(productIsin = "OTHER", currency = "usd"))
         )
 
-        assertTrue(result is MarketDataCalculationOrchestrationResult.InvalidMarketData)
+        assertEquals(
+            listOf(DataQualityFindingCode.MARKET_DATA_INVALID_CURRENCY),
+            result.dataQualityAssessment.findings.map { it.code }
+        )
     }
 
     @Test
-    fun compatibilityFailurePrecedesAvailability() {
+    fun structuralDataQualityFailurePrecedesAvailability() {
         val result = calculate(
             request(
                 PURCHASE_PRICE,
@@ -670,7 +790,7 @@ class MarketDataCalculationOrchestratorTest {
             )
         )
 
-        assertTrue(result is MarketDataCalculationOrchestrationResult.Incompatible)
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked)
     }
 
     @Test
@@ -702,40 +822,47 @@ class MarketDataCalculationOrchestratorTest {
     }
 
     @Test
-    fun errorsFromDifferentStagesAreNotAggregated() {
+    fun structuralFindingsDoNotAggregateLaterStageErrors() {
         val result = blockedOrchestrator().calculate(
             request(
                 PURCHASE_PRICE,
                 specification = specification(productIsin = ""),
                 marketData = marketData(currency = "usd")
             )
-        ) as MarketDataCalculationOrchestrationResult.InvalidSpecification
+        ) as MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked
 
-        assertEquals(listOf(KnockoutProductValidationError.MISSING_PRODUCT_ISIN), result.errors)
+        assertEquals(
+            listOf(
+                DataQualityFindingCode.SPECIFICATION_MISSING_PRODUCT_ISIN,
+                DataQualityFindingCode.MARKET_DATA_INVALID_CURRENCY
+            ),
+            result.dataQualityAssessment.findings.map { it.code }
+        )
     }
 
     @Test
-    fun multipleErrorsRemainWithinSpecificationStage() {
+    fun multipleSpecificationFindingsRemainComplete() {
         val result = calculate(
             request(
                 PURCHASE_PRICE,
                 specification = specification(productIsin = "", issuerId = "")
             )
-        ) as MarketDataCalculationOrchestrationResult.InvalidSpecification
+        ) as MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked
 
         assertEquals(
             listOf(
-                KnockoutProductValidationError.MISSING_PRODUCT_ISIN,
-                KnockoutProductValidationError.MISSING_ISSUER_ID
+                DataQualityFindingCode.SPECIFICATION_MISSING_PRODUCT_ISIN,
+                DataQualityFindingCode.SPECIFICATION_MISSING_ISSUER_ID
             ),
-            result.errors
+            result.dataQualityAssessment.findings.map { it.code }
         )
     }
 
     @Test
     fun calculationFailurePreservesInvalidBidCode() {
         val result = MarketDataCalculationOrchestrationResult.CalculationFailure(
-            MarketDataCalculationError.INVALID_BID
+            error = MarketDataCalculationError.INVALID_BID,
+            dataQualityAssessment = DataQualityAssessment.passed()
         )
 
         assertEquals(MarketDataCalculationError.INVALID_BID, result.error)
@@ -744,7 +871,8 @@ class MarketDataCalculationOrchestratorTest {
     @Test
     fun calculationFailurePreservesInvalidAskCode() {
         val result = MarketDataCalculationOrchestrationResult.CalculationFailure(
-            MarketDataCalculationError.INVALID_ASK
+            error = MarketDataCalculationError.INVALID_ASK,
+            dataQualityAssessment = DataQualityAssessment.passed()
         )
 
         assertEquals(MarketDataCalculationError.INVALID_ASK, result.error)
@@ -753,7 +881,8 @@ class MarketDataCalculationOrchestratorTest {
     @Test
     fun calculationFailurePreservesBidAboveAskCode() {
         val result = MarketDataCalculationOrchestrationResult.CalculationFailure(
-            MarketDataCalculationError.BID_ABOVE_ASK
+            error = MarketDataCalculationError.BID_ABOVE_ASK,
+            dataQualityAssessment = DataQualityAssessment.passed()
         )
 
         assertEquals(MarketDataCalculationError.BID_ABOVE_ASK, result.error)
@@ -762,10 +891,72 @@ class MarketDataCalculationOrchestratorTest {
     @Test
     fun calculationFailureContainsNoExceptionOrMessage() {
         assertEquals(
-            listOf("error"),
+            listOf("error", "dataQualityAssessment"),
             instanceFields(MarketDataCalculationOrchestrationResult.CalculationFailure::class.java)
                 .map { it.name }
         )
+    }
+
+    @Test
+    fun passedAssessmentIsCarriedBySuccess() {
+        val result = calculate(request(PURCHASE_PRICE))
+
+        assertEquals(DataQualityAssessment.passed(), result.dataQualityAssessment)
+    }
+
+    @Test
+    fun passedAssessmentIsPreservedByAvailabilityFailure() {
+        val result = calculate(
+            request(
+                PURCHASE_PRICE,
+                marketData = marketData(ask = null, askTimestampEpochMillis = null)
+            )
+        )
+
+        assertTrue(result is MarketDataCalculationOrchestrationResult.StructurallyUnavailable)
+        assertEquals(DataQualityAssessment.passed(), result.dataQualityAssessment)
+    }
+
+    @Test
+    fun passedAssessmentIsPreservedByFreshnessFailure() {
+        val result = staleOrchestrator().calculate(
+            request(
+                PURCHASE_PRICE,
+                marketData = marketData(askTimestampEpochMillis = 0L),
+                evaluationTimeEpochMillis = 100L
+            )
+        )
+
+        assertTrue(result is MarketDataCalculationOrchestrationResult.NotFresh)
+        assertEquals(DataQualityAssessment.passed(), result.dataQualityAssessment)
+    }
+
+    @Test
+    fun passedAssessmentIsPreservedBySourceFailure() {
+        val result = blockedOrchestrator().calculate(request(PURCHASE_PRICE))
+
+        assertTrue(result is MarketDataCalculationOrchestrationResult.SourceBlocked)
+        assertEquals(DataQualityAssessment.passed(), result.dataQualityAssessment)
+    }
+
+    @Test
+    fun warningAssessmentCanBeTransportedByResultContract() {
+        val assessment = DataQualityAssessment.warning(
+            listOf(
+                DataQualityFinding(
+                    category = DataQualityCategory.INVALID_NUMERIC_VALUE,
+                    severity = DataQualitySeverity.WARNING,
+                    code = DataQualityFindingCode.MARKET_DATA_INVALID_BID,
+                    component = DataQualityComponent.PRODUCT_MARKET_DATA
+                )
+            )
+        )
+        val result = MarketDataCalculationOrchestrationResult.Success(
+            value = MarketDataCalculationValue.PurchasePrice(2.0, "EUR"),
+            dataQualityAssessment = assessment
+        )
+
+        assertSame(assessment, result.dataQualityAssessment)
     }
 
     @Test

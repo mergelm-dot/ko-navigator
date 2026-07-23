@@ -928,3 +928,44 @@ Ebenso bestehen keine Repository-, API-, DTO-, Mapper-, Coroutine-, Systemzeit-,
 Application-, ViewModel- oder UI-Abhängigkeiten. Der sichtbare neutrale
 Datenqualitäts-Platzhalter bleibt unverändert. Ein Gerätetest ist für diesen
 reinen Domain-, JVM-Test- und Dokumentationsschritt nicht erforderlich.
+
+---
+
+## Entwicklungsschritt 25B – Strukturelles Assessment in den Orchestrator integriert
+
+**Datum:** 2026-07-23
+
+Der `MarketDataCalculationOrchestrator` verwendet das bestehende
+`KnockoutProductDataQualityValidator`-Assessment jetzt als erste fachliche
+Freigabestufe. Ein `BLOCKED`-Assessment beendet die Orchestrierung fail closed,
+bevor Availability, Freshness, Source Policy oder Berechnung ausgewertet
+werden. `PASSED` führt in den bisherigen Ablauf. `WARNING` wird weiterhin
+nicht erzeugt, ist im Resultatvertrag aber transportierbar und wird defensiv
+als nicht blockierend behandelt, ohne Folgeprüfungen zu überspringen.
+
+Der Orchestrator-Resultatvertrag führt das vollständige, nicht-nullbare
+`DataQualityAssessment` in jedem Erfolgs- und Blockierungsresultat. Die drei
+früheren strukturellen Resultattypen wurden durch einen eindeutigen
+`StructuralDataQualityBlocked`-Typ ersetzt; die vollständigen Details und ihre
+stabile Reihenfolge bleiben ausschließlich in den bestehenden Findings.
+Availability-, Freshness-, Source- und Calculation-Fehler bleiben unverändert
+und überschreiben das strukturelle Assessment nicht.
+
+Der Orchestrator erzeugt oder klassifiziert keine Findings und dupliziert
+keinen der 21 Codes. Validator-, Availability-, Freshness- und Source-Regeln,
+Repositorys, Adapter, Produktmodelle, APIs, Engine und Formeln bleiben
+unverändert. Der bestehende Application Service reicht Domainresultate bereits
+unverändert weiter. Der exhaustive Market-Data-Presentation-Adapter wurde nur
+für den neuen Domainresultat-Subtyp kompilierbar gehalten; eine sichtbare
+Data-Quality-Anbindung, neue Texte oder Änderungen am neutralen
+Trade-Planner-Platzhalter erfolgten nicht.
+
+Der fokussierte Orchestrator-Testbestand umfasst nun 94 erfolgreiche Tests.
+Neue beziehungsweise migrierte Prüfungen sichern strukturelle Blockierungen,
+vollständige Findings und Reihenfolge, Nichtausführung späterer Stufen,
+Assessment-Erhalt bei späteren Blockierungen, deterministische Ergebnisse und
+die vorbereitete WARNING-Transportierbarkeit ab. Die vollständige JVM-Suite
+umfasst nun 926/926 erfolgreiche Tests ohne Fehler oder übersprungene Tests;
+`assembleDebug` und `assembleDebugAndroidTest` waren ebenfalls erfolgreich.
+Ein Gerätetest ist ohne sichtbare UI- oder Android-Laufzeitänderung nicht
+erforderlich.

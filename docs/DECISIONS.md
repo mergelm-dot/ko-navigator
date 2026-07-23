@@ -16,7 +16,7 @@ Dieses Dokument ist das verbindliche Register wichtiger Architekturentscheidunge
 | ADR-0006 | Explainable Engine für Produktauswahl und Berechnung | Accepted | Nicht begonnen |
 | ADR-0007 | Confidence Score für die Berechnungszuverlässigkeit | Accepted | Nicht begonnen |
 | ADR-0008 | Typisierter FX-/Ratio-Produktwertvertrag | Accepted | Aktiver Engine-Pfad mit theoretischem Hebel |
-| ADR-0009 | Einheitlicher Data-Quality-Vertrag über bestehenden Validatoren und Policies | Accepted | Struktureller V1-Vertrag aktiv; Orchestrator-Integration offen |
+| ADR-0009 | Einheitlicher Data-Quality-Vertrag über bestehenden Validatoren und Policies | Accepted | Struktureller V1-Vertrag und Orchestrator-Integration aktiv |
 
 ## ADR-0001 – CurrencyPolicy als verbindliche Währungsgrenze
 
@@ -451,8 +451,14 @@ bestehenden strukturellen Validatoren und der CompatibilityValidator bleiben
 Single Source of Truth; ihre 21 Fehlercodes werden vollständig und
 deterministisch auf eigene Data-Quality-Finding-Codes abgebildet.
 
-`WARNING` ist im Vertrag vorbereitet, wird aber noch nicht erzeugt. Der
-vorhandene `MarketDataCalculationOrchestrator` verwendet den neuen Vertrag
-noch nicht. Seine kontrollierte Integration folgt in einem separaten
-Migrationsschritt. Application, Repositorys, Provider und UI bleiben
-unverändert.
+`WARNING` ist im Vertrag vorbereitet, wird aber noch nicht erzeugt. Seit
+Schritt 25B verwendet der `MarketDataCalculationOrchestrator` das Assessment
+als erste fachliche Freigabestufe. `BLOCKED` beendet den Ablauf fail closed;
+`PASSED` und defensiv `WARNING` führen in die unveränderten Availability-,
+Freshness- und Source-Prüfungen. Das vollständige Assessment bleibt in jedem
+Orchestrator-Resultat erhalten.
+
+Der Orchestrator bleibt Koordinator und erzeugt oder klassifiziert keine
+Findings. Application, Repositorys, Provider und sichtbare UI bleiben
+unverändert; die kontrollierte Weitergabe durch Application und Presentation
+folgt separat.
