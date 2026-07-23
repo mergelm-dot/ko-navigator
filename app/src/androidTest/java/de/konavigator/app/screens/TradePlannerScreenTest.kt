@@ -307,6 +307,43 @@ class TradePlannerScreenTest {
         }
     }
 
+    @Test
+    fun scenario19DataQualityPlaceholderIsVisibleAndNeutral() {
+        setScreen(successState(EntryPriceRelation.AT_CURRENT))
+
+        val resultMatcher = hasTestTag(RESULT_TAG) and
+            hasAnyDescendant(hasText("Datenqualität")) and
+            hasAnyDescendant(hasText("Noch nicht bewertet")) and
+            hasAnyDescendant(
+                hasText(
+                    "Vereinfachte Modellrechnung – kein handelbarer Produktpreis und " +
+                        "keine Anlageberatung."
+                )
+            )
+
+        composeRule.onNode(resultMatcher).performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("Datenqualität").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Noch nicht bewertet").assertCountEquals(1)
+        listOf(
+            "Geprüft",
+            "Bestanden",
+            "Gut",
+            "Vollständig",
+            "Zuverlässig",
+            "Freigegeben",
+            "Hohe Qualität",
+            "PASSED",
+            "WARNING",
+            "BLOCKED"
+        ).forEach {
+            composeRule.onAllNodesWithText(
+                it,
+                substring = true,
+                ignoreCase = true
+            ).assertCountEquals(0)
+        }
+    }
+
     private fun setScreen(
         state: TradePlannerUiState = TradePlannerUiState(),
         onCurrentPriceChanged: (String) -> Unit = {},

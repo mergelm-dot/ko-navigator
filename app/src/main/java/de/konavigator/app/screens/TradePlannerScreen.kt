@@ -551,6 +551,12 @@ private fun TradePlannerResultCard(result: TradePlannerUiResult.Success) {
                     percentFormatter.format(result.distanceToKnockoutPercent)
                 )
             )
+            ResultValueRow(
+                label = stringResource(R.string.trade_planner_result_data_quality),
+                value = stringResource(
+                    R.string.trade_planner_result_data_quality_not_evaluated
+                )
+            )
             Text(
                 text = stringResource(R.string.trade_planner_result_model_notice),
                 color = SecondaryText,

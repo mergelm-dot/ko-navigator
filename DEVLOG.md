@@ -856,3 +856,28 @@ Der nächste freigegebene technische Schritt lautet:
 **Schritt 25A – Strukturellen Data-Quality-Vertrag und delegierenden Validator
 für `KnockoutProductSpecification` und `KnockoutProductMarketData`
 einführen.**
+
+---
+
+## Entwicklungsschritt 24D – Neutraler Datenqualitäts-Platzhalter im Trade Planner
+
+**Datum:** 2026-07-23
+
+Die bestehende theoretische Ergebnisbox des `TradePlannerScreen` enthält nach
+den vorhandenen Ergebniswerten und vor dem Modellhinweis genau eine neue
+neutrale Zeile. Das Label lautet „Datenqualität“, der einzige angezeigte Wert
+„Noch nicht bewertet“. Die Darstellung verwendet die bestehende
+`ResultValueRow` ohne zusätzliche Karte, Interaktion, Farbe, Ampellogik, Icon
+oder Badge.
+
+Der Wert ist ausschließlich ein statischer UI-Platzhalter. Es findet noch
+keine technische Data-Quality-Bewertung statt; weder Domainmodell noch
+Validator, Policy, Orchestrator, Engine, ViewModel, Application Service oder
+Repository sind angebunden oder verändert. Insbesondere wird kein Status wie
+`PASSED`, `WARNING` oder `BLOCKED` behauptet.
+
+Der bestehende Android-Test des state-gesteuerten Screens prüft die Sichtbarkeit
+von Label, neutralem Wert und Modellhinweis sowie das Ausbleiben positiver oder
+negativer Qualitätsbehauptungen. Schritt 25A bleibt der nächste fachliche
+Data-Quality-Schritt. Vor einem Commit ist ein Gerätetest des Platzhalters
+erforderlich.
