@@ -1,11 +1,13 @@
 package de.konavigator.app.debug.marketdata
 
 import de.konavigator.app.application.marketdata.MarketDataCalculationApplicationService
-import de.konavigator.app.data.inmemory.InMemoryKnockoutProductMarketDataRepository
-import de.konavigator.app.data.inmemory.InMemoryKnockoutProductSpecificationRepository
+import de.konavigator.app.data.remote.RemoteKnockoutProductMarketDataRepository
+import de.konavigator.app.data.remote.RemoteKnockoutProductSpecificationRepository
+import de.konavigator.app.data.remote.dto.KnockoutProductMarketDataDto
+import de.konavigator.app.data.remote.dto.KnockoutProductSpecificationDto
+import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductMarketDataProvider
+import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductSpecificationProvider
 import de.konavigator.app.domain.availability.MarketDataCalculationType
-import de.konavigator.app.domain.model.KnockoutProductMarketData
-import de.konavigator.app.domain.model.KnockoutProductSpecification
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiError
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiResult
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiSubmission
@@ -88,21 +90,29 @@ class MarketDataCalculationDemoCompositionTest {
             factory,
             "applicationService"
         )
-        val specificationRepository =
-            readField<InMemoryKnockoutProductSpecificationRepository>(
-                service,
-                "specificationRepository"
-            )
-        val marketDataRepository = readField<InMemoryKnockoutProductMarketDataRepository>(
+        val specificationRepository = readField<Any>(service, "specificationRepository")
+        val marketDataRepository = readField<Any>(
             service,
             "marketDataRepository"
         )
-        val specification = readField<Map<String, KnockoutProductSpecification>>(
-            specificationRepository,
+        assertTrue(
+            specificationRepository is RemoteKnockoutProductSpecificationRepository
+        )
+        assertTrue(marketDataRepository is RemoteKnockoutProductMarketDataRepository)
+
+        val specificationProvider = readField<Any>(specificationRepository, "provider")
+        val marketDataProvider = readField<Any>(marketDataRepository, "provider")
+        assertTrue(
+            specificationProvider is InMemoryKnockoutProductSpecificationProvider
+        )
+        assertTrue(marketDataProvider is InMemoryKnockoutProductMarketDataProvider)
+
+        val specification = readField<Map<String, KnockoutProductSpecificationDto>>(
+            specificationProvider,
             "specificationsByProductIsin"
         ).values.single()
-        val marketData = readField<Map<String, KnockoutProductMarketData>>(
-            marketDataRepository,
+        val marketData = readField<Map<String, KnockoutProductMarketDataDto>>(
+            marketDataProvider,
             "marketDataByProductIsin"
         ).values.single()
 
