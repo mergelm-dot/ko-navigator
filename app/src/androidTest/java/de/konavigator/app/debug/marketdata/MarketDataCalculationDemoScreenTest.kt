@@ -21,6 +21,11 @@ import androidx.compose.ui.test.performTextInput
 import de.konavigator.app.domain.availability.MarketDataCalculationType
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiError
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQuality
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQualityCategory
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQualityComponent
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQualityFinding
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQualityFindingCode
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQualitySeverity
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQualityStatus
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiInputError
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiResult
@@ -318,6 +323,9 @@ class MarketDataCalculationDemoScreenTest {
         MarketDataCalculationUiInputError.entries.forEach { error ->
             composeRule.onAllNodesWithText(error.name).assertCountEquals(0)
         }
+        MarketDataCalculationUiDataQualityStatus.entries.forEach { status ->
+            composeRule.onAllNodesWithText(status.name).assertCountEquals(0)
+        }
     }
 
     @Test
@@ -355,6 +363,65 @@ class MarketDataCalculationDemoScreenTest {
                 forbidden.any { typeName.contains(it, ignoreCase = true) }
             }
         )
+    }
+
+    @Test
+    fun scenario21PassedDataQualityIsDisplayedAfterSuccessfulResult() {
+        setScreen(
+            completedState(
+                MarketDataCalculationUiResult.PurchasePrice(
+                    value = 2.0,
+                    currency = "EUR",
+                    dataQuality = passedDataQuality()
+                )
+            )
+        )
+
+        composeRule.onNodeWithTag(RESULT_CARD_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(DATA_QUALITY_CARD_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("DatenqualitÃ¤t").assertIsDisplayed()
+        composeRule.onNodeWithText("Status: PrÃ¼fung bestanden").assertIsDisplayed()
+    }
+
+    @Test
+    fun scenario22WarningDataQualityIsDisplayedAfterSuccessfulResult() {
+        setScreen(
+            completedState(
+                MarketDataCalculationUiResult.PurchasePrice(
+                    value = 2.0,
+                    currency = "EUR",
+                    dataQuality = warningDataQuality()
+                )
+            )
+        )
+
+        composeRule.onNodeWithTag(DATA_QUALITY_CARD_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Status: Warnung").assertIsDisplayed()
+    }
+
+    @Test
+    fun scenario23BlockedDataQualityIsDisplayedAfterFailure() {
+        setScreen(
+            completedState(
+                MarketDataCalculationUiResult.Failure(
+                    error = MarketDataCalculationUiError.INVALID_MARKET_DATA,
+                    dataQuality = blockedDataQuality()
+                )
+            )
+        )
+
+        composeRule.onNodeWithTag(ERROR_CARD_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(DATA_QUALITY_CARD_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Status: Blockiert").assertIsDisplayed()
+    }
+
+    @Test
+    fun scenario24UnavailableDataQualityIsDisplayedAfterFailure() {
+        setScreen(failureState(MarketDataCalculationUiError.DATA_ACCESS_FAILURE))
+
+        composeRule.onNodeWithTag(ERROR_CARD_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(DATA_QUALITY_CARD_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Status: Nicht verfÃ¼gbar").assertIsDisplayed()
     }
 
     private fun setScreen(
@@ -438,6 +505,34 @@ class MarketDataCalculationDemoScreenTest {
         findings = emptyList()
     )
 
+    private fun warningDataQuality() = MarketDataCalculationUiDataQuality(
+        status = MarketDataCalculationUiDataQualityStatus.WARNING,
+        findings = listOf(
+            MarketDataCalculationUiDataQualityFinding(
+                category = MarketDataCalculationUiDataQualityCategory.INVALID_IDENTIFIER,
+                severity = MarketDataCalculationUiDataQualitySeverity.WARNING,
+                code =
+                    MarketDataCalculationUiDataQualityFindingCode
+                        .SPECIFICATION_INVALID_PRODUCT_WKN,
+                component =
+                    MarketDataCalculationUiDataQualityComponent.PRODUCT_SPECIFICATION
+            )
+        )
+    )
+
+    private fun blockedDataQuality() = MarketDataCalculationUiDataQuality(
+        status = MarketDataCalculationUiDataQualityStatus.BLOCKED,
+        findings = listOf(
+            MarketDataCalculationUiDataQualityFinding(
+                category = MarketDataCalculationUiDataQualityCategory.INVALID_NUMERIC_VALUE,
+                severity = MarketDataCalculationUiDataQualitySeverity.BLOCKING,
+                code = MarketDataCalculationUiDataQualityFindingCode.MARKET_DATA_INVALID_BID,
+                component =
+                    MarketDataCalculationUiDataQualityComponent.PRODUCT_MARKET_DATA
+            )
+        )
+    )
+
     private companion object {
         const val PRODUCT_ISIN_TAG = "market_data_demo_product_isin"
         const val EVALUATION_TIME_TAG = "market_data_demo_evaluation_time"
@@ -450,5 +545,6 @@ class MarketDataCalculationDemoScreenTest {
         const val LOADING_TAG = "market_data_demo_loading"
         const val RESULT_CARD_TAG = "market_data_demo_result_card"
         const val ERROR_CARD_TAG = "market_data_demo_error_card"
+        const val DATA_QUALITY_CARD_TAG = "market_data_demo_data_quality_card"
     }
 }

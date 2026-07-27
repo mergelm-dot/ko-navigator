@@ -15,6 +15,11 @@
     <string name="market_data_demo_calculate">Berechnen</string>
     <string name="market_data_demo_loading">Berechnung läuft …</string>
     <string name="market_data_demo_result_title">Ergebnis</string>
+    <string name="market_data_demo_data_quality_title">DatenqualitÃ¤t</string>
+    <string name="market_data_demo_data_quality_passed">Status: PrÃ¼fung bestanden</string>
+    <string name="market_data_demo_data_quality_warning">Status: Warnung</string>
+    <string name="market_data_demo_data_quality_blocked">Status: Blockiert</string>
+    <string name="market_data_demo_data_quality_not_available">Status: Nicht verfÃ¼gbar</string>
     <string name="market_data_demo_absolute_spread">Absolut: %1$s %2$s</string>
     <string name="market_data_demo_relative_spread">Relativ: %1$s %%</string>
     <string name="market_data_demo_price_value">%1$s %2$s</string>

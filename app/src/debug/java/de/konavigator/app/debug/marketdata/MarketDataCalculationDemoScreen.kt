@@ -176,6 +176,9 @@ fun MarketDataCalculationDemoScreen(
                 }
                 is MarketDataCalculationUiSubmission.Completed -> {
                     MarketDataCalculationResultCard(result = submission.result)
+                    MarketDataCalculationDataQualityCard(
+                        dataQuality = submission.result.dataQuality
+                    )
                 }
             }
         }
@@ -331,6 +334,31 @@ private fun MarketDataCalculationErrorCard(
 }
 
 @Composable
+private fun MarketDataCalculationDataQualityCard(
+    dataQuality: MarketDataCalculationUiDataQuality?,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(DATA_QUALITY_CARD_TAG)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.market_data_demo_data_quality_title),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = stringResource(dataQualityStatusResource(dataQuality?.status))
+            )
+        }
+    }
+}
+
+@Composable
 private fun rememberNumberFormatter(
     minimumFractionDigits: Int,
     maximumFractionDigits: Int
@@ -392,6 +420,18 @@ private fun uiErrorResource(error: MarketDataCalculationUiError): Int =
             R.string.market_data_demo_error_unexpected_failure
     }
 
+private fun dataQualityStatusResource(
+    status: MarketDataCalculationUiDataQualityStatus?
+): Int = when (status) {
+    null -> R.string.market_data_demo_data_quality_not_available
+    MarketDataCalculationUiDataQualityStatus.PASSED ->
+        R.string.market_data_demo_data_quality_passed
+    MarketDataCalculationUiDataQualityStatus.WARNING ->
+        R.string.market_data_demo_data_quality_warning
+    MarketDataCalculationUiDataQualityStatus.BLOCKED ->
+        R.string.market_data_demo_data_quality_blocked
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun MarketDataCalculationDemoScreenPreview() {
@@ -425,3 +465,4 @@ private const val CALCULATE_BUTTON_TAG = "market_data_demo_calculate"
 private const val LOADING_TAG = "market_data_demo_loading"
 private const val RESULT_CARD_TAG = "market_data_demo_result_card"
 private const val ERROR_CARD_TAG = "market_data_demo_error_card"
+private const val DATA_QUALITY_CARD_TAG = "market_data_demo_data_quality_card"
