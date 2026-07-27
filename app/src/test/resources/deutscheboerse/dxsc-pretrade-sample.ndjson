@@ -1,0 +1,3 @@
+{"messageId":"pretrade","instrumentIdentificationCode":"DE000SYNTH04","bestAsk":2.344,"bestAskQty":80000.00,"bestBid":2.343,"bestBidQty":80000.00,"updateDateAndTime":"2026-07-27T19:29:57.363600000Z"}
+{"messageId":"pretrade","instrumentIdentificationCode":"DE000SYNTH05","bestAsk":0.0,"bestAskQty":0.0,"bestBid":null,"bestBidQty":80000.00,"updateDateAndTime":"2026-07-27T19:30:00Z"}
+{"messageId":"pretrade","instrumentIdentificationCode":"DE000SYNTH06","bestBid":1.25,"unknownProviderField":"ignored"}
