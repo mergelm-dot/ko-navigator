@@ -72,7 +72,11 @@ internal fun MarketDataCalculationApplicationResult.toUiResult():
                 MarketDataCalculationUiError.DATA_ACCESS_FAILURE
             )
 
-        MarketDataCalculationApplicationError.INVALID_PRODUCT_SPECIFICATION,
+        MarketDataCalculationApplicationError.INVALID_PRODUCT_SPECIFICATION ->
+            MarketDataCalculationUiResult.Failure(
+                MarketDataCalculationUiError.INVALID_SPECIFICATION
+            )
+
         MarketDataCalculationApplicationError.INVALID_PRODUCT_MARKET_DATA ->
             MarketDataCalculationUiResult.Failure(
                 MarketDataCalculationUiError.INVALID_MARKET_DATA

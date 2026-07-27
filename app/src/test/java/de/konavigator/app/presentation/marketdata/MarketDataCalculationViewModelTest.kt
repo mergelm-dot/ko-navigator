@@ -334,7 +334,7 @@ class MarketDataCalculationViewModelTest {
             MarketDataCalculationApplicationError.DATA_ACCESS_FAILURE to
                 MarketDataCalculationUiError.DATA_ACCESS_FAILURE,
             MarketDataCalculationApplicationError.INVALID_PRODUCT_SPECIFICATION to
-                MarketDataCalculationUiError.INVALID_MARKET_DATA,
+                MarketDataCalculationUiError.INVALID_SPECIFICATION,
             MarketDataCalculationApplicationError.INVALID_PRODUCT_MARKET_DATA to
                 MarketDataCalculationUiError.INVALID_MARKET_DATA
         )
