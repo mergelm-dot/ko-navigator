@@ -1,10 +1,6 @@
 package de.konavigator.app.data.remote.provider.deutscheboerse
 
 import de.konavigator.app.data.remote.dto.KnockoutProductMarketDataDto
-import java.text.ParsePosition
-import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
 
 enum class DeutscheBoerseMarketDataMappingErrorCode {
     MISSING_DXSC_ISIN,
@@ -36,7 +32,8 @@ object DeutscheBoerseKnockoutProductMarketDataMapper {
         val dxscIsin = dxscRecord.instrumentIdentificationCode
         val xfraIsin = xfraRecord.isin
         val timestamp = dxscRecord.updateDateAndTime
-        val timestampEpochMillis = timestamp?.let(::parseUtcEpochMillis)
+        val parsedTimestamp = timestamp?.let(DeutscheBoerseUtcTimestampParser::parse)
+        val timestampEpochMillis = parsedTimestamp?.epochMillis
         val errors = buildList {
             if (dxscIsin == null) {
                 add(DeutscheBoerseMarketDataMappingErrorCode.MISSING_DXSC_ISIN)
@@ -47,7 +44,7 @@ object DeutscheBoerseKnockoutProductMarketDataMapper {
             if (dxscIsin != null && xfraIsin != null && dxscIsin != xfraIsin) {
                 add(DeutscheBoerseMarketDataMappingErrorCode.ISIN_MISMATCH)
             }
-            if (timestamp != null && timestampEpochMillis == null) {
+            if (timestamp != null && parsedTimestamp == null) {
                 add(
                     DeutscheBoerseMarketDataMappingErrorCode
                         .INVALID_UPDATE_DATE_AND_TIME
@@ -71,29 +68,4 @@ object DeutscheBoerseKnockoutProductMarketDataMapper {
         )
     }
 
-    private fun parseUtcEpochMillis(value: String): Long? {
-        val match = UTC_TIMESTAMP_PATTERN.matchEntire(value) ?: return null
-        val seconds = match.groupValues[1]
-        val fraction = match.groupValues[2]
-        val formatter = SimpleDateFormat(UTC_SECONDS_PATTERN, Locale.ROOT).apply {
-            isLenient = false
-            timeZone = UTC_TIME_ZONE
-        }
-        val position = ParsePosition(0)
-        val date = formatter.parse(seconds, position) ?: return null
-        if (position.index != seconds.length || position.errorIndex >= 0) {
-            return null
-        }
-        val milliseconds = fraction
-            .padEnd(MILLISECOND_DIGITS, '0')
-            .take(MILLISECOND_DIGITS)
-            .toLong()
-        return date.time + milliseconds
-    }
-
-    private val UTC_TIMESTAMP_PATTERN =
-        Regex("^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})(?:\\.(\\d{1,9}))?Z$")
-    private const val UTC_SECONDS_PATTERN = "yyyy-MM-dd'T'HH:mm:ss"
-    private const val MILLISECOND_DIGITS = 3
-    private val UTC_TIME_ZONE: TimeZone = TimeZone.getTimeZone("UTC")
 }
