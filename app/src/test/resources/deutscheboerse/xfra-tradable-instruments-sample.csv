@@ -1,0 +1,6 @@
+Market:;XFRA
+Date Last Update:;27.07.2026
+Product Status;Instrument Status;Instrument;ISIN;WKN;MIC Code;Instrument Type;Settlement Currency;Currency;Warrant Type;Quoting Period Start;Quoting Period End;Provider Group;Unused Tail
+Active;Tradable;Synthetic Long Warrant;DE000SYNTH07;SYN007;XFRA;Warrant;EUR;EUR;Call;08:00;22:00;group-a;available
+Active;Tradable;Synthetic Currency Warrant;DE000SYNTH08;SYN008;XFRA;Warrant;EUR;MXN;Put;08:00;22:00;group-b;available
+Active;;Sparse Instrument;DE000SYNTH09;;XFRA;Warrant;EUR;;Put;;;extra-3;
