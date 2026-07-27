@@ -14,29 +14,36 @@ import de.konavigator.app.domain.orchestration.MarketDataCalculationValue
  */
 sealed interface MarketDataCalculationUiResult {
 
+    val dataQuality: MarketDataCalculationUiDataQuality?
+
     data class PurchasePrice(
         val value: Double,
-        val currency: String
+        val currency: String,
+        override val dataQuality: MarketDataCalculationUiDataQuality
     ) : MarketDataCalculationUiResult
 
     data class SalePrice(
         val value: Double,
-        val currency: String
+        val currency: String,
+        override val dataQuality: MarketDataCalculationUiDataQuality
     ) : MarketDataCalculationUiResult
 
     data class Spread(
         val absoluteSpread: Double,
         val relativeSpreadToAskPercent: Double,
-        val currency: String
+        val currency: String,
+        override val dataQuality: MarketDataCalculationUiDataQuality
     ) : MarketDataCalculationUiResult
 
     data class MidPrice(
         val value: Double,
-        val currency: String
+        val currency: String,
+        override val dataQuality: MarketDataCalculationUiDataQuality
     ) : MarketDataCalculationUiResult
 
     data class Failure(
-        val error: MarketDataCalculationUiError
+        val error: MarketDataCalculationUiError,
+        override val dataQuality: MarketDataCalculationUiDataQuality?
     ) : MarketDataCalculationUiResult
 }
 
@@ -59,27 +66,32 @@ internal fun MarketDataCalculationApplicationResult.toUiResult():
     is MarketDataCalculationApplicationResult.DataUnavailable -> when (error) {
         MarketDataCalculationApplicationError.PRODUCT_NOT_FOUND ->
             MarketDataCalculationUiResult.Failure(
-                MarketDataCalculationUiError.PRODUCT_NOT_FOUND
+                error = MarketDataCalculationUiError.PRODUCT_NOT_FOUND,
+                dataQuality = null
             )
 
         MarketDataCalculationApplicationError.MARKET_DATA_NOT_FOUND ->
             MarketDataCalculationUiResult.Failure(
-                MarketDataCalculationUiError.MARKET_DATA_NOT_FOUND
+                error = MarketDataCalculationUiError.MARKET_DATA_NOT_FOUND,
+                dataQuality = null
             )
 
         MarketDataCalculationApplicationError.DATA_ACCESS_FAILURE ->
             MarketDataCalculationUiResult.Failure(
-                MarketDataCalculationUiError.DATA_ACCESS_FAILURE
+                error = MarketDataCalculationUiError.DATA_ACCESS_FAILURE,
+                dataQuality = null
             )
 
         MarketDataCalculationApplicationError.INVALID_PRODUCT_SPECIFICATION ->
             MarketDataCalculationUiResult.Failure(
-                MarketDataCalculationUiError.INVALID_SPECIFICATION
+                error = MarketDataCalculationUiError.INVALID_SPECIFICATION,
+                dataQuality = null
             )
 
         MarketDataCalculationApplicationError.INVALID_PRODUCT_MARKET_DATA ->
             MarketDataCalculationUiResult.Failure(
-                MarketDataCalculationUiError.INVALID_MARKET_DATA
+                error = MarketDataCalculationUiError.INVALID_MARKET_DATA,
+                dataQuality = null
             )
     }
 
@@ -88,59 +100,74 @@ internal fun MarketDataCalculationApplicationResult.toUiResult():
 }
 
 private fun MarketDataCalculationOrchestrationResult.toUiResult():
-    MarketDataCalculationUiResult = when (this) {
+    MarketDataCalculationUiResult {
+    val dataQuality = dataQualityAssessment.toUiDataQuality()
+    return when (this) {
     is MarketDataCalculationOrchestrationResult.StructuralDataQualityBlocked ->
         MarketDataCalculationUiResult.Failure(
-            MarketDataCalculationUiError.INVALID_MARKET_DATA
+            error = MarketDataCalculationUiError.INVALID_MARKET_DATA,
+            dataQuality = dataQuality
         )
 
     is MarketDataCalculationOrchestrationResult.StructurallyUnavailable ->
         MarketDataCalculationUiResult.Failure(
-            MarketDataCalculationUiError.REQUIRED_QUOTE_UNAVAILABLE
+            error = MarketDataCalculationUiError.REQUIRED_QUOTE_UNAVAILABLE,
+            dataQuality = dataQuality
         )
 
     is MarketDataCalculationOrchestrationResult.NotFresh ->
         MarketDataCalculationUiResult.Failure(
-            MarketDataCalculationUiError.MARKET_DATA_NOT_FRESH
+            error = MarketDataCalculationUiError.MARKET_DATA_NOT_FRESH,
+            dataQuality = dataQuality
         )
 
     is MarketDataCalculationOrchestrationResult.SourceBlocked ->
         MarketDataCalculationUiResult.Failure(
-            MarketDataCalculationUiError.SOURCE_UNAVAILABLE
+            error = MarketDataCalculationUiError.SOURCE_UNAVAILABLE,
+            dataQuality = dataQuality
         )
 
     is MarketDataCalculationOrchestrationResult.CalculationFailure ->
         MarketDataCalculationUiResult.Failure(
-            MarketDataCalculationUiError.CALCULATION_FAILED
+            error = MarketDataCalculationUiError.CALCULATION_FAILED,
+            dataQuality = dataQuality
         )
 
-    is MarketDataCalculationOrchestrationResult.Success -> value.toUiResult()
+    is MarketDataCalculationOrchestrationResult.Success ->
+        value.toUiResult(dataQuality)
+    }
 }
 
-private fun MarketDataCalculationValue.toUiResult(): MarketDataCalculationUiResult =
+private fun MarketDataCalculationValue.toUiResult(
+    dataQuality: MarketDataCalculationUiDataQuality
+): MarketDataCalculationUiResult =
     when (this) {
         is MarketDataCalculationValue.PurchasePrice ->
             MarketDataCalculationUiResult.PurchasePrice(
                 value = value,
-                currency = currency
+                currency = currency,
+                dataQuality = dataQuality
             )
 
         is MarketDataCalculationValue.SalePrice ->
             MarketDataCalculationUiResult.SalePrice(
                 value = value,
-                currency = currency
+                currency = currency,
+                dataQuality = dataQuality
             )
 
         is MarketDataCalculationValue.Spread ->
             MarketDataCalculationUiResult.Spread(
                 absoluteSpread = absoluteSpread,
                 relativeSpreadToAskPercent = relativeSpreadToAskPercent,
-                currency = currency
+                currency = currency,
+                dataQuality = dataQuality
             )
 
         is MarketDataCalculationValue.MidPrice ->
             MarketDataCalculationUiResult.MidPrice(
                 value = value,
-                currency = currency
+                currency = currency,
+                dataQuality = dataQuality
             )
     }

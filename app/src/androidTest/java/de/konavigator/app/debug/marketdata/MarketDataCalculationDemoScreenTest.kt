@@ -20,6 +20,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import de.konavigator.app.domain.availability.MarketDataCalculationType
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiError
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQuality
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQualityStatus
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiInputError
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiResult
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiState
@@ -170,14 +172,30 @@ class MarketDataCalculationDemoScreenTest {
 
     @Test
     fun scenario12PurchasePriceIsDisplayed() {
-        setScreen(completedState(MarketDataCalculationUiResult.PurchasePrice(2.0, "EUR")))
+        setScreen(
+            completedState(
+                MarketDataCalculationUiResult.PurchasePrice(
+                    value = 2.0,
+                    currency = "EUR",
+                    dataQuality = passedDataQuality()
+                )
+            )
+        )
 
         assertResultCardContains("Kaufpreis", "2,0000 EUR")
     }
 
     @Test
     fun scenario13SalePriceIsDisplayed() {
-        setScreen(completedState(MarketDataCalculationUiResult.SalePrice(1.8, "EUR")))
+        setScreen(
+            completedState(
+                MarketDataCalculationUiResult.SalePrice(
+                    value = 1.8,
+                    currency = "EUR",
+                    dataQuality = passedDataQuality()
+                )
+            )
+        )
 
         assertResultCardContains("Verkaufspreis", "1,8000 EUR")
     }
@@ -189,7 +207,8 @@ class MarketDataCalculationDemoScreenTest {
                 MarketDataCalculationUiResult.Spread(
                     absoluteSpread = 0.2,
                     relativeSpreadToAskPercent = 10.0,
-                    currency = "EUR"
+                    currency = "EUR",
+                    dataQuality = passedDataQuality()
                 )
             )
         )
@@ -203,7 +222,15 @@ class MarketDataCalculationDemoScreenTest {
 
     @Test
     fun scenario15MidPriceIsDisplayed() {
-        setScreen(completedState(MarketDataCalculationUiResult.MidPrice(1.9, "EUR")))
+        setScreen(
+            completedState(
+                MarketDataCalculationUiResult.MidPrice(
+                    value = 1.9,
+                    currency = "EUR",
+                    dataQuality = passedDataQuality()
+                )
+            )
+        )
 
         assertResultCardContains("Mittelpreis", "1,9000 EUR")
     }
@@ -399,7 +426,17 @@ class MarketDataCalculationDemoScreenTest {
 
     private fun failureState(
         error: MarketDataCalculationUiError
-    ) = completedState(MarketDataCalculationUiResult.Failure(error))
+    ) = completedState(
+        MarketDataCalculationUiResult.Failure(
+            error = error,
+            dataQuality = null
+        )
+    )
+
+    private fun passedDataQuality() = MarketDataCalculationUiDataQuality(
+        status = MarketDataCalculationUiDataQualityStatus.PASSED,
+        findings = emptyList()
+    )
 
     private companion object {
         const val PRODUCT_ISIN_TAG = "market_data_demo_product_isin"

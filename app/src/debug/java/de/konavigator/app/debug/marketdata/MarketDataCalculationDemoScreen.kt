@@ -38,6 +38,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.konavigator.app.R
 import de.konavigator.app.domain.availability.MarketDataCalculationType
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiError
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQuality
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQualityStatus
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiInputError
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiResult
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiState
@@ -401,7 +403,11 @@ private fun MarketDataCalculationDemoScreenPreview() {
                 submission = MarketDataCalculationUiSubmission.Completed(
                     MarketDataCalculationUiResult.PurchasePrice(
                         value = 2.0,
-                        currency = "EUR"
+                        currency = "EUR",
+                        dataQuality = MarketDataCalculationUiDataQuality(
+                            status = MarketDataCalculationUiDataQualityStatus.PASSED,
+                            findings = emptyList()
+                        )
                     )
                 )
             ),

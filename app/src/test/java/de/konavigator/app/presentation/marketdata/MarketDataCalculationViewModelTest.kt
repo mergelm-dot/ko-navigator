@@ -344,7 +344,13 @@ class MarketDataCalculationViewModelTest {
                 applicationError
             ).toUiResult()
 
-            assertEquals(MarketDataCalculationUiResult.Failure(uiError), result)
+            assertEquals(
+                MarketDataCalculationUiResult.Failure(
+                    error = uiError,
+                    dataQuality = null
+                ),
+                result
+            )
         }
     }
 
@@ -386,7 +392,13 @@ class MarketDataCalculationViewModelTest {
                 domainResult
             ).toUiResult()
 
-            assertEquals(MarketDataCalculationUiResult.Failure(uiError), result)
+            assertEquals(
+                MarketDataCalculationUiResult.Failure(
+                    error = uiError,
+                    dataQuality = domainResult.dataQualityAssessment.toUiDataQuality()
+                ),
+                result
+            )
         }
     }
 
@@ -395,7 +407,14 @@ class MarketDataCalculationViewModelTest {
         val value = 2.123456789
         val result = successResult(MarketDataCalculationValue.PurchasePrice(value, "USD"))
 
-        assertEquals(MarketDataCalculationUiResult.PurchasePrice(value, "USD"), result)
+        assertEquals(
+            MarketDataCalculationUiResult.PurchasePrice(
+                value = value,
+                currency = "USD",
+                dataQuality = DataQualityAssessment.passed().toUiDataQuality()
+            ),
+            result
+        )
     }
 
     @Test
@@ -403,7 +422,14 @@ class MarketDataCalculationViewModelTest {
         val value = 1.987654321
         val result = successResult(MarketDataCalculationValue.SalePrice(value, "CHF"))
 
-        assertEquals(MarketDataCalculationUiResult.SalePrice(value, "CHF"), result)
+        assertEquals(
+            MarketDataCalculationUiResult.SalePrice(
+                value = value,
+                currency = "CHF",
+                dataQuality = DataQualityAssessment.passed().toUiDataQuality()
+            ),
+            result
+        )
     }
 
     @Test
@@ -415,7 +441,12 @@ class MarketDataCalculationViewModelTest {
         )
 
         assertEquals(
-            MarketDataCalculationUiResult.Spread(absolute, relative, "EUR"),
+            MarketDataCalculationUiResult.Spread(
+                absoluteSpread = absolute,
+                relativeSpreadToAskPercent = relative,
+                currency = "EUR",
+                dataQuality = DataQualityAssessment.passed().toUiDataQuality()
+            ),
             result
         )
     }
@@ -425,7 +456,14 @@ class MarketDataCalculationViewModelTest {
         val value = 0.15000000000000002
         val result = successResult(MarketDataCalculationValue.MidPrice(value, "JPY"))
 
-        assertEquals(MarketDataCalculationUiResult.MidPrice(value, "JPY"), result)
+        assertEquals(
+            MarketDataCalculationUiResult.MidPrice(
+                value = value,
+                currency = "JPY",
+                dataQuality = DataQualityAssessment.passed().toUiDataQuality()
+            ),
+            result
+        )
     }
 
     @Test
@@ -442,12 +480,13 @@ class MarketDataCalculationViewModelTest {
 
             assertEquals(
                 MarketDataCalculationUiResult.Failure(
-                    MarketDataCalculationUiError.UNEXPECTED_FAILURE
+                    error = MarketDataCalculationUiError.UNEXPECTED_FAILURE,
+                    dataQuality = null
                 ),
                 completedResult(viewModel)
             )
             assertEquals(
-                listOf("error"),
+                listOf("error", "dataQuality"),
                 instanceFields(MarketDataCalculationUiResult.Failure::class.java)
                     .map { it.name }
             )

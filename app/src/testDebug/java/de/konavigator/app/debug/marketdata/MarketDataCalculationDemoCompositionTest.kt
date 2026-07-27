@@ -9,6 +9,8 @@ import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductMarketData
 import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductSpecificationProvider
 import de.konavigator.app.domain.availability.MarketDataCalculationType
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiError
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQuality
+import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQualityStatus
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiResult
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiSubmission
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationViewModel
@@ -54,7 +56,11 @@ class MarketDataCalculationDemoCompositionTest {
         advanceUntilIdle()
 
         assertEquals(
-            MarketDataCalculationUiResult.PurchasePrice(2.0, "EUR"),
+            MarketDataCalculationUiResult.PurchasePrice(
+                value = 2.0,
+                currency = "EUR",
+                dataQuality = passedDataQuality()
+            ),
             completedResult(viewModel)
         )
     }
@@ -140,7 +146,8 @@ class MarketDataCalculationDemoCompositionTest {
 
         assertEquals(
             MarketDataCalculationUiResult.Failure(
-                MarketDataCalculationUiError.MARKET_DATA_NOT_FRESH
+                error = MarketDataCalculationUiError.MARKET_DATA_NOT_FRESH,
+                dataQuality = passedDataQuality()
             ),
             completedResult(viewModel)
         )
@@ -186,6 +193,11 @@ class MarketDataCalculationDemoCompositionTest {
     ): MarketDataCalculationUiResult =
         (viewModel.uiState.value.submission as
             MarketDataCalculationUiSubmission.Completed).result
+
+    private fun passedDataQuality() = MarketDataCalculationUiDataQuality(
+        status = MarketDataCalculationUiDataQualityStatus.PASSED,
+        findings = emptyList()
+    )
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> readField(instance: Any, fieldName: String): T =

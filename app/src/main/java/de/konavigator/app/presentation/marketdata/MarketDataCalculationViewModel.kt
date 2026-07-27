@@ -103,7 +103,8 @@ class MarketDataCalculationViewModel(
                 completeIfCurrent(
                     requestToken = requestToken,
                     result = MarketDataCalculationUiResult.Failure(
-                        MarketDataCalculationUiError.UNEXPECTED_FAILURE
+                        error = MarketDataCalculationUiError.UNEXPECTED_FAILURE,
+                        dataQuality = null
                     )
                 )
             }
