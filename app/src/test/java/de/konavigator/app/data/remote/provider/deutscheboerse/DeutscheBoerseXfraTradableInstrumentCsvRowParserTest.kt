@@ -8,6 +8,171 @@ import org.junit.Test
 class DeutscheBoerseXfraTradableInstrumentCsvRowParserTest {
 
     @Test
+    fun validHeaderProducesPreparedHeader() {
+        assertTrue(
+            DeutscheBoerseXfraTradableInstrumentCsvRowParser.prepareHeader(
+                validHeader()
+            ) is DeutscheBoerseXfraHeaderPreparationResult.Success
+        )
+    }
+
+    @Test
+    fun preparedHeaderCountsAllColumnsIncludingUnknownColumns() {
+        val header = validHeader() + ";Unknown;"
+
+        assertEquals(14, prepareHeaderSuccess(header).columnCount)
+    }
+
+    @Test
+    fun preparedHeaderContainsCorrectIndexForEveryRequiredColumn() {
+        val preparedHeader = prepareHeaderSuccess(validHeader())
+
+        assertEquals(
+            DeutscheBoerseXfraRequiredColumn.entries.associateWith { it.ordinal },
+            preparedHeader.requiredColumnIndices
+        )
+    }
+
+    @Test
+    fun preparedHeaderCanBeReusedForMultipleDataRows() {
+        val preparedHeader = prepareHeaderSuccess(validHeader())
+
+        assertTrue(parse(preparedHeader, validData().joinToString(";")) is DeutscheBoerseXfraCsvRowParsingResult.Success)
+        assertTrue(parse(preparedHeader, validData().joinToString(";")) is DeutscheBoerseXfraCsvRowParsingResult.Success)
+    }
+
+    @Test
+    fun recordsParsedWithSamePreparedHeaderRemainIndependent() {
+        val preparedHeader = prepareHeaderSuccess(validHeader())
+        val firstData = validData().toMutableList().apply {
+            this[DeutscheBoerseXfraRequiredColumn.ISIN.ordinal] = "DE000FIRST01"
+        }.joinToString(";")
+        val secondData = validData().toMutableList().apply {
+            this[DeutscheBoerseXfraRequiredColumn.ISIN.ordinal] = "DE000SECOND2"
+        }.joinToString(";")
+
+        val firstRecord = parseSuccess(preparedHeader, firstData)
+        val secondRecord = parseSuccess(preparedHeader, secondData)
+
+        assertEquals("DE000FIRST01", firstRecord.isin)
+        assertEquals("DE000SECOND2", secondRecord.isin)
+    }
+
+    @Test
+    fun changedColumnOrderIsCapturedWhenHeaderIsPrepared() {
+        val reversedColumns = DeutscheBoerseXfraRequiredColumn.entries.reversed()
+        val preparedHeader = prepareHeaderSuccess(
+            reversedColumns.joinToString(";") { it.headerName }
+        )
+
+        assertEquals(
+            reversedColumns.withIndex().associate { (index, column) -> column to index },
+            preparedHeader.requiredColumnIndices
+        )
+    }
+
+    @Test
+    fun emptyHeaderFailsDuringPreparation() {
+        assertHeaderFailure(
+            headerLine = "",
+            expectedErrors = listOf(error(DeutscheBoerseXfraCsvRowParsingErrorCode.INVALID_HEADER))
+        )
+    }
+
+    @Test
+    fun quotedHeaderFailsDuringPreparation() {
+        assertHeaderFailure(
+            headerLine = validHeader() + ";\"Unknown\"",
+            expectedErrors = listOf(error(DeutscheBoerseXfraCsvRowParsingErrorCode.INVALID_HEADER))
+        )
+    }
+
+    @Test
+    fun missingRequiredColumnsFailPreparationCompletelyInStableOrder() {
+        val missingColumns = setOf(
+            DeutscheBoerseXfraRequiredColumn.PRODUCT_STATUS,
+            DeutscheBoerseXfraRequiredColumn.WKN,
+            DeutscheBoerseXfraRequiredColumn.CURRENCY
+        )
+        val header = DeutscheBoerseXfraRequiredColumn.entries
+            .filterNot(missingColumns::contains)
+            .joinToString(";") { it.headerName }
+
+        assertHeaderFailure(
+            headerLine = header,
+            expectedErrors = listOf(
+                missing(DeutscheBoerseXfraRequiredColumn.PRODUCT_STATUS),
+                missing(DeutscheBoerseXfraRequiredColumn.WKN),
+                missing(DeutscheBoerseXfraRequiredColumn.CURRENCY)
+            )
+        )
+    }
+
+    @Test
+    fun duplicateRequiredColumnsFailDuringPreparation() {
+        val duplicate = DeutscheBoerseXfraRequiredColumn.ISIN
+
+        assertHeaderFailure(
+            headerLine = validHeader() + ";${duplicate.headerName}",
+            expectedErrors = listOf(
+                DeutscheBoerseXfraCsvRowParsingError(
+                    code = DeutscheBoerseXfraCsvRowParsingErrorCode.DUPLICATE_REQUIRED_COLUMN,
+                    column = duplicate
+                )
+            )
+        )
+    }
+
+    @Test
+    fun tooShortDataRowFailsWithPreparedHeader() {
+        assertPreparedFailure(
+            dataLine = validData().dropLast(1).joinToString(";"),
+            expectedCode = DeutscheBoerseXfraCsvRowParsingErrorCode.COLUMN_COUNT_MISMATCH
+        )
+    }
+
+    @Test
+    fun tooLongDataRowFailsWithPreparedHeader() {
+        assertPreparedFailure(
+            dataLine = validData().plus("extra").joinToString(";"),
+            expectedCode = DeutscheBoerseXfraCsvRowParsingErrorCode.COLUMN_COUNT_MISMATCH
+        )
+    }
+
+    @Test
+    fun preparedHeaderPreservesTrailingEmptyColumnForCount() {
+        val preparedHeader = prepareHeaderSuccess(validHeader() + ";")
+        val dataLine = validData().joinToString(";") + ";"
+
+        assertTrue(parse(preparedHeader, dataLine) is DeutscheBoerseXfraCsvRowParsingResult.Success)
+    }
+
+    @Test
+    fun preparedHeaderKeepsCurrencyAndSettlementCurrencySeparate() {
+        val preparedHeader = prepareHeaderSuccess(validHeader())
+        val dataLine = validData().toMutableList().apply {
+            this[DeutscheBoerseXfraRequiredColumn.SETTLEMENT_CURRENCY.ordinal] = "EUR"
+            this[DeutscheBoerseXfraRequiredColumn.CURRENCY.ordinal] = "MXN"
+        }.joinToString(";")
+
+        val record = parseSuccess(preparedHeader, dataLine)
+
+        assertEquals("EUR", record.settlementCurrency)
+        assertEquals("MXN", record.currency)
+    }
+
+    @Test
+    fun convenienceParseMatchesPreparedHeaderParse() {
+        val headerLine = validHeader()
+        val dataLine = validData().joinToString(";")
+
+        assertEquals(
+            parse(headerLine, dataLine),
+            parse(prepareHeaderSuccess(headerLine), dataLine)
+        )
+    }
+
+    @Test
     fun firstFixtureDataLineMapsEveryRequiredFieldExactly() {
         val record = parseFixtureDataLine(3)
 
@@ -275,6 +440,51 @@ class DeutscheBoerseXfraTradableInstrumentCsvRowParserTest {
             headerLine = headerLine,
             dataLine = dataLine
         )
+
+    private fun prepareHeaderSuccess(
+        headerLine: String
+    ): DeutscheBoerseXfraPreparedHeader =
+        (DeutscheBoerseXfraTradableInstrumentCsvRowParser.prepareHeader(
+            headerLine
+        ) as DeutscheBoerseXfraHeaderPreparationResult.Success).preparedHeader
+
+    private fun parse(
+        preparedHeader: DeutscheBoerseXfraPreparedHeader,
+        dataLine: String
+    ): DeutscheBoerseXfraCsvRowParsingResult =
+        DeutscheBoerseXfraTradableInstrumentCsvRowParser.parse(
+            preparedHeader = preparedHeader,
+            dataLine = dataLine
+        )
+
+    private fun parseSuccess(
+        preparedHeader: DeutscheBoerseXfraPreparedHeader,
+        dataLine: String
+    ): DeutscheBoerseXfraTradableInstrumentRecord =
+        (parse(preparedHeader, dataLine) as
+            DeutscheBoerseXfraCsvRowParsingResult.Success).record
+
+    private fun assertHeaderFailure(
+        headerLine: String,
+        expectedErrors: List<DeutscheBoerseXfraCsvRowParsingError>
+    ) {
+        val result =
+            DeutscheBoerseXfraTradableInstrumentCsvRowParser.prepareHeader(
+                headerLine
+            ) as DeutscheBoerseXfraHeaderPreparationResult.Failure
+
+        assertEquals(expectedErrors, result.errors)
+    }
+
+    private fun assertPreparedFailure(
+        dataLine: String,
+        expectedCode: DeutscheBoerseXfraCsvRowParsingErrorCode
+    ) {
+        val result = parse(prepareHeaderSuccess(validHeader()), dataLine) as
+            DeutscheBoerseXfraCsvRowParsingResult.Failure
+
+        assertEquals(listOf(error(expectedCode)), result.errors)
+    }
 
     private fun assertFailure(
         headerLine: String,

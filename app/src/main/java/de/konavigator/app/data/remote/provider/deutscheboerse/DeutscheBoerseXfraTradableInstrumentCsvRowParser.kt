@@ -41,14 +41,52 @@ sealed interface DeutscheBoerseXfraCsvRowParsingResult {
     ) : DeutscheBoerseXfraCsvRowParsingResult
 }
 
+internal class DeutscheBoerseXfraPreparedHeader internal constructor(
+    internal val columnCount: Int,
+    requiredColumnIndices: Map<DeutscheBoerseXfraRequiredColumn, Int>
+) {
+    internal val requiredColumnIndices:
+        Map<DeutscheBoerseXfraRequiredColumn, Int> =
+        requiredColumnIndices.toMap()
+}
+
+internal sealed interface DeutscheBoerseXfraHeaderPreparationResult {
+
+    data class Success(
+        val preparedHeader: DeutscheBoerseXfraPreparedHeader
+    ) : DeutscheBoerseXfraHeaderPreparationResult
+
+    data class Failure(
+        val errors: List<DeutscheBoerseXfraCsvRowParsingError>
+    ) : DeutscheBoerseXfraHeaderPreparationResult
+}
+
 object DeutscheBoerseXfraTradableInstrumentCsvRowParser {
 
     fun parse(
         headerLine: String,
         dataLine: String
-    ): DeutscheBoerseXfraCsvRowParsingResult {
+    ): DeutscheBoerseXfraCsvRowParsingResult =
+        when (val headerResult = prepareHeader(headerLine)) {
+            is DeutscheBoerseXfraHeaderPreparationResult.Failure ->
+                DeutscheBoerseXfraCsvRowParsingResult.Failure(
+                    errors = headerResult.errors
+                )
+
+            is DeutscheBoerseXfraHeaderPreparationResult.Success ->
+                parse(
+                    preparedHeader = headerResult.preparedHeader,
+                    dataLine = dataLine
+                )
+        }
+
+    internal fun prepareHeader(
+        headerLine: String
+    ): DeutscheBoerseXfraHeaderPreparationResult {
         if (headerLine.isEmpty() || QUOTE in headerLine) {
-            return failure(DeutscheBoerseXfraCsvRowParsingErrorCode.INVALID_HEADER)
+            return headerFailure(
+                DeutscheBoerseXfraCsvRowParsingErrorCode.INVALID_HEADER
+            )
         }
 
         val headerColumns = splitColumns(headerLine)
@@ -79,44 +117,59 @@ object DeutscheBoerseXfraTradableInstrumentCsvRowParser {
             }
         }
         if (requiredColumnErrors.isNotEmpty()) {
-            return DeutscheBoerseXfraCsvRowParsingResult.Failure(requiredColumnErrors)
+            return DeutscheBoerseXfraHeaderPreparationResult.Failure(
+                requiredColumnErrors
+            )
         }
 
+        val requiredColumnIndices =
+            DeutscheBoerseXfraRequiredColumn.entries.associateWith {
+                headerColumns.indexOf(it.headerName)
+            }
+
+        return DeutscheBoerseXfraHeaderPreparationResult.Success(
+            DeutscheBoerseXfraPreparedHeader(
+                columnCount = headerColumns.size,
+                requiredColumnIndices = requiredColumnIndices
+            )
+        )
+    }
+
+    internal fun parse(
+        preparedHeader: DeutscheBoerseXfraPreparedHeader,
+        dataLine: String
+    ): DeutscheBoerseXfraCsvRowParsingResult {
         if (dataLine.isEmpty() || QUOTE in dataLine) {
             return failure(DeutscheBoerseXfraCsvRowParsingErrorCode.INVALID_DATA_ROW)
         }
         val dataColumns = splitColumns(dataLine)
-        if (dataColumns.size != headerColumns.size) {
+        if (dataColumns.size != preparedHeader.columnCount) {
             return failure(
                 DeutscheBoerseXfraCsvRowParsingErrorCode.COLUMN_COUNT_MISMATCH
             )
         }
 
-        val indices = DeutscheBoerseXfraRequiredColumn.entries.associateWith {
-            headerColumns.indexOf(it.headerName)
-        }
-
         return DeutscheBoerseXfraCsvRowParsingResult.Success(
             DeutscheBoerseXfraTradableInstrumentRecord(
-                productStatus = dataColumns.cell(indices, DeutscheBoerseXfraRequiredColumn.PRODUCT_STATUS),
-                instrumentStatus = dataColumns.cell(indices, DeutscheBoerseXfraRequiredColumn.INSTRUMENT_STATUS),
-                instrumentName = dataColumns.cell(indices, DeutscheBoerseXfraRequiredColumn.INSTRUMENT_NAME),
-                isin = dataColumns.cell(indices, DeutscheBoerseXfraRequiredColumn.ISIN),
-                wkn = dataColumns.cell(indices, DeutscheBoerseXfraRequiredColumn.WKN),
-                micCode = dataColumns.cell(indices, DeutscheBoerseXfraRequiredColumn.MIC_CODE),
-                instrumentType = dataColumns.cell(indices, DeutscheBoerseXfraRequiredColumn.INSTRUMENT_TYPE),
+                productStatus = dataColumns.cell(preparedHeader, DeutscheBoerseXfraRequiredColumn.PRODUCT_STATUS),
+                instrumentStatus = dataColumns.cell(preparedHeader, DeutscheBoerseXfraRequiredColumn.INSTRUMENT_STATUS),
+                instrumentName = dataColumns.cell(preparedHeader, DeutscheBoerseXfraRequiredColumn.INSTRUMENT_NAME),
+                isin = dataColumns.cell(preparedHeader, DeutscheBoerseXfraRequiredColumn.ISIN),
+                wkn = dataColumns.cell(preparedHeader, DeutscheBoerseXfraRequiredColumn.WKN),
+                micCode = dataColumns.cell(preparedHeader, DeutscheBoerseXfraRequiredColumn.MIC_CODE),
+                instrumentType = dataColumns.cell(preparedHeader, DeutscheBoerseXfraRequiredColumn.INSTRUMENT_TYPE),
                 settlementCurrency = dataColumns.cell(
-                    indices,
+                    preparedHeader,
                     DeutscheBoerseXfraRequiredColumn.SETTLEMENT_CURRENCY
                 ),
-                currency = dataColumns.cell(indices, DeutscheBoerseXfraRequiredColumn.CURRENCY),
-                warrantType = dataColumns.cell(indices, DeutscheBoerseXfraRequiredColumn.WARRANT_TYPE),
+                currency = dataColumns.cell(preparedHeader, DeutscheBoerseXfraRequiredColumn.CURRENCY),
+                warrantType = dataColumns.cell(preparedHeader, DeutscheBoerseXfraRequiredColumn.WARRANT_TYPE),
                 quotingPeriodStart = dataColumns.cell(
-                    indices,
+                    preparedHeader,
                     DeutscheBoerseXfraRequiredColumn.QUOTING_PERIOD_START
                 ),
                 quotingPeriodEnd = dataColumns.cell(
-                    indices,
+                    preparedHeader,
                     DeutscheBoerseXfraRequiredColumn.QUOTING_PERIOD_END
                 )
             )
@@ -135,9 +188,17 @@ object DeutscheBoerseXfraTradableInstrumentCsvRowParser {
     }
 
     private fun List<String>.cell(
-        indices: Map<DeutscheBoerseXfraRequiredColumn, Int>,
+        preparedHeader: DeutscheBoerseXfraPreparedHeader,
         column: DeutscheBoerseXfraRequiredColumn
-    ): String? = this[checkNotNull(indices[column])].ifEmpty { null }
+    ): String? = this[
+        checkNotNull(preparedHeader.requiredColumnIndices[column])
+    ].ifEmpty { null }
+
+    private fun headerFailure(
+        code: DeutscheBoerseXfraCsvRowParsingErrorCode
+    ) = DeutscheBoerseXfraHeaderPreparationResult.Failure(
+        listOf(DeutscheBoerseXfraCsvRowParsingError(code = code))
+    )
 
     private fun failure(
         code: DeutscheBoerseXfraCsvRowParsingErrorCode
