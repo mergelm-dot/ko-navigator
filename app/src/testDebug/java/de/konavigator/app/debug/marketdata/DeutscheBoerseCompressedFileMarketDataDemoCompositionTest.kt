@@ -1,7 +1,12 @@
 package de.konavigator.app.debug.marketdata
 
+import de.konavigator.app.application.marketdata.MarketDataCalculationApplicationService
+import de.konavigator.app.application.repository.adapter.SnapshotBackedKnockoutProductSpecificationRepository
 import de.konavigator.app.data.remote.DeutscheBoerseCompressedFileMarketDataRepositoryLoader
+import de.konavigator.app.data.remote.RemoteKnockoutProductSpecificationSnapshotRepository
 import de.konavigator.app.data.remote.dto.KnockoutProductSpecificationDto
+import de.konavigator.app.data.remote.dto.KnockoutProductSpecificationSnapshotDto
+import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductSpecificationSnapshotProvider
 import de.konavigator.app.data.remote.provider.deutscheboerse.DeutscheBoerseDxscNdjsonLoadingError
 import de.konavigator.app.data.remote.provider.deutscheboerse.DeutscheBoerseDxscNdjsonLoadingErrorCode
 import de.konavigator.app.data.remote.provider.deutscheboerse.DeutscheBoerseSnapshotProviderCreationErrorCode
@@ -110,6 +115,51 @@ class DeutscheBoerseCompressedFileMarketDataDemoCompositionTest {
     }
 
     @Test
+    fun compositionUsesSpecificationSnapshotPathAndPreservesMetadata() =
+        runTest(mainDispatcher) {
+            val factory = createSuccess(validFiles()).viewModelFactory
+            val service = readField<MarketDataCalculationApplicationService>(
+                factory,
+                "applicationService"
+            )
+            val specificationRepository = readField<Any>(
+                service,
+                "specificationRepository"
+            )
+            assertTrue(
+                specificationRepository is
+                    SnapshotBackedKnockoutProductSpecificationRepository
+            )
+
+            val snapshotRepository = readField<Any>(
+                specificationRepository,
+                "snapshotRepository"
+            )
+            assertTrue(
+                snapshotRepository is RemoteKnockoutProductSpecificationSnapshotRepository
+            )
+
+            val provider = readField<Any>(snapshotRepository, "provider")
+            assertTrue(provider is InMemoryKnockoutProductSpecificationSnapshotProvider)
+
+            val snapshots = readField<Map<String, KnockoutProductSpecificationSnapshotDto>>(
+                provider,
+                "snapshotsByProductIsin"
+            )
+            assertEquals(setOf(PRODUCT_ISIN), snapshots.keys)
+            val snapshot = snapshots.values.single()
+            assertEquals(PRODUCT_ISIN, snapshot.specification.productIsin)
+            assertEquals("test-issuer", snapshot.specification.issuerId)
+            assertEquals("test-underlying", snapshot.specification.underlyingId)
+            assertEquals(SPECIFICATION_SOURCE_ID, snapshot.sourceId)
+            assertEquals(SPECIFICATION_RETRIEVED_AT, snapshot.retrievedAtEpochMillis)
+            assertEquals(
+                SPECIFICATION_SOURCE_TIMESTAMP,
+                snapshot.sourceTimestampEpochMillis
+            )
+        }
+
+    @Test
     fun purchasePriceCalculationProducesTwoPointZeroFiveEuro() = runTest(mainDispatcher) {
         val result = calculate(
             factory = createSuccess(validFiles()).viewModelFactory,
@@ -179,7 +229,7 @@ class DeutscheBoerseCompressedFileMarketDataDemoCompositionTest {
     fun unknownSpecificationIsinProducesProductNotFound() = runTest(mainDispatcher) {
         val factory = createSuccess(
             files = validFiles(),
-            specificationDtos = emptyMap()
+            specificationSnapshots = emptyMap()
         ).viewModelFactory
 
         assertEquals(
@@ -259,11 +309,13 @@ class DeutscheBoerseCompressedFileMarketDataDemoCompositionTest {
     @Test
     fun specificationMapIsCopiedBeforeRepositoryLoaderSuspends() = runTest(mainDispatcher) {
         val files = validFiles()
-        val specifications = mutableMapOf(PRODUCT_ISIN to specificationDto(PRODUCT_ISIN))
-        val deferred = createDeferred(files, specificationDtos = specifications)
+        val specifications = mutableMapOf(
+            PRODUCT_ISIN to specificationSnapshotDto(PRODUCT_ISIN)
+        )
+        val deferred = createDeferred(files, specificationSnapshots = specifications)
 
         specifications.clear()
-        specifications[OTHER_ISIN] = specificationDto(OTHER_ISIN)
+        specifications[OTHER_ISIN] = specificationSnapshotDto(OTHER_ISIN)
         advanceUntilIdle()
 
         val factory = deferred.await().success().viewModelFactory
@@ -281,13 +333,13 @@ class DeutscheBoerseCompressedFileMarketDataDemoCompositionTest {
         )
         val requestedIsins = mutableSetOf(PRODUCT_ISIN)
         val specifications = mapOf(
-            PRODUCT_ISIN to specificationDto(PRODUCT_ISIN),
-            OTHER_ISIN to specificationDto(OTHER_ISIN)
+            PRODUCT_ISIN to specificationSnapshotDto(PRODUCT_ISIN),
+            OTHER_ISIN to specificationSnapshotDto(OTHER_ISIN)
         )
         val deferred = createDeferred(
             files = files,
             requestedProductIsins = requestedIsins,
-            specificationDtos = specifications
+            specificationSnapshots = specifications
         )
 
         requestedIsins.clear()
@@ -317,9 +369,9 @@ class DeutscheBoerseCompressedFileMarketDataDemoCompositionTest {
         val factory = createSuccess(
             files = files,
             requestedProductIsins = setOf(whitespaceIsin, lowercaseIsin),
-            specificationDtos = mapOf(
-                whitespaceIsin to specificationDto(whitespaceIsin),
-                lowercaseIsin to specificationDto(lowercaseIsin)
+            specificationSnapshots = mapOf(
+                whitespaceIsin to specificationSnapshotDto(whitespaceIsin),
+                lowercaseIsin to specificationSnapshotDto(lowercaseIsin)
             )
         ).viewModelFactory
 
@@ -365,14 +417,14 @@ class DeutscheBoerseCompressedFileMarketDataDemoCompositionTest {
     private fun TestScope.createDeferred(
         files: CompressedFiles,
         requestedProductIsins: Set<String> = setOf(PRODUCT_ISIN),
-        specificationDtos: Map<String, KnockoutProductSpecificationDto> =
-            mapOf(PRODUCT_ISIN to specificationDto(PRODUCT_ISIN))
+        specificationSnapshots: Map<String, KnockoutProductSpecificationSnapshotDto> =
+            mapOf(PRODUCT_ISIN to specificationSnapshotDto(PRODUCT_ISIN))
     ) = async(start = CoroutineStart.UNDISPATCHED) {
         DeutscheBoerseCompressedFileMarketDataDemoComposition.createFactory(
             dxscGzipFile = files.dxsc,
             xfraZipFile = files.xfra,
             requestedProductIsins = requestedProductIsins,
-            specificationDtos = specificationDtos,
+            specificationSnapshots = specificationSnapshots,
             freshnessThresholds = freshnessThresholds(),
             repositoryLoader = DeutscheBoerseCompressedFileMarketDataRepositoryLoader(
                 StandardTestDispatcher(testScheduler)
@@ -383,10 +435,10 @@ class DeutscheBoerseCompressedFileMarketDataDemoCompositionTest {
     private suspend fun TestScope.createResult(
         files: CompressedFiles,
         requestedProductIsins: Set<String> = setOf(PRODUCT_ISIN),
-        specificationDtos: Map<String, KnockoutProductSpecificationDto> =
-            mapOf(PRODUCT_ISIN to specificationDto(PRODUCT_ISIN))
+        specificationSnapshots: Map<String, KnockoutProductSpecificationSnapshotDto> =
+            mapOf(PRODUCT_ISIN to specificationSnapshotDto(PRODUCT_ISIN))
     ): DeutscheBoerseCompressedFileMarketDataDemoCompositionResult {
-        val deferred = createDeferred(files, requestedProductIsins, specificationDtos)
+        val deferred = createDeferred(files, requestedProductIsins, specificationSnapshots)
         advanceUntilIdle()
         return deferred.await()
     }
@@ -394,10 +446,10 @@ class DeutscheBoerseCompressedFileMarketDataDemoCompositionTest {
     private suspend fun TestScope.createSuccess(
         files: CompressedFiles,
         requestedProductIsins: Set<String> = setOf(PRODUCT_ISIN),
-        specificationDtos: Map<String, KnockoutProductSpecificationDto> =
-            mapOf(PRODUCT_ISIN to specificationDto(PRODUCT_ISIN))
+        specificationSnapshots: Map<String, KnockoutProductSpecificationSnapshotDto> =
+            mapOf(PRODUCT_ISIN to specificationSnapshotDto(PRODUCT_ISIN))
     ): DeutscheBoerseCompressedFileMarketDataDemoCompositionResult.Success =
-        createResult(files, requestedProductIsins, specificationDtos).success()
+        createResult(files, requestedProductIsins, specificationSnapshots).success()
 
     private suspend fun TestScope.calculate(
         factory: MarketDataCalculationViewModelFactory,
@@ -430,6 +482,18 @@ class DeutscheBoerseCompressedFileMarketDataDemoCompositionTest {
         ratio = 0.1,
         underlyingCurrency = "EUR",
         productCurrency = "EUR"
+    )
+
+    private fun specificationSnapshotDto(
+        productIsin: String,
+        sourceId: String = SPECIFICATION_SOURCE_ID,
+        retrievedAtEpochMillis: Long = SPECIFICATION_RETRIEVED_AT,
+        sourceTimestampEpochMillis: Long? = SPECIFICATION_SOURCE_TIMESTAMP
+    ) = KnockoutProductSpecificationSnapshotDto(
+        specification = specificationDto(productIsin),
+        sourceId = sourceId,
+        retrievedAtEpochMillis = retrievedAtEpochMillis,
+        sourceTimestampEpochMillis = sourceTimestampEpochMillis
     )
 
     private fun freshnessThresholds() = MarketDataFreshnessThresholds(
@@ -527,6 +591,9 @@ class DeutscheBoerseCompressedFileMarketDataDemoCompositionTest {
         const val OLDER_TIMESTAMP = "2026-07-27T19:29:56Z"
         const val NEWER_TIMESTAMP = "2026-07-27T19:29:57Z"
         const val FRESHNESS_LIMIT_MILLIS = 1_000L
+        const val SPECIFICATION_SOURCE_ID = "test-specification-source"
+        const val SPECIFICATION_RETRIEVED_AT = 1_700_000_000_500L
+        const val SPECIFICATION_SOURCE_TIMESTAMP = 1_700_000_000_250L
 
         val successType =
             DeutscheBoerseCompressedFileMarketDataDemoCompositionResult.Success::class.java

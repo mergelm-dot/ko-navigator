@@ -1,11 +1,12 @@
 package de.konavigator.app.debug.marketdata
 
 import de.konavigator.app.application.marketdata.MarketDataCalculationApplicationService
+import de.konavigator.app.application.repository.adapter.SnapshotBackedKnockoutProductSpecificationRepository
 import de.konavigator.app.data.remote.DeutscheBoerseCompressedFileMarketDataRepositoryCreationResult
 import de.konavigator.app.data.remote.DeutscheBoerseCompressedFileMarketDataRepositoryLoader
-import de.konavigator.app.data.remote.RemoteKnockoutProductSpecificationRepository
-import de.konavigator.app.data.remote.dto.KnockoutProductSpecificationDto
-import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductSpecificationProvider
+import de.konavigator.app.data.remote.RemoteKnockoutProductSpecificationSnapshotRepository
+import de.konavigator.app.data.remote.dto.KnockoutProductSpecificationSnapshotDto
+import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductSpecificationSnapshotProvider
 import de.konavigator.app.data.remote.provider.deutscheboerse.DeutscheBoerseKnockoutProductMarketDataMapper
 import de.konavigator.app.data.remote.provider.deutscheboerse.DeutscheBoerseSnapshotProviderCreationError
 import de.konavigator.app.domain.availability.MarketDataCalculationType
@@ -31,17 +32,27 @@ sealed interface DeutscheBoerseCompressedFileMarketDataDemoCompositionResult {
 
 object DeutscheBoerseCompressedFileMarketDataDemoComposition {
 
+    /**
+     * Lädt Produktmarktdaten aus lokalen komprimierten Deutsche-Börse-Dateien und speist
+     * Produktspezifikationen als providerneutrale lokale Snapshots ein.
+     *
+     * Der bestehende Application-Service wird über die dokumentierte Kompatibilitätsbrücke
+     * angeschlossen. Quelle und Zeitbezug bleiben im Snapshot-Pfad erhalten, können vom alten
+     * Service-Port jedoch noch nicht weitertransportiert werden. Eingabemengen und Snapshot-Map
+     * werden vor dem suspendierenden Dateizugriff defensiv kopiert. Die Composition verwendet
+     * keine Netzwerkverbindung und keine Live-Datenquelle.
+     */
     suspend fun createFactory(
         dxscGzipFile: File,
         xfraZipFile: File,
         requestedProductIsins: Set<String>,
-        specificationDtos: Map<String, KnockoutProductSpecificationDto>,
+        specificationSnapshots: Map<String, KnockoutProductSpecificationSnapshotDto>,
         freshnessThresholds: MarketDataFreshnessThresholds,
         repositoryLoader: DeutscheBoerseCompressedFileMarketDataRepositoryLoader =
             DeutscheBoerseCompressedFileMarketDataRepositoryLoader()
     ): DeutscheBoerseCompressedFileMarketDataDemoCompositionResult {
         val requestedProductIsinsSnapshot = requestedProductIsins.toSet()
-        val specificationDtosSnapshot = specificationDtos.toMap()
+        val specificationSnapshotsSnapshot = specificationSnapshots.toMap()
         return when (
             val repositoryCreationResult = repositoryLoader.load(
                 dxscGzipFile = dxscGzipFile,
@@ -55,9 +66,18 @@ object DeutscheBoerseCompressedFileMarketDataDemoComposition {
                 )
 
             is DeutscheBoerseCompressedFileMarketDataRepositoryCreationResult.Success -> {
-                val specificationRepository = RemoteKnockoutProductSpecificationRepository(
-                    InMemoryKnockoutProductSpecificationProvider(specificationDtosSnapshot)
-                )
+                val specificationSnapshotProvider =
+                    InMemoryKnockoutProductSpecificationSnapshotProvider(
+                        specificationSnapshotsSnapshot
+                    )
+                val specificationSnapshotRepository =
+                    RemoteKnockoutProductSpecificationSnapshotRepository(
+                        specificationSnapshotProvider
+                    )
+                val specificationRepository =
+                    SnapshotBackedKnockoutProductSpecificationRepository(
+                        specificationSnapshotRepository
+                    )
                 val freshnessPolicy = MarketDataFreshnessPolicy(freshnessThresholds)
                 val sourcePolicy = MarketDataSourcePolicy(
                     MarketDataSourcePolicyConfig(
