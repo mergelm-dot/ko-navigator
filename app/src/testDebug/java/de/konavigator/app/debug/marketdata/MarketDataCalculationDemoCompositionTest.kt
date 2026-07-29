@@ -1,12 +1,13 @@
 package de.konavigator.app.debug.marketdata
 
 import de.konavigator.app.application.marketdata.MarketDataCalculationApplicationService
+import de.konavigator.app.application.repository.adapter.SnapshotBackedKnockoutProductSpecificationRepository
 import de.konavigator.app.data.remote.RemoteKnockoutProductMarketDataRepository
-import de.konavigator.app.data.remote.RemoteKnockoutProductSpecificationRepository
+import de.konavigator.app.data.remote.RemoteKnockoutProductSpecificationSnapshotRepository
 import de.konavigator.app.data.remote.dto.KnockoutProductMarketDataDto
-import de.konavigator.app.data.remote.dto.KnockoutProductSpecificationDto
+import de.konavigator.app.data.remote.dto.KnockoutProductSpecificationSnapshotDto
 import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductMarketDataProvider
-import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductSpecificationProvider
+import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductSpecificationSnapshotProvider
 import de.konavigator.app.domain.availability.MarketDataCalculationType
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiError
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationUiDataQuality
@@ -102,21 +103,37 @@ class MarketDataCalculationDemoCompositionTest {
             "marketDataRepository"
         )
         assertTrue(
-            specificationRepository is RemoteKnockoutProductSpecificationRepository
+            specificationRepository is SnapshotBackedKnockoutProductSpecificationRepository
         )
         assertTrue(marketDataRepository is RemoteKnockoutProductMarketDataRepository)
 
-        val specificationProvider = readField<Any>(specificationRepository, "provider")
+        val specificationSnapshotRepository = readField<Any>(
+            specificationRepository,
+            "snapshotRepository"
+        )
+        assertTrue(
+            specificationSnapshotRepository is
+                RemoteKnockoutProductSpecificationSnapshotRepository
+        )
+        val specificationSnapshotProvider = readField<Any>(
+            specificationSnapshotRepository,
+            "provider"
+        )
         val marketDataProvider = readField<Any>(marketDataRepository, "provider")
         assertTrue(
-            specificationProvider is InMemoryKnockoutProductSpecificationProvider
+            specificationSnapshotProvider is
+                InMemoryKnockoutProductSpecificationSnapshotProvider
         )
         assertTrue(marketDataProvider is InMemoryKnockoutProductMarketDataProvider)
 
-        val specification = readField<Map<String, KnockoutProductSpecificationDto>>(
-            specificationProvider,
-            "specificationsByProductIsin"
-        ).values.single()
+        val specificationSnapshots =
+            readField<Map<String, KnockoutProductSpecificationSnapshotDto>>(
+                specificationSnapshotProvider,
+                "snapshotsByProductIsin"
+            )
+        assertEquals(setOf("DE000DEMO001"), specificationSnapshots.keys)
+        val specificationSnapshot = specificationSnapshots.values.single()
+        val specification = specificationSnapshot.specification
         val marketData = readField<Map<String, KnockoutProductMarketDataDto>>(
             marketDataProvider,
             "marketDataByProductIsin"
@@ -125,6 +142,9 @@ class MarketDataCalculationDemoCompositionTest {
         assertEquals("DE000DEMO001", specification.productIsin)
         assertEquals("demo-issuer", specification.issuerId)
         assertEquals("demo-underlying", specification.underlyingId)
+        assertEquals("demo-specification-source", specificationSnapshot.sourceId)
+        assertEquals(1_700_000_000_500L, specificationSnapshot.retrievedAtEpochMillis)
+        assertEquals(1_700_000_000_250L, specificationSnapshot.sourceTimestampEpochMillis)
         assertEquals("demo-source", marketData.sourceId)
         assertEquals(1_700_000_000_000L, marketData.bidTimestampEpochMillis)
         assertEquals(1_700_000_000_000L, marketData.askTimestampEpochMillis)
