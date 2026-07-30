@@ -1,6 +1,5 @@
 package de.konavigator.app.debug.marketdata
 
-import de.konavigator.app.application.marketdata.MarketDataCalculationApplicationService
 import de.konavigator.app.application.repository.adapter.SnapshotBackedKnockoutProductSpecificationRepository
 import de.konavigator.app.data.remote.RemoteKnockoutProductMarketDataRepository
 import de.konavigator.app.data.remote.RemoteKnockoutProductSpecificationSnapshotRepository
@@ -9,13 +8,7 @@ import de.konavigator.app.data.remote.dto.KnockoutProductSpecificationDto
 import de.konavigator.app.data.remote.dto.KnockoutProductSpecificationSnapshotDto
 import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductMarketDataProvider
 import de.konavigator.app.data.remote.provider.InMemoryKnockoutProductSpecificationSnapshotProvider
-import de.konavigator.app.domain.availability.MarketDataCalculationType
-import de.konavigator.app.domain.freshness.MarketDataFreshnessPolicy
 import de.konavigator.app.domain.freshness.MarketDataFreshnessThresholds
-import de.konavigator.app.domain.orchestration.MarketDataCalculationOrchestrator
-import de.konavigator.app.domain.source.MarketDataSourcePolicy
-import de.konavigator.app.domain.source.MarketDataSourcePolicyConfig
-import de.konavigator.app.domain.source.MarketDataSourceRule
 import de.konavigator.app.presentation.marketdata.MarketDataCalculationViewModelFactory
 
 /**
@@ -25,7 +18,11 @@ import de.konavigator.app.presentation.marketdata.MarketDataCalculationViewModel
  * Die Produktspezifikation wird über den Snapshot-Pfad geladen. Der bestehende
  * Application-Service wird über die dokumentierte Kompatibilitätsbrücke angeschlossen.
  * Quelle und Zeitbezug bleiben im Snapshot-Pfad vorhanden, können über den alten Service-Port
- * jedoch noch nicht weitertransportiert werden.
+ * jedoch noch nicht weitertransportiert werden. Die Abschlussverdrahtung erfolgt
+ * ausschließlich durch den bestehenden [MarketDataCalculationDemoViewModelFactoryComposer].
+ * Die Composition enthält keine eigene Policy-, Orchestrator-, Service- oder
+ * Factory-Verdrahtung, keine Datei- oder Netzwerkverbindung und keine Live-Datenquelle. Sie ist
+ * ausschließlich Bestandteil des Debug-Source-Sets.
  */
 object MarketDataCalculationDemoComposition {
 
@@ -73,39 +70,16 @@ object MarketDataCalculationDemoComposition {
         val marketDataRepository = RemoteKnockoutProductMarketDataRepository(
             marketDataProvider
         )
-        val freshnessPolicy = MarketDataFreshnessPolicy(
-            MarketDataFreshnessThresholds(
+        return MarketDataCalculationDemoViewModelFactoryComposer.create(
+            specificationRepository = specificationRepository,
+            marketDataRepository = marketDataRepository,
+            freshnessThresholds = MarketDataFreshnessThresholds(
                 maxBidAgeMillis = 0L,
                 maxAskAgeMillis = 0L,
                 maxBidAskDifferenceMillis = 0L,
                 allowedFutureSkewMillis = 0L
-            )
+            ),
+            marketDataSourceId = "demo-source"
         )
-        val sourcePolicy = MarketDataSourcePolicy(
-            MarketDataSourcePolicyConfig(
-                listOf(
-                    MarketDataSourceRule(
-                        sourceId = "demo-source",
-                        supportedCalculationTypes = setOf(
-                            MarketDataCalculationType.PURCHASE_PRICE,
-                            MarketDataCalculationType.SALE_PRICE,
-                            MarketDataCalculationType.SPREAD,
-                            MarketDataCalculationType.MID
-                        )
-                    )
-                )
-            )
-        )
-        val orchestrator = MarketDataCalculationOrchestrator(
-            freshnessPolicy = freshnessPolicy,
-            sourcePolicy = sourcePolicy
-        )
-        val applicationService = MarketDataCalculationApplicationService(
-            specificationRepository = specificationRepository,
-            marketDataRepository = marketDataRepository,
-            orchestrator = orchestrator
-        )
-
-        return MarketDataCalculationViewModelFactory(applicationService)
     }
 }
