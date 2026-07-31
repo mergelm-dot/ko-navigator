@@ -360,10 +360,15 @@ class KnockoutProductDiscoveryApplicationServiceTest {
 
     @Test
     fun serviceDoesNotMutateRequest() = runTest {
+        val enabledIssuerIds = linkedSetOf(
+            "synthetic-issuer",
+            "synthetic-issuer-a"
+        )
         val request = request(
             underlyingId = " Synthetic-Underlying ",
             direction = TradeDirection.SHORT,
-            brokerId = " Synthetic-Broker "
+            brokerId = " Synthetic-Broker ",
+            enabledIssuerIds = enabledIssuerIds
         )
         val context = context(
             catalogResult = catalogSuccess(
@@ -377,6 +382,8 @@ class KnockoutProductDiscoveryApplicationServiceTest {
         assertEquals(" Synthetic-Underlying ", request.underlyingId)
         assertEquals(TradeDirection.SHORT, request.direction)
         assertEquals(" Synthetic-Broker ", request.brokerId)
+        assertSame(enabledIssuerIds, request.enabledIssuerIds)
+        assertEquals(setOf("synthetic-issuer", "synthetic-issuer-a"), request.enabledIssuerIds)
     }
 
     @Test
@@ -417,11 +424,183 @@ class KnockoutProductDiscoveryApplicationServiceTest {
     }
 
     @Test
+    fun emptyEnabledIssuerSetReturnsNoEnabledIssuerCandidates() = runTest {
+        val candidate = snapshot(productIsin = "DE000SYNTH01", issuerId = "synthetic-issuer-a")
+        val context = context(
+            catalogResult = catalogSuccess(candidate),
+            availabilityResult = availabilitySuccess("DE000SYNTH01")
+        )
+
+        val result = context.service.execute(request(enabledIssuerIds = emptySet()))
+
+        assertSame(KnockoutProductDiscoveryApplicationResult.NoEnabledIssuerCandidates, result)
+        assertFalse(result === KnockoutProductDiscoveryApplicationResult.NoCatalogCandidates)
+        assertFalse(result === KnockoutProductDiscoveryApplicationResult.NoBrokerTradableCandidates)
+    }
+
+    @Test
+    fun noMatchingEnabledIssuerReturnsNoEnabledIssuerCandidates() = runTest {
+        val context = context(
+            catalogResult = catalogSuccess(
+                snapshot(productIsin = "DE000SYNTH01", issuerId = "synthetic-issuer-a")
+            ),
+            availabilityResult = availabilitySuccess("DE000SYNTH01")
+        )
+
+        val result = context.service.execute(
+            request(enabledIssuerIds = setOf("synthetic-issuer-b"))
+        )
+
+        assertSame(KnockoutProductDiscoveryApplicationResult.NoEnabledIssuerCandidates, result)
+    }
+
+    @Test
+    fun disabledBrokerTradableCandidatesAreExcluded() = runTest {
+        val synth01 = snapshot(productIsin = "DE000SYNTH01", issuerId = "issuer-a")
+        val synth02 = snapshot(productIsin = "DE000SYNTH02", issuerId = "issuer-b")
+        val synth03 = snapshot(productIsin = "DE000SYNTH03", issuerId = "issuer-c")
+        val context = context(
+            catalogResult = catalogSuccess(synth01, synth02, synth03),
+            availabilityResult = availabilitySuccess(
+                "DE000SYNTH01",
+                "DE000SYNTH02",
+                "DE000SYNTH03"
+            )
+        )
+
+        val result = context.service.execute(
+            request(enabledIssuerIds = setOf("issuer-a", "issuer-c"))
+        )
+
+        assertTrue(result is KnockoutProductDiscoveryApplicationResult.BrokerTradableCandidates)
+        val candidates = brokerTradableCandidates(result)
+        assertEquals(2, candidates.size)
+        assertSame(synth01, candidates[0])
+        assertSame(synth03, candidates[1])
+        assertFalse(candidates.any { it === synth02 })
+    }
+
+    @Test
+    fun issuerSelectionRemainsCaseSensitiveAcrossPipeline() = runTest {
+        val context = context(
+            catalogResult = catalogSuccess(
+                snapshot(productIsin = "DE000SYNTH01", issuerId = "Synthetic-Issuer")
+            ),
+            availabilityResult = availabilitySuccess("DE000SYNTH01")
+        )
+
+        val result = context.service.execute(
+            request(enabledIssuerIds = setOf("synthetic-issuer"))
+        )
+
+        assertSame(KnockoutProductDiscoveryApplicationResult.NoEnabledIssuerCandidates, result)
+    }
+
+    @Test
+    fun issuerSelectionRemainsWhitespaceSensitiveAcrossPipeline() = runTest {
+        val candidate = snapshot(
+            productIsin = "DE000SYNTH01",
+            issuerId = " Synthetic-Issuer "
+        )
+        val withoutWhitespaceContext = context(
+            catalogResult = catalogSuccess(candidate),
+            availabilityResult = availabilitySuccess("DE000SYNTH01")
+        )
+        val exactContext = context(
+            catalogResult = catalogSuccess(candidate),
+            availabilityResult = availabilitySuccess("DE000SYNTH01")
+        )
+
+        val withoutWhitespace = withoutWhitespaceContext.service.execute(
+            request(enabledIssuerIds = setOf("Synthetic-Issuer"))
+        )
+        val exact = exactContext.service.execute(
+            request(enabledIssuerIds = setOf(" Synthetic-Issuer "))
+        )
+
+        assertSame(
+            KnockoutProductDiscoveryApplicationResult.NoEnabledIssuerCandidates,
+            withoutWhitespace
+        )
+        assertSame(candidate, brokerTradableCandidates(exact).single())
+    }
+
+    @Test
+    fun issuerFilteringPreservesOrderDuplicatesAndInstances() = runTest {
+        val first = snapshot(productIsin = "DE000SYNTH04", issuerId = "issuer-c")
+        val duplicate = snapshot(productIsin = "DE000SYNTH01", issuerId = "issuer-a")
+        val excluded = snapshot(productIsin = "DE000SYNTH02", issuerId = "issuer-b")
+        val last = snapshot(productIsin = "DE000SYNTH03", issuerId = "issuer-c")
+        val context = context(
+            catalogResult = catalogSuccess(first, duplicate, excluded, duplicate, last),
+            availabilityResult = availabilitySuccess(
+                "DE000SYNTH01",
+                "DE000SYNTH02",
+                "DE000SYNTH03",
+                "DE000SYNTH04"
+            )
+        )
+
+        val candidates = brokerTradableCandidates(
+            context.service.execute(
+                request(enabledIssuerIds = setOf("issuer-a", "issuer-c"))
+            )
+        )
+
+        assertEquals(4, candidates.size)
+        assertSame(first, candidates[0])
+        assertSame(duplicate, candidates[1])
+        assertSame(duplicate, candidates[2])
+        assertSame(last, candidates[3])
+        assertFalse(candidates.any { it === excluded })
+    }
+
+    @Test
+    fun upstreamEmptyAndFailureStatesRemainDistinctFromIssuerSelection() = runTest {
+        val candidate = snapshot(productIsin = "DE000SYNTH01")
+        val scenarios = listOf(
+            context(
+                catalogResult = KnockoutProductSpecificationCatalogResult.Success(emptyList()),
+                availabilityResult = availabilitySuccess("DE000SYNTH01")
+            ) to KnockoutProductDiscoveryApplicationResult.NoCatalogCandidates,
+            context(
+                catalogResult = catalogSuccess(candidate),
+                availabilityResult = availabilitySuccess()
+            ) to KnockoutProductDiscoveryApplicationResult.NoBrokerTradableCandidates,
+            context(
+                catalogResult = KnockoutProductSpecificationCatalogResult.DataAccessFailure,
+                availabilityResult = availabilitySuccess("DE000SYNTH01")
+            ) to KnockoutProductDiscoveryApplicationResult.CatalogDataAccessFailure,
+            context(
+                catalogResult = KnockoutProductSpecificationCatalogResult.InvalidData,
+                availabilityResult = availabilitySuccess("DE000SYNTH01")
+            ) to KnockoutProductDiscoveryApplicationResult.CatalogInvalidData,
+            context(
+                catalogResult = catalogSuccess(candidate),
+                availabilityResult = KnockoutProductBrokerAvailabilityResult.DataAccessFailure
+            ) to KnockoutProductDiscoveryApplicationResult.BrokerAvailabilityDataAccessFailure,
+            context(
+                catalogResult = catalogSuccess(candidate),
+                availabilityResult = KnockoutProductBrokerAvailabilityResult.InvalidData
+            ) to KnockoutProductDiscoveryApplicationResult.BrokerAvailabilityInvalidData
+        )
+
+        scenarios.forEach { (context, expectedResult) ->
+            val result = context.service.execute(request(enabledIssuerIds = emptySet()))
+
+            assertSame(expectedResult, result)
+            assertFalse(result === KnockoutProductDiscoveryApplicationResult.NoEnabledIssuerCandidates)
+        }
+    }
+
+    @Test
     fun serviceContainsNoMarketDataRankingOrCalculationOutput() {
+        val enabledIssuerIds = setOf("synthetic-issuer")
         val request = KnockoutProductDiscoveryApplicationRequest(
             underlyingId = "synthetic-underlying",
             direction = TradeDirection.LONG,
-            brokerId = "synthetic-broker"
+            brokerId = "synthetic-broker",
+            enabledIssuerIds = enabledIssuerIds
         )
         val candidates = listOf(snapshot())
         val result = KnockoutProductDiscoveryApplicationResult.BrokerTradableCandidates(
@@ -431,6 +610,7 @@ class KnockoutProductDiscoveryApplicationServiceTest {
         assertEquals("synthetic-underlying", request.underlyingId)
         assertEquals(TradeDirection.LONG, request.direction)
         assertEquals("synthetic-broker", request.brokerId)
+        assertSame(enabledIssuerIds, request.enabledIssuerIds)
         assertSame(candidates, result.candidates)
     }
 
@@ -444,7 +624,8 @@ class KnockoutProductDiscoveryApplicationServiceTest {
         return TestContext(
             service = KnockoutProductDiscoveryApplicationService(
                 catalogRepository = catalogRepository,
-                brokerAvailabilityRepository = brokerRepository
+                brokerAvailabilityRepository = brokerRepository,
+                issuerSelectionFilter = KnockoutProductIssuerSelectionFilter()
             ),
             catalogRepository = catalogRepository,
             brokerRepository = brokerRepository
@@ -454,11 +635,19 @@ class KnockoutProductDiscoveryApplicationServiceTest {
     private fun request(
         underlyingId: String = "synthetic-underlying",
         direction: TradeDirection = TradeDirection.LONG,
-        brokerId: String = "synthetic-broker"
+        brokerId: String = "synthetic-broker",
+        enabledIssuerIds: Set<String> = setOf(
+            "synthetic-issuer",
+            "synthetic-issuer-a",
+            "synthetic-issuer-b",
+            "synthetic-issuer-c",
+            "synthetic-shared-issuer"
+        )
     ) = KnockoutProductDiscoveryApplicationRequest(
         underlyingId = underlyingId,
         direction = direction,
-        brokerId = brokerId
+        brokerId = brokerId,
+        enabledIssuerIds = enabledIssuerIds
     )
 
     private fun catalogSuccess(

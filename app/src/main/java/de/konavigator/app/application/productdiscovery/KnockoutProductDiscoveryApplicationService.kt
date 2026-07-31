@@ -4,20 +4,30 @@ import de.konavigator.app.application.repository.KnockoutProductBrokerAvailabili
 import de.konavigator.app.application.repository.KnockoutProductSpecificationCatalogRepository
 
 /**
- * Providerneutraler Application-Service, der sequenziell und fail-fast genau zwei Stufen
- * koordiniert: Katalogsuche und verpflichtende Broker-Verfügbarkeitsprüfung.
+ * Providerneutraler Application-Service, der sequenziell und fail-fast genau drei Stufen
+ * koordiniert: Katalogsuche, verpflichtende Broker-Verfügbarkeitsprüfung und aktivierte
+ * Emittentenauswahl – in exakt dieser Reihenfolge.
  *
  * Das Katalogrepository wird immer zuerst aufgerufen. Das Brokerrepository wird ausschließlich
- * nach einer erfolgreichen, nichtleeren Katalogantwort aufgerufen. Request-Werte werden exakt in
- * die jeweiligen Querys übernommen. Die Produkt-ISIN-Liste entsteht ausschließlich aus den
- * Katalogkandidaten und in deren Reihenfolge; ISIN-Duplikate werden für die Brokerabfrage nicht
- * entfernt.
+ * nach einer erfolgreichen, nichtleeren Katalogantwort aufgerufen. Der Emittentenfilter wird nur
+ * nach einer erfolgreichen Brokerprüfung mit mindestens einem brokerhandelbaren Kandidaten
+ * aufgerufen. Request-Werte werden exakt in die jeweiligen Querys übernommen; insbesondere wird
+ * `enabledIssuerIds` exakt an [KnockoutProductIssuerSelectionRequest] weitergegeben. Es erfolgen
+ * keine automatische Aktivierung und keine Standardauswahl. Die Produkt-ISIN-Liste entsteht
+ * ausschließlich aus den Katalogkandidaten und in deren Reihenfolge; ISIN-Duplikate werden für
+ * die Brokerabfrage nicht entfernt.
  *
  * Die Filterung verwendet ausschließlich exakte Set-Mitgliedschaft. Ursprüngliche
- * Katalogreihenfolge und Katalogduplikate bleiben erhalten. Der Service sortiert, gruppiert und
- * dedupliziert nicht und begrenzt die Kandidatenzahl nicht. Er validiert und normalisiert nicht
- * und bildet erwartbare Repository-Ergebnisse ohne Exceptions ab. Technische und ungültige
- * Datenzustände beider Repositories bleiben getrennt; bei Fehlern gibt es keine Teilresultate.
+ * Katalogreihenfolge und Katalogduplikate bleiben über alle drei Stufen erhalten. Der Service
+ * sortiert, gruppiert und dedupliziert nicht und begrenzt die Kandidatenzahl nicht. Er validiert
+ * und normalisiert nicht und bildet erwartbare Repository-Ergebnisse ohne Exceptions ab.
+ * Technische und ungültige Datenzustände beider Repositories bleiben getrennt; bei Fehlern gibt
+ * es keine Teilresultate.
+ *
+ * Regulär wird der Emittentenfilter nur mit einer nichtleeren brokerhandelbaren Kandidatenliste
+ * aufgerufen, sodass `NoInputCandidates` nicht erreichbar ist. Der vollständige Ergebniszweig
+ * bildet diesen Zustand dennoch ohne Exception und ohne Teilresultat fail-closed auf
+ * `NoBrokerTradableCandidates` ab.
  *
  * Repository-Implementierungs-, Provider-, DTO- und Mappingdetails liegen außerhalb des
  * Services. Er enthält keine Marktdaten-, Berechnungs- oder Domainlogik, keine Systemzeit oder
@@ -27,7 +37,9 @@ class KnockoutProductDiscoveryApplicationService(
     private val catalogRepository:
         KnockoutProductSpecificationCatalogRepository,
     private val brokerAvailabilityRepository:
-        KnockoutProductBrokerAvailabilityRepository
+        KnockoutProductBrokerAvailabilityRepository,
+    private val issuerSelectionFilter:
+        KnockoutProductIssuerSelectionFilter
 ) {
 
     suspend fun execute(
@@ -92,14 +104,34 @@ class KnockoutProductDiscoveryApplicationService(
                 candidate.specification.productIsin in tradableProductIsins
             }
 
-        return if (brokerTradableCandidates.isEmpty()) {
-            KnockoutProductDiscoveryApplicationResult
+        if (brokerTradableCandidates.isEmpty()) {
+            return KnockoutProductDiscoveryApplicationResult
                 .NoBrokerTradableCandidates
-        } else {
-            KnockoutProductDiscoveryApplicationResult
-                .BrokerTradableCandidates(
-                    candidates = brokerTradableCandidates
-                )
+        }
+
+        val issuerSelectionRequest =
+            KnockoutProductIssuerSelectionRequest(
+                candidates = brokerTradableCandidates,
+                enabledIssuerIds = request.enabledIssuerIds
+            )
+
+        return when (
+            val issuerSelectionResult =
+                issuerSelectionFilter.filter(issuerSelectionRequest)
+        ) {
+            is KnockoutProductIssuerSelectionResult.EnabledIssuerCandidates ->
+                KnockoutProductDiscoveryApplicationResult
+                    .BrokerTradableCandidates(
+                        candidates = issuerSelectionResult.candidates
+                    )
+
+            KnockoutProductIssuerSelectionResult.NoEnabledIssuerCandidates ->
+                KnockoutProductDiscoveryApplicationResult
+                    .NoEnabledIssuerCandidates
+
+            KnockoutProductIssuerSelectionResult.NoInputCandidates ->
+                KnockoutProductDiscoveryApplicationResult
+                    .NoBrokerTradableCandidates
         }
     }
 }
