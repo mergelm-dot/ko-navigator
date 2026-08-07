@@ -2,12 +2,38 @@
 
 ## Aktueller Entwicklungsstand
 
-Der aktive Release-Einstieg führt über `MainActivity`, `TradePlannerRoute` und
-den state-gesteuerten `TradePlannerScreen` in die theoretische Trade-Planung.
-Die Berechnungsengine ist für diesen abgegrenzten Modellpfad weit fortgeschritten
-und durch 25 feste Szenarien abgesichert. Reale Zertifikats- und Kursprovider
-sind noch nicht angebunden. Der vorhandene KO-Produktpfad arbeitet ausschließlich
-mit Ports, In-Memory-Adaptern und einer Debug-Demo.
+### Stand nach 26A.19a
+
+Der providerneutrale Produktberechnungspfad ist weit fortgeschritten. Bereits
+vorhanden sind Produktkatalog, Broker-Verfügbarkeit, Emittentenauswahl,
+Marktdaten, Data Quality mit Gate, Calculation Availability mit Gate, Freshness
+mit Gate, Source-Freigabe mit Gate, Marktdatenberechnung mit Gate, theoretischer
+Zielhebel-Plan mit Gate, die Einstiegsberechnung bestehender KO-Produkte mit Gate,
+Ziel-/Ist-Abweichungen mit Gate sowie ein technischer Target-Fit anhand externer
+Toleranzen.
+
+Aktueller letzter abgeschlossener fachlicher Schritt:
+
+`26A.19a – ExistingKnockoutProductTargetFitCalculator`
+
+Der Target-Fit prüft transparent und getrennt die relative Hebelabweichung sowie
+die Barrierenabweichung relativ zum geplanten Einstieg. Feste Toleranzen sind
+nicht in der Engine hartcodiert.
+
+Aktueller JVM-Teststand: `2112/2112 erfolgreich`.
+
+Bereits fertig sind die providerneutrale Architektur, Berechnungen mit
+vorhandenen Produktspezifikationen, die tatsächliche KO-Barriere eines
+existierenden Produkts, der tatsächlich berechnete Hebel am geplanten Einstieg,
+der Vergleich mit theoretischem Zielhebel, die Abweichungsberechnung und die
+technische Target-Fit-Prüfung.
+
+Noch nicht vollständig fertig sind echte produktive Live-Provider, die
+vollständige reale Zertifikatsversorgung aller gewünschten Emittenten, ein
+belastbarer produktiver Bid-/Ask-Preisfluss, die finale produktive FX-Anbindung,
+Finanzierungskosten, Aufgeld/Premium, Tick-Size-/produktbezogene Rundung und die
+finale Orderlogik. Ein vollständiger Live-Zertifikatshandelspfad besteht daher
+noch nicht.
 
 ## Phase 1 – Fundament
 
@@ -36,26 +62,59 @@ Für den derzeitigen theoretischen Planungsvertrag umgesetzt:
 - [x] Berechneter theoretischer Hebel am geplanten Einstieg
 - [x] Strukturierte Engine- und Presentation-Fehler
 - [x] 25 feste Referenz-, Grenz- und Fehlerszenarien
+- [x] Bestehendes KO-Produkt am geplanten Einstieg mathematisch berechnen
+- [x] Tatsächlichen Produkthebel am geplanten Einstieg berechnen
+- [x] Tatsächliche KO-Barriere getrennt von theoretischer Zielbarriere behandeln
+- [x] Zielhebelabweichung berechnen
+- [x] Barrierenabweichung berechnen
+- [x] Absolute und relative Abweichungen transparent bereitstellen
+- [x] Technischen Target Fit mit externen Toleranzen berechnen
 
 Für einen realen Produktpfad weiterhin offen:
 
-- [ ] Realen Produktpreis aus freigegebenen Produkt- und Marktdaten bestimmen
-- [ ] Bid-/Ask-basierten Hebel berechnen
-- [ ] Tatsächlichen Produkthebel fachlich vom theoretischen Hebel trennen
-- [ ] KO-Status eines bestehenden Produkts bewerten
+- [ ] Produktive Bid-/Ask-Ausführung
 - [ ] Finanzierungskosten fachlich definieren
 - [ ] Premium beziehungsweise Aufgeld fachlich definieren
-- [ ] Vorhandene reine Spread-Berechnung in einen realen Produktablauf einordnen
 - [ ] Tick Size und produktbezogene Rundung fachlich definieren
-- [ ] Ziel-Einstiegspreis für ein konkretes Produkt
-- [ ] Gewinn-/Verlustberechnung
+- [ ] Finale Gewinn-/Verlustrechnung im realen Produktpfad vervollständigen
 
 ## Phase 3 – Zertifikatssuche
 
-- [ ] Reale Zertifikate laden
-- [ ] Fachlich freigegebene Filter anwenden
-- [ ] Produkte transparent bewerten
-- [ ] Ergebnisliste
+### Providerneutraler Kandidatenpfad – weit fortgeschritten
+
+- [x] Produktspezifikationen in den Kandidatenpfad übernehmen
+- [x] Broker-Verfügbarkeit berücksichtigen
+- [x] Emittentenauswahl berücksichtigen
+- [x] Data Quality berücksichtigen
+- [x] Availability berücksichtigen
+- [x] Freshness berücksichtigen
+- [x] Source-Freigabe berücksichtigen
+- [x] Zielhebel für Kandidaten berechnen
+- [x] Bestehende Produkte am geplanten Einstieg berechnen
+- [x] Ziel-/Ist-Abweichungen berechnen
+- [x] Erfolgreiche Deviation-Ergebnisse freigeben
+- [x] Target-Fit-Calculator bereitstellen
+
+Noch offen:
+
+- [ ] Target Fit auf alle freigegebenen Kandidaten anwenden (`26A.19b`)
+- [ ] Target-Fit-Ergebnisse fachlich freigeben oder filtern
+- [ ] Kandidaten transparent vergleichen
+- [ ] Bestes Zertifikat auswählen
+- [ ] Bis zu zwei Alternativen bereitstellen
+- [ ] Vollständige Produktpipeline zusammensetzen
+- [ ] Reale Zertifikatsdaten aus produktiven Providern laden
+
+## Ergebnisziel der ersten Version
+
+Nach Eingabe von Basiswert, Broker, Zielhebel und gewünschtem Basiswertkurs
+beziehungsweise Einstiegskurs soll die App zunächst ein bestes Zertifikat
+ermitteln und anzeigen. Die geplante erste Ergebnisanzeige umfasst Emittent, WKN,
+berechneten Zertifikatspreis am geplanten Einstieg, tatsächlich berechneten Hebel,
+reale KO-Barriere, Abweichung zum Zielhebel und technische Target-Fit-Information.
+
+Optional können später bis zu zwei Alternativen angezeigt werden. WKN und Preis
+sollen separat schnell kopierbar sein. Die Anzeige ist keine Kaufempfehlung.
 
 ## Phase 4 – UI-Verfeinerung
 
@@ -98,8 +157,9 @@ Architekturgrundlage: [ADR-0001](docs/DECISIONS.md#adr-0001--currencypolicy-als-
 
 ## Phase 6 – Datenqualität und Robustheit
 
-Status: Struktureller V1-Vertrag im Marktdatenorchestrator aktiv;
-Application-/Presentation-Weitergabe offen
+Status: Struktureller V1-Vertrag im Marktdatenorchestrator aktiv; Data Quality
+ist im providerneutralen Kandidaten-/Application-Pfad integriert. Die finale
+vollständige UI-Darstellung und Nutzerkommunikation bleiben offen.
 
 Priorität: **P0 – nächster fachlich-technischer Schwerpunkt**
 
@@ -129,11 +189,6 @@ Nächste Schritte:
   Quellenfehler, Handelsaussetzung und ausgelösten Knock-out erweitern
 - [ ] Warnungen, Blockierungen und Teilresultate später bis zur UI nachweisen
 
-Der nächste technische Schritt ist:
-
-**Orchestrator-`DataQualityAssessment` kontrolliert durch Application und
-Presentation bis zur neutralen UI-Anzeige weiterreichen.**
-
 Architekturgrundlage: [ADR-0004](docs/DECISIONS.md#adr-0004--realistische-robustheits-integrationstests) und [ADR-0009](docs/DECISIONS.md#adr-0009--einheitlicher-data-quality-vertrag-über-bestehenden-validatoren-und-policies).
 
 ## Phase 7 – Transparente Produktqualität
@@ -156,15 +211,45 @@ Architekturgrundlage: [ADR-0005](docs/DECISIONS.md#adr-0005--mehrdimensionaler-z
 
 ## Verbindliche Entwicklungsreihenfolge
 
-1. **Theoretische Engine stabilisieren – weit fortgeschritten.**
-2. **Mock-Daten-Szenario-Kit – mit 25 Szenarien abgeschlossen.**
-3. **Einheitliche Data-Quality-Schicht – struktureller V1-Vertrag und
-   kontrollierte Orchestrator-Integration aktiv;** Application- und
-   Presentation-Weitergabe folgen separat.
-4. **Externe DTOs, Mapper und API-Verträge – offen;** erst auf den stabilisierten
-   Domain- und Data-Quality-Grenzen entwerfen.
-5. **Live-Datenprovider – offen;** erst nach gesonderter fachlicher und
-   architektonischer Freigabe anbinden.
+1. Theoretische Engine – abgeschlossen und stabil.
+2. Data-Quality-/Availability-/Freshness-/Source-Grundlagen – umgesetzt.
+3. Providerneutraler Produktkandidatenpfad – weit fortgeschritten.
+4. Bestehende Produkte am geplanten Einstieg berechnen – umgesetzt.
+5. Ziel-/Ist-Abweichungen – umgesetzt.
+6. Target Fit – Calculator umgesetzt.
+7. Target Fit auf Kandidaten anwenden – nächster Schritt.
+8. Kandidatenfreigabe sowie Auswahl/Ranking.
+9. Vollständige End-to-End-Produktpipeline.
+10. Erste UI-Ausgabe des berechneten Zertifikats.
+11. Produktive externe Datenprovider schrittweise anbinden.
+12. Später Qualitätsranking, Spread, Premium, Finanzierungskosten und weitere
+    Produktdetails verfeinern.
 
-Application und UI werden danach in kleinen, separat geprüften
-Migrationsschritten auf den neuen Vertrag umgestellt.
+## Aktueller Entwicklungsblock
+
+### Abgeschlossen
+
+`26A.19a – Target-Fit-Calculator`
+
+### Als Nächstes
+
+`26A.19b – Target Fit auf alle freigegebenen Produktkandidaten anwenden`
+
+Danach voraussichtlich:
+
+1. Target-Fit-Ergebnisse freigeben beziehungsweise ungeeignete Kandidaten sauber
+   trennen.
+2. Verbleibende Kandidaten transparent vergleichen oder ranken.
+3. Bestes Zertifikat und optional zwei Alternativen auswählen.
+4. Gesamtpipeline verbinden.
+5. Ergebnis im Android-UI anzeigen.
+
+## Meilenstein – Erste vollständige Zertifikatsauswahl
+
+Der Meilenstein ist erreicht, wenn die App aus
+`Basiswert + Broker + Zielhebel + geplantem Basiswertkurs` automatisch ein
+vorhandenes KO-Zertifikat auswählt und mindestens Emittent, WKN, berechneten
+Zertifikatspreis, tatsächlichen Hebel und KO-Barriere liefert.
+
+Dieser Meilenstein ist noch nicht vollständig erreicht; der mathematische
+Kandidatenpfad befindet sich kurz davor.
