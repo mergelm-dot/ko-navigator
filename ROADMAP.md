@@ -2,35 +2,39 @@
 
 ## Aktueller Entwicklungsstand
 
-### Stand nach 26A.19a
+### Stand nach 26A.23e
 
-Der providerneutrale Produktberechnungspfad ist weit fortgeschritten. Bereits
-vorhanden sind Produktkatalog, Broker-Verfügbarkeit, Emittentenauswahl,
-Marktdaten, Data Quality mit Gate, Calculation Availability mit Gate, Freshness
-mit Gate, Source-Freigabe mit Gate, Marktdatenberechnung mit Gate, theoretischer
-Zielhebel-Plan mit Gate, die Einstiegsberechnung bestehender KO-Produkte mit Gate,
-Ziel-/Ist-Abweichungen mit Gate sowie ein technischer Target-Fit anhand externer
-Toleranzen.
+Der providerneutrale Kandidaten- und Selection-Pfad ist technisch vollständig
+bis zu einer separaten Android-UI verdrahtet. Er umfasst Produktkatalog,
+Broker-Verfügbarkeit, Emittentenauswahl, Marktdaten, Data Quality,
+Calculation Availability, Freshness und Source-Freigabe jeweils mit Gate,
+Kandidatenberechnung, Zielhebelplanung, Einstiegsberechnung bestehender Produkte,
+Target Deviation, Target Fit, Ranking sowie Primary und bis zu zwei
+Alternativen. Auf dieser Basis sind Calculation-, Planned-Entry- und vollständige
+Selection-Pipeline, Presentation Mapping, Selection ViewModel, UI und
+Composition vorhanden.
 
-Aktueller letzter abgeschlossener fachlicher Schritt:
+Aktueller letzter abgeschlossener Schritt:
 
-`26A.19a – ExistingKnockoutProductTargetFitCalculator`
+`26A.23e – physischer Selection-Demo-Launcher`
 
-Der Target-Fit prüft transparent und getrennt die relative Hebelabweichung sowie
-die Barrierenabweichung relativ zum geplanten Einstieg. Feste Toleranzen sind
-nicht in der Engine hartcodiert.
+Der neue Selection-Pfad wurde mit kontrollierten synthetischen Debug-Daten auf
+einem physischen Android-Gerät sichtbar bestätigt. Er ist weiterhin parallel
+zum normalen App-Pfad; `MainActivity` verwendet ihn noch nicht.
 
-Aktueller JVM-Teststand: `2112/2112 erfolgreich`.
+Aktueller Debug-JVM-Teststand: `2294/2294 erfolgreich` (0 Fehlschläge,
+0 Fehler, 0 übersprungen).
 
 Bereits fertig sind die providerneutrale Architektur, Berechnungen mit
 vorhandenen Produktspezifikationen, die tatsächliche KO-Barriere eines
 existierenden Produkts, der tatsächlich berechnete Hebel am geplanten Einstieg,
-der Vergleich mit theoretischem Zielhebel, die Abweichungsberechnung und die
-technische Target-Fit-Prüfung.
+der Vergleich mit theoretischem Zielhebel, die Abweichungsberechnung, Target Fit,
+Auswahl und die technische Darstellung eines Ergebnisses im kontrollierten
+Debug-Pfad.
 
-Noch nicht vollständig fertig sind echte produktive Live-Provider, die
-vollständige reale Zertifikatsversorgung aller gewünschten Emittenten, ein
-belastbarer produktiver Bid-/Ask-Preisfluss, die finale produktive FX-Anbindung,
+Noch nicht vollständig fertig sind belastbare produktive Zertifikats- und
+Katalogdaten, reale Broker-Verfügbarkeit, ein aktueller produktiver
+Bid-/Ask-Preisfluss, ein produktiver FX-Provider für Cross-Currency,
 Finanzierungskosten, Aufgeld/Premium, Tick-Size-/produktbezogene Rundung und die
 finale Orderlogik. Ein vollständiger Live-Zertifikatshandelspfad besteht daher
 noch nicht.
@@ -80,7 +84,9 @@ Für einen realen Produktpfad weiterhin offen:
 
 ## Phase 3 – Zertifikatssuche
 
-### Providerneutraler Kandidatenpfad – weit fortgeschritten
+### Providerneutraler Kandidaten- und Selection-Pfad
+
+Status: Technischer/Synthetic-Debug-Meilenstein erreicht.
 
 - [x] Produktspezifikationen in den Kandidatenpfad übernehmen
 - [x] Broker-Verfügbarkeit berücksichtigen
@@ -94,16 +100,33 @@ Für einen realen Produktpfad weiterhin offen:
 - [x] Ziel-/Ist-Abweichungen berechnen
 - [x] Erfolgreiche Deviation-Ergebnisse freigeben
 - [x] Target-Fit-Calculator bereitstellen
+- [x] Target Fit auf alle freigegebenen Kandidaten anwenden und freigeben
+- [x] Kandidaten deterministisch nach Target Fit ranken
+- [x] Primary und bis zu zwei Alternativen aus der bestehenden Reihenfolge
+  auswählen
+- [x] Target-Selection- und Planned-Entry-Selection-Pfad orchestrieren
+- [x] Calculation Pipeline bis zu erfolgreichen Kandidaten orchestrieren
+- [x] Currency Conversion auf erfolgreiche Kandidaten anwenden
+- [x] Vollständige Selection Pipeline providerneutral orchestrieren
+- [x] Selection-Ergebnisse in stabile Presentation-Modelle abbilden
+- [x] Paralleles Selection ViewModel, Route und Compose-UI bereitstellen
+- [x] Selection Composition mit providerneutralen Abhängigkeiten verdrahten
+- [x] Remote-Adapter für Produktspezifikationskatalog und Broker-Verfügbarkeit
+  bereitstellen
+- [x] Lokalen HSBC-Research-Katalogprovider für kontrollierte Debug-Daten
+  bereitstellen
+- [x] Debug-Selection-Composition und physischen Selection-Demo-Launcher mit
+  kontrollierten synthetischen Daten bereitstellen und auf einem Android-Gerät
+  bestätigen
 
 Noch offen:
 
-- [ ] Target Fit auf alle freigegebenen Kandidaten anwenden (`26A.19b`)
-- [ ] Target-Fit-Ergebnisse fachlich freigeben oder filtern
-- [ ] Kandidaten transparent vergleichen
-- [ ] Bestes Zertifikat auswählen
-- [ ] Bis zu zwei Alternativen bereitstellen
-- [ ] Vollständige Produktpipeline zusammensetzen
-- [ ] Reale Zertifikatsdaten aus produktiven Providern laden
+- [ ] Belastbare produktive Zertifikats-/Katalogversorgung anbinden
+- [ ] Reale Broker-Verfügbarkeitsquelle anbinden
+- [ ] Realen aktuellen Produktmarktpreisfluss anbinden
+- [ ] Produktiven FX-Provider für Cross-Currency anbinden
+- [ ] Neuen Selection-Pfad erst nach belastbarer Datenversorgung im normalen
+  App-/`MainActivity`-Pfad aktivieren
 
 ## Ergebnisziel der ersten Version
 
@@ -146,8 +169,11 @@ Priorität: **P0 – Voraussetzung für belastbare reale Produktberechnungen**
 - [x] Reiner, providerfreier Same-/Cross-Currency-Rechenvertrag
 - [x] Marktdaten mit getrenntem Bid/Ask, Quelle und Zeitstempeln modelliert
 - [x] Explizite blockierende Freshness- und Source-Policies als Teilbasis
-- [ ] `CurrencyPolicy` als Freigabegrenze für reale FX-Daten vervollständigen
-- [ ] Austauschbaren `FXRateProvider` anbinden
+- [x] Providerneutralen `FxRateProvider`-Port sowie
+  `CurrencyConversionPolicy` als Freigabegrenze bereitstellen
+- [x] Currency Conversion für erfolgreiche Kandidaten mit typisierten
+  Policy-Ergebnissen anwenden
+- [ ] Austauschbaren produktiven `FxRateProvider` anbinden
 - [ ] FX-Paar, Richtung, Quelle und Zeitstempel realer Umrechnungen nachweisen
 - [ ] Fachlich freigegebene Freshness-Warnstufen ergänzen
 - [ ] Kontextabhängige Bid-/Ask-Policy für reale Produktabläufe ergänzen
@@ -213,43 +239,54 @@ Architekturgrundlage: [ADR-0005](docs/DECISIONS.md#adr-0005--mehrdimensionaler-z
 
 1. Theoretische Engine – abgeschlossen und stabil.
 2. Data-Quality-/Availability-/Freshness-/Source-Grundlagen – umgesetzt.
-3. Providerneutraler Produktkandidatenpfad – weit fortgeschritten.
+3. Providerneutraler Produktkandidatenpfad – umgesetzt.
 4. Bestehende Produkte am geplanten Einstieg berechnen – umgesetzt.
 5. Ziel-/Ist-Abweichungen – umgesetzt.
-6. Target Fit – Calculator umgesetzt.
-7. Target Fit auf Kandidaten anwenden – nächster Schritt.
-8. Kandidatenfreigabe sowie Auswahl/Ranking.
-9. Vollständige End-to-End-Produktpipeline.
-10. Erste UI-Ausgabe des berechneten Zertifikats.
-11. Produktive externe Datenprovider schrittweise anbinden.
-12. Später Qualitätsranking, Spread, Premium, Finanzierungskosten und weitere
+6. Target Fit, Kandidatenfreigabe, Ranking sowie Primary und Alternativen –
+   umgesetzt.
+7. Vollständige End-to-End-Selection-Pipeline inklusive Currency Conversion –
+   umgesetzt.
+8. Parallele Selection-UI und Debug-Composition – umgesetzt und auf einem
+   physischen Android-Gerät mit synthetischen Daten bestätigt.
+9. Produktive externe Datenprovider schrittweise anbinden: zuerst belastbare
+   Produkt-/Katalogquelle, dann reale Broker-Verfügbarkeit, aktueller
+   Marktpreisfluss und produktiver Cross-Currency-FX-Provider.
+10. Erst danach den neuen Selection-Pfad im normalen App-/`MainActivity`-Pfad
+    aktivieren.
+11. Später Qualitätsranking, Spread, Premium, Finanzierungskosten und weitere
     Produktdetails verfeinern.
 
 ## Aktueller Entwicklungsblock
 
 ### Abgeschlossen
 
-`26A.19a – Target-Fit-Calculator`
+`26A.19b bis 26A.23e – Selection-Pfad bis zum physischen Debug-Demo-Launcher`
 
-### Als Nächstes
+### Nächste Phase
 
-`26A.19b – Target Fit auf alle freigegebenen Produktkandidaten anwenden`
+Produktive externe Datenversorgung schrittweise anbinden.
 
-Danach voraussichtlich:
+Priorität:
 
-1. Target-Fit-Ergebnisse freigeben beziehungsweise ungeeignete Kandidaten sauber
-   trennen.
-2. Verbleibende Kandidaten transparent vergleichen oder ranken.
-3. Bestes Zertifikat und optional zwei Alternativen auswählen.
-4. Gesamtpipeline verbinden.
-5. Ergebnis im Android-UI anzeigen.
+1. Belastbare Produkt-/Katalogquelle.
+2. Reale Broker-Verfügbarkeit.
+3. Realer aktueller Marktpreisfluss.
+4. Produktiver FX-Provider für Cross-Currency.
+5. Erst danach den neuen Selection-Pfad im normalen App-Pfad aktivieren.
 
-## Meilenstein – Erste vollständige Zertifikatsauswahl
+## Meilenstein – Technische/Synthetic-Debug-Selection
 
-Der Meilenstein ist erreicht, wenn die App aus
-`Basiswert + Broker + Zielhebel + geplantem Basiswertkurs` automatisch ein
-vorhandenes KO-Zertifikat auswählt und mindestens Emittent, WKN, berechneten
-Zertifikatspreis, tatsächlichen Hebel und KO-Barriere liefert.
+**Erreicht.** Aus `Basiswert + Broker + Zielhebel + geplantem Basiswertkurs`
+erreicht die neue Selection Pipeline im separaten Debug-Pfad die sichtbare
+Android-UI. Der Ablauf wurde auf einem physischen Android-Gerät mit
+kontrollierten synthetischen Debug-Daten bestätigt und liefert mindestens
+Emittent, WKN, berechneten Zertifikatspreis, tatsächlichen Hebel und reale
+KO-Barriere.
 
-Dieser Meilenstein ist noch nicht vollständig erreicht; der mathematische
-Kandidatenpfad befindet sich kurz davor.
+## Meilenstein – Produktive Live-Selection
+
+**Noch nicht erreicht.** Der technische/Synthetic-Debug-Meilenstein ist keine
+produktive Live-Zertifikatsversorgung. Vor einer Aktivierung im normalen
+App-/`MainActivity`-Pfad fehlen insbesondere belastbare Produkt-/Katalogdaten,
+reale Broker-Verfügbarkeit, aktuelle Produktmarktpreise und ein produktiver
+FX-Provider für Cross-Currency.
