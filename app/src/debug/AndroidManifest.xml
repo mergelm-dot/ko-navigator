@@ -13,6 +13,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".debug.tradeplanner.TradePlannerSelectionDemoActivity"
+            android:exported="true"
+            android:label="@string/trade_planner_selection_demo_launcher_label"
+            android:theme="@style/Theme.KONavigator">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>
