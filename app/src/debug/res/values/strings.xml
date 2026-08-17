@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="trade_planner_selection_demo_launcher_label">Selection-Demo</string>
-    <string name="trade_planner_selection_demo_notice">DEBUG â€“ kontrollierte synthetische Daten. Keine Live-Marktdaten und keine reale Broker-Handelbarkeit.</string>
+    <string name="trade_planner_selection_demo_notice">DEBUG – kontrollierte synthetische Daten. Keine Live-Marktdaten und keine reale Broker-Handelbarkeit.</string>
     <string name="trade_planner_selection_demo_loading">Debug-Daten werden vorbereitet â€¦</string>
     <string name="trade_planner_selection_demo_preparation_failed">Selection-Demo konnte nicht vorbereitet werden.</string>
     <string name="market_data_demo_launcher_label">Engine-Demo</string>

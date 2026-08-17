@@ -1,5 +1,7 @@
 package de.konavigator.app.screens
 
+import android.content.ClipData
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -36,16 +38,25 @@ import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -67,6 +78,7 @@ import de.konavigator.app.presentation.tradeplanner.TradePlannerSelectionUiSubmi
 import de.konavigator.app.presentation.tradeplanner.TradePlannerSelectionUiText
 import java.text.NumberFormat
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 private val SelectionAppBackground = Color(0xFF040A0E)
 private val SelectionCardBackground = Color(0xFF0C171D)
@@ -75,6 +87,10 @@ private val SelectionPrimaryText = Color(0xFFF3F4F6)
 private val SelectionSecondaryText = Color(0xFF9CA3AF)
 private val SelectionAccentGreen = Color(0xFF20C967)
 private val SelectionDangerRed = Color(0xFFFF4D4D)
+private const val SelectionUnderlyingInputTestTag = "trade_planner_selection_underlying_input"
+private const val SelectionPrimaryCandidateTestTag = "trade_planner_selection_primary_candidate"
+private const val SelectionAlternativeCandidateTestTagPrefix =
+    "trade_planner_selection_alternative_candidate_"
 
 /** Parallele Compose-Ansicht für den vollständigen, providerneutralen Selection-Pfad. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,6 +124,17 @@ fun TradePlannerSelectionScreen(
     val selectedBrokerName = brokerOptions.firstOrNull {
         it.id == state.selectedBrokerId
     }?.displayName.orEmpty()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(state.submission) {
+        val completedResult =
+            (state.submission as? TradePlannerSelectionUiSubmission.Completed)?.result
+        if (completedResult is TradePlannerSelectionUiResult.Selected) {
+            focusManager.clearFocus()
+            keyboardController?.hide()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -166,7 +193,9 @@ fun TradePlannerSelectionScreen(
                             onPlannedEntryPriceChanged("")
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(SelectionUnderlyingInputTestTag)
                 )
                 SelectionFieldError(
                     errors = inputErrors,
@@ -491,27 +520,54 @@ private fun SelectionResultContent(
     result: TradePlannerSelectionUiResult.Selected,
     issuerOptions: List<TradePlannerIssuerUiOption>
 ) {
-    SelectionCandidateCard(
-        title = stringResource(R.string.trade_planner_selection_primary_title),
+    var detailsExpanded by rememberSaveable(result.primaryCandidate.productIsin) {
+        mutableStateOf(false)
+    }
+    var alternativesExpanded by rememberSaveable(
+        result.primaryCandidate.productIsin,
+        result.alternativeCandidates.map { it.productIsin }
+    ) {
+        mutableStateOf(false)
+    }
+
+    SelectionPrimaryCandidateCard(
         candidate = result.primaryCandidate,
-        issuerOptions = issuerOptions
+        issuerOptions = issuerOptions,
+        detailsExpanded = detailsExpanded,
+        onDetailsExpandedChange = { detailsExpanded = it }
     )
-    result.alternativeCandidates.forEachIndexed { index, candidate ->
-        Spacer(modifier = Modifier.height(16.dp))
-        SelectionCandidateCard(
-            title = stringResource(R.string.trade_planner_selection_alternative_title, index + 1),
-            candidate = candidate,
-            issuerOptions = issuerOptions
+
+    if (result.alternativeCandidates.isNotEmpty()) {
+        SelectionExpansionButton(
+            expanded = alternativesExpanded,
+            showText = stringResource(R.string.trade_planner_selection_show_alternatives),
+            hideText = stringResource(R.string.trade_planner_selection_hide_alternatives),
+            onExpandedChange = { alternativesExpanded = it }
         )
+    }
+
+    if (alternativesExpanded) {
+        result.alternativeCandidates.forEachIndexed { index, candidate ->
+            Spacer(modifier = Modifier.height(12.dp))
+            SelectionCompactAlternativeCard(
+                title = stringResource(
+                    R.string.trade_planner_selection_alternative_title,
+                    index + 1
+                ),
+                candidate = candidate,
+                issuerOptions = issuerOptions
+            )
+        }
     }
     SelectionDiagnostics(result.diagnostics)
 }
 
 @Composable
-private fun SelectionCandidateCard(
-    title: String,
+private fun SelectionPrimaryCandidateCard(
     candidate: TradePlannerSelectedProductUiModel,
-    issuerOptions: List<TradePlannerIssuerUiOption>
+    issuerOptions: List<TradePlannerIssuerUiOption>,
+    detailsExpanded: Boolean,
+    onDetailsExpandedChange: (Boolean) -> Unit
 ) {
     val priceFormatter = rememberNumberFormatter(2, 4)
     val leverageFormatter = rememberNumberFormatter(2, 4)
@@ -520,21 +576,196 @@ private fun SelectionCandidateCard(
     val issuerName = issuerOptions.firstOrNull { it.id == candidate.issuerId }
         ?.displayName
         ?: candidate.issuerId
+    val formattedProductPrice =
+        priceFormatter.format(candidate.calculatedProductPriceAtPlannedEntry)
+    val productPriceText = "$formattedProductPrice ${candidate.productCurrency}"
+    val clipboard = LocalClipboard.current
+    val coroutineScope = rememberCoroutineScope()
+    val wknLabel = stringResource(R.string.trade_planner_selection_wkn_label)
+    val priceLabel = stringResource(R.string.trade_planner_selection_product_price_label)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SelectionPrimaryCandidateTestTag),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = SelectionCardBackground),
         border = BorderStroke(width = 1.dp, color = SelectionBorderColor)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(
+                horizontal = 20.dp,
+                vertical = if (detailsExpanded) 20.dp else 12.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(
+                if (detailsExpanded) 12.dp else 6.dp
+            )
+        ) {
+            Text(
+                text = stringResource(R.string.trade_planner_selection_primary_title),
+                color = SelectionPrimaryText,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            SelectionValueRow(
+                label = stringResource(R.string.trade_planner_selection_issuer_label),
+                value = issuerName
+            )
+            SelectionCopyableValueRow(
+                label = wknLabel,
+                value = candidate.productWkn
+                    ?: stringResource(R.string.trade_planner_selection_not_available),
+                copyContentDescription = candidate.productWkn?.let {
+                    stringResource(R.string.trade_planner_selection_copy_value, wknLabel)
+                },
+                onCopy = candidate.productWkn?.let { productWkn ->
+                    {
+                        coroutineScope.launch {
+                            clipboard.setClipEntry(
+                                ClipEntry(ClipData.newPlainText(wknLabel, productWkn))
+                            )
+                        }
+                    }
+                }
+            )
+            SelectionCopyableValueRow(
+                label = priceLabel,
+                value = productPriceText,
+                copyContentDescription = stringResource(
+                    R.string.trade_planner_selection_copy_value,
+                    priceLabel
+                ),
+                onCopy = {
+                    coroutineScope.launch {
+                        clipboard.setClipEntry(
+                            ClipEntry(ClipData.newPlainText(priceLabel, formattedProductPrice))
+                        )
+                    }
+                }
+            )
+            SelectionExpansionButton(
+                expanded = detailsExpanded,
+                showText = stringResource(R.string.trade_planner_selection_show_details),
+                hideText = stringResource(R.string.trade_planner_selection_hide_details),
+                onExpandedChange = onDetailsExpandedChange
+            )
+            if (detailsExpanded) {
+                SelectionCandidateDetails(
+                    candidate = candidate,
+                    leverageFormatter = leverageFormatter,
+                    barrierFormatter = barrierFormatter,
+                    percentFormatter = percentFormatter
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionCandidateDetails(
+    candidate: TradePlannerSelectedProductUiModel,
+    leverageFormatter: NumberFormat,
+    barrierFormatter: NumberFormat,
+    percentFormatter: NumberFormat
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SelectionValueRow(
+            label = stringResource(R.string.trade_planner_selection_isin_label),
+            value = candidate.productIsin
+        )
+        SelectionValueRow(
+            label = stringResource(R.string.trade_planner_selection_product_currency_label),
+            value = candidate.productCurrency
+        )
+        SelectionValueRow(
+            label = stringResource(R.string.trade_planner_selection_leverage_label),
+            value = stringResource(
+                R.string.trade_planner_selection_leverage_value,
+                leverageFormatter.format(candidate.calculatedLeverageAtPlannedEntry)
+            )
+        )
+        SelectionValueRow(
+            label = stringResource(R.string.trade_planner_selection_knockout_barrier_label),
+            value = barrierFormatter.format(candidate.knockoutBarrier)
+        )
+        SelectionValueRow(
+            label = stringResource(
+                R.string.trade_planner_selection_knockout_distance_percent_label
+            ),
+            value = stringResource(
+                R.string.trade_planner_selection_percent_value,
+                percentFormatter.format(candidate.knockoutDistancePercent)
+            )
+        )
+        SelectionValueRow(
+            label = stringResource(
+                R.string.trade_planner_selection_knockout_distance_absolute_label
+            ),
+            value = barrierFormatter.format(candidate.knockoutDistanceAbsolute)
+        )
+        SelectionValueRow(
+            label = stringResource(
+                R.string.trade_planner_selection_relative_leverage_deviation_label
+            ),
+            value = stringResource(
+                R.string.trade_planner_selection_percent_value,
+                percentFormatter.format(candidate.relativeLeverageDeviationPercent)
+            )
+        )
+        SelectionValueRow(
+            label = stringResource(R.string.trade_planner_selection_barrier_deviation_label),
+            value = stringResource(
+                R.string.trade_planner_selection_percent_value,
+                percentFormatter.format(candidate.barrierDeviationPercentOfPlannedEntry)
+            )
+        )
+        SelectionBooleanValueRow(
+            label = stringResource(
+                R.string.trade_planner_selection_leverage_within_tolerance_label
+            ),
+            value = candidate.leverageWithinTolerance
+        )
+        SelectionBooleanValueRow(
+            label = stringResource(
+                R.string.trade_planner_selection_barrier_within_tolerance_label
+            ),
+            value = candidate.barrierWithinTolerance
+        )
+        SelectionBooleanValueRow(
+            label = stringResource(R.string.trade_planner_selection_all_tolerances_label),
+            value = candidate.withinAllTargetTolerances
+        )
+        SelectionCurrencyEvidence(candidate.currencyEvidence)
+    }
+}
+
+@Composable
+private fun SelectionCompactAlternativeCard(
+    title: String,
+    candidate: TradePlannerSelectedProductUiModel,
+    issuerOptions: List<TradePlannerIssuerUiOption>
+) {
+    val priceFormatter = rememberNumberFormatter(2, 4)
+    val issuerName = issuerOptions.firstOrNull { it.id == candidate.issuerId }
+        ?.displayName
+        ?: candidate.issuerId
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SelectionAlternativeCandidateTestTagPrefix + candidate.productIsin),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = SelectionCardBackground),
+        border = BorderStroke(width = 1.dp, color = SelectionBorderColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = title,
                 color = SelectionPrimaryText,
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
             SelectionValueRow(
@@ -547,63 +778,82 @@ private fun SelectionCandidateCard(
                     ?: stringResource(R.string.trade_planner_selection_not_available)
             )
             SelectionValueRow(
-                label = stringResource(R.string.trade_planner_selection_isin_label),
-                value = candidate.productIsin
-            )
-            SelectionValueRow(
                 label = stringResource(R.string.trade_planner_selection_product_price_label),
-                value = "${priceFormatter.format(candidate.calculatedProductPriceAtPlannedEntry)} " +
-                    candidate.productCurrency
+                value =
+                    "${priceFormatter.format(candidate.calculatedProductPriceAtPlannedEntry)} " +
+                        candidate.productCurrency
             )
-            SelectionValueRow(
-                label = stringResource(R.string.trade_planner_selection_product_currency_label),
-                value = candidate.productCurrency
-            )
-            SelectionValueRow(
-                label = stringResource(R.string.trade_planner_selection_leverage_label),
-                value = stringResource(
-                    R.string.trade_planner_selection_leverage_value,
-                    leverageFormatter.format(candidate.calculatedLeverageAtPlannedEntry)
-                )
-            )
-            SelectionValueRow(
-                label = stringResource(R.string.trade_planner_selection_knockout_barrier_label),
-                value = barrierFormatter.format(candidate.knockoutBarrier)
-            )
-            SelectionValueRow(
-                label = stringResource(
-                    R.string.trade_planner_selection_knockout_distance_percent_label
-                ),
-                value = stringResource(
-                    R.string.trade_planner_selection_percent_value,
-                    percentFormatter.format(candidate.knockoutDistancePercent)
-                )
-            )
-            SelectionValueRow(
-                label = stringResource(
-                    R.string.trade_planner_selection_knockout_distance_absolute_label
-                ),
-                value = barrierFormatter.format(candidate.knockoutDistanceAbsolute)
-            )
-            SelectionValueRow(
-                label = stringResource(
-                    R.string.trade_planner_selection_relative_leverage_deviation_label
-                ),
-                value = stringResource(
-                    R.string.trade_planner_selection_percent_value,
-                    percentFormatter.format(candidate.relativeLeverageDeviationPercent)
-                )
-            )
-            SelectionValueRow(
-                label = stringResource(R.string.trade_planner_selection_barrier_deviation_label),
-                value = stringResource(
-                    R.string.trade_planner_selection_percent_value,
-                    percentFormatter.format(candidate.barrierDeviationPercentOfPlannedEntry)
-                )
-            )
-            SelectionCurrencyEvidence(candidate.currencyEvidence)
         }
     }
+}
+
+@Composable
+private fun SelectionExpansionButton(
+    expanded: Boolean,
+    showText: String,
+    hideText: String,
+    onExpandedChange: (Boolean) -> Unit
+) {
+    TextButton(
+        onClick = { onExpandedChange(!expanded) },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(text = if (expanded) hideText else showText)
+    }
+}
+
+@Composable
+private fun SelectionCopyableValueRow(
+    label: String,
+    value: String,
+    copyContentDescription: String?,
+    onCopy: (() -> Unit)?
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(text = label, color = SelectionSecondaryText, fontSize = 13.sp)
+            Text(
+                text = value,
+                color = SelectionPrimaryText,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        if (onCopy != null && copyContentDescription != null) {
+            TextButton(
+                onClick = onCopy,
+                modifier = Modifier.semantics {
+                    contentDescription = copyContentDescription
+                }
+            ) {
+                Text(stringResource(R.string.trade_planner_selection_copy))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionBooleanValueRow(
+    label: String,
+    value: Boolean
+) {
+    SelectionValueRow(
+        label = label,
+        value = stringResource(
+            if (value) {
+                R.string.trade_planner_selection_yes
+            } else {
+                R.string.trade_planner_selection_no
+            }
+        )
+    )
 }
 
 @Composable

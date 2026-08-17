@@ -61,12 +61,18 @@
     <string name="trade_planner_selection_error_target_leverage_required">Zielhebel ist erforderlich.</string>
     <string name="trade_planner_selection_error_target_leverage_invalid">Zielhebel muss eine endliche Zahl größer als 1 sein.</string>
 
-    <string name="trade_planner_selection_primary_title">Technische Hauptauswahl</string>
+    <string name="trade_planner_selection_primary_title">Hauptauswahl</string>
     <string name="trade_planner_selection_alternative_title">Alternative %1$d</string>
     <string name="trade_planner_selection_issuer_label">Emittent</string>
     <string name="trade_planner_selection_wkn_label">WKN</string>
     <string name="trade_planner_selection_isin_label">ISIN</string>
-    <string name="trade_planner_selection_product_price_label">Berechneter Zertifikatspreis am Einstieg</string>
+    <string name="trade_planner_selection_product_price_label">Preis am Einstieg</string>
+    <string name="trade_planner_selection_copy">Kopieren</string>
+    <string name="trade_planner_selection_copy_value">%1$s kopieren</string>
+    <string name="trade_planner_selection_show_details">Berechnungsdetails anzeigen</string>
+    <string name="trade_planner_selection_hide_details">Berechnungsdetails ausblenden</string>
+    <string name="trade_planner_selection_show_alternatives">Alternativen anzeigen</string>
+    <string name="trade_planner_selection_hide_alternatives">Alternativen ausblenden</string>
     <string name="trade_planner_selection_product_currency_label">Produktwährung</string>
     <string name="trade_planner_selection_leverage_label">Berechneter Hebel am Einstieg</string>
     <string name="trade_planner_selection_knockout_barrier_label">Reale KO-Barriere</string>
@@ -74,6 +80,11 @@
     <string name="trade_planner_selection_knockout_distance_absolute_label">KO-Abstand absolut</string>
     <string name="trade_planner_selection_relative_leverage_deviation_label">Relative Hebelabweichung</string>
     <string name="trade_planner_selection_barrier_deviation_label">Barrierenabweichung zum Einstieg</string>
+    <string name="trade_planner_selection_leverage_within_tolerance_label">Hebel innerhalb der Ziel-Toleranz</string>
+    <string name="trade_planner_selection_barrier_within_tolerance_label">KO-Barriere innerhalb der Ziel-Toleranz</string>
+    <string name="trade_planner_selection_all_tolerances_label">Alle Ziel-Toleranzen erfüllt</string>
+    <string name="trade_planner_selection_yes">Ja</string>
+    <string name="trade_planner_selection_no">Nein</string>
     <string name="trade_planner_selection_not_available">Nicht verfügbar</string>
     <string name="trade_planner_selection_leverage_value">%1$sx</string>
     <string name="trade_planner_selection_percent_value">%1$s %%</string>
