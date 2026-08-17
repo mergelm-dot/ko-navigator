@@ -105,9 +105,12 @@ class HsbcDeutscheBoerseTradePlannerSelectionDemoCompositionTest {
         assertEquals("SYN001", primary.productWkn)
         assertEquals("synthetic-issuer", primary.issuerId)
         assertEquals("EUR", primary.productCurrency)
-        assertEquals(1.0, primary.calculatedProductPriceAtPlannedEntry, 0.0)
-        assertEquals(10.0, primary.calculatedLeverageAtPlannedEntry, 0.0)
+        assertEquals(2.0, primary.calculatedProductPriceAtPlannedEntry, 0.0)
+        assertEquals(5.0, primary.calculatedLeverageAtPlannedEntry, 0.0)
         assertEquals(80.0, primary.knockoutBarrier, 0.0)
+        assertEquals(20.0, primary.knockoutDistancePercent, 0.0)
+        assertEquals(0.0, primary.relativeLeverageDeviationPercent, 0.0)
+        assertEquals(0.0, primary.barrierDeviationPercentOfPlannedEntry, 0.0)
         assertSame(TradePlannerSelectionCurrencyEvidence.SameCurrency, primary.currencyEvidence)
         assertTrue(selected.alternativeCandidates.isEmpty())
         assertEquals(BROKER_ID, brokerProvider.brokerIds.single())
@@ -431,7 +434,8 @@ class HsbcDeutscheBoerseTradePlannerSelectionDemoCompositionTest {
             productIsin = PRODUCT_A,
             underlyingId = UNDERLYING_ID,
             directionLabel = "Call",
-            productWkn = "SYN001"
+            productWkn = "SYN001",
+            basePrice = 80.0
         ),
         PRODUCT_B to writeHsbcJson(
             productIsin = PRODUCT_B,
@@ -470,7 +474,8 @@ class HsbcDeutscheBoerseTradePlannerSelectionDemoCompositionTest {
         productIsin: String,
         underlyingId: String,
         directionLabel: String,
-        productWkn: String
+        productWkn: String,
+        basePrice: Double = 90.0
     ) = writeTextFile(
         "hsbc-${fileCounter++}.json",
         """{
@@ -479,7 +484,7 @@ class HsbcDeutscheBoerseTradePlannerSelectionDemoCompositionTest {
             "issuerId":"synthetic-issuer",
             "underlyingId":"$underlyingId",
             "directionLabel":"$directionLabel",
-            "basePrice":90.0,
+            "basePrice":$basePrice,
             "knockoutBarrier":80.0,
             "ratio":0.1,
             "underlyingCurrency":"EUR",

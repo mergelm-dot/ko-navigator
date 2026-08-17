@@ -135,12 +135,14 @@ object HsbcDeutscheBoerseTradePlannerSelectionDeviceDemo {
                 PRODUCT_A_ISIN to writeHsbcResearchJson(
                     directory = fixtureDirectory,
                     productIsin = PRODUCT_A_ISIN,
-                    productWkn = PRODUCT_A_WKN
+                    productWkn = PRODUCT_A_WKN,
+                    basePrice = 80.0
                 ),
                 PRODUCT_B_ISIN to writeHsbcResearchJson(
                     directory = fixtureDirectory,
                     productIsin = PRODUCT_B_ISIN,
-                    productWkn = PRODUCT_B_WKN
+                    productWkn = PRODUCT_B_WKN,
+                    basePrice = 90.0
                 )
             )
             val dxscGzipFile = writeDxscGzip(
@@ -173,7 +175,8 @@ object HsbcDeutscheBoerseTradePlannerSelectionDeviceDemo {
     private fun writeHsbcResearchJson(
         directory: File,
         productIsin: String,
-        productWkn: String
+        productWkn: String,
+        basePrice: Double
     ): File = File(directory, "hsbc-$productIsin.json").also { file ->
         file.writeText(
             text = """{
@@ -182,7 +185,7 @@ object HsbcDeutscheBoerseTradePlannerSelectionDeviceDemo {
                 "issuerId":"$SYNTHETIC_ISSUER_ID",
                 "underlyingId":"$NVIDIA_UNDERLYING_ID",
                 "directionLabel":"Call",
-                "basePrice":90.0,
+                "basePrice":$basePrice,
                 "knockoutBarrier":80.0,
                 "ratio":0.1,
                 "underlyingCurrency":"USD",
